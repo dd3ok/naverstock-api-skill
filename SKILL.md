@@ -37,12 +37,12 @@ description: Use when a user asks to inspect, catalog, or call unofficial read-o
 | 국내 시장 랭킹, 시총 목록, 배당, IPO 진행, 업종/테마 랭킹 | `scripts/market_stock.py` | [references/api-catalog.md](references/api-catalog.md) |
 | 업종/테마/그룹사 상세 페이지와 구성 종목 | `scripts/category_detail.py` | [references/api-catalog.md](references/api-catalog.md) |
 | 국내 ETF 목록과 ETF 필터 | `scripts/domestic_etf.py` | [references/api-catalog.md](references/api-catalog.md) |
-| 예탁금과 국내 투자자 동향 집계 | `scripts/market_trend.py` | [references/api-catalog.md](references/api-catalog.md) |
-| KOSPI/KOSDAQ/KPI200, 원자재, 금리, 시장지표, 지수 차트 | `scripts/marketindex.py` | [references/api-catalog.md](references/api-catalog.md) |
+| 예탁금, 국내 투자자 동향 집계, 외국인/기관 투자자 동향 랭킹 | `scripts/market_trend.py` | [references/api-catalog.md](references/api-catalog.md) |
+| KOSPI/KOSDAQ/KPI200, 원자재, 운임, 금리, 시장지표, 지수 차트 | `scripts/marketindex.py` | [references/api-catalog.md](references/api-catalog.md) |
 | 가상자산 랭킹, 주요 코인, 폴링 가격, 캔들 | `scripts/crypto.py` | [references/api-catalog.md](references/api-catalog.md) |
 | 시장 뉴스, 포커스 섹션, 키워드 검색 | `scripts/news.py` | [references/api-catalog.md](references/api-catalog.md) |
 | 리서치 리포트 카테고리, 증권사 목록, 최근 인기 리포트 | `scripts/research.py` | [references/api-catalog.md](references/api-catalog.md) |
-| 종목토론 글, 인기 글, 상세/이전다음/관련 글 | `scripts/discussion.py` | [references/api-catalog.md](references/api-catalog.md) |
+| 종목토론 글, 인기 글, 상세/이전다음/관련 글, 종목 토론 랭킹 | `scripts/discussion.py` | [references/api-catalog.md](references/api-catalog.md) |
 | 새 엔드포인트 캡처 또는 문서화되지 않은 페이지 분석 | 브라우저 네트워크 캡처와 chunk 검사 | [references/capture-workflow.md](references/capture-workflow.md), [references/safety-rules.md](references/safety-rules.md) |
 
 ## 기본 절차
@@ -64,12 +64,12 @@ description: Use when a user asks to inspect, catalog, or call unofficial read-o
 - `scripts/market_stock.py`: 국내 종목 랭킹/목록, 배당 랭킹, 검색 인기, IPO 진행, 업종/테마 랭킹 조회.
 - `scripts/category_detail.py`: 업종/테마/그룹사 랭킹 목록, 상세 정보, 구성 종목 조회.
 - `scripts/domestic_etf.py`: 국내 ETF 목록, ETF 테마, ETF 레버리지 유형 메타데이터, ETN 목록 조회.
-- `scripts/market_trend.py`: 투자자 예탁금 목록/차트와 시장 집계 투자자 동향 조회.
+- `scripts/market_trend.py`: 투자자 예탁금 목록/차트, 시장 집계 투자자 동향, 외국인/기관 투자자 동향 랭킹 조회.
 - `scripts/marketindex.py`: 주요 지수 목록, 시장지표 카테고리, 지수 폴링, 지수 차트 조회.
 - `scripts/crypto.py`: 업비트/빗썸 랭킹, 주요 코인, 폴링 가격, 분봉 캔들 조회.
 - `scripts/news.py`: 시장 뉴스 목록, 포커스 카테고리, 키워드 검색 조회.
 - `scripts/research.py`: 리서치 카테고리별 목록, 최근 인기 리서치, 증권사 목록, 리포트 상세, 리서치 홈 집계 블록 조회.
-- `scripts/discussion.py`: 읽기 전용 종목토론 인기 목록, 글 상세, 이전/다음 글, 관련 인기 글 조회.
+- `scripts/discussion.py`: 읽기 전용 종목토론 인기 목록, 글 상세, 이전/다음 글, 관련 인기 글, 종목 토론 랭킹 조회.
 
 옵션은 `python3 scripts/<name>.py --help`로 확인하고, 자주 쓰는 명령은 [references/script-cookbook.md](references/script-cookbook.md)를 참고합니다.
 
@@ -86,13 +86,16 @@ python3 scripts/category_detail.py stocks theme --rank 1 --page-size 10
 python3 scripts/domestic_etf.py list --listing-type priceTop --size 10
 python3 scripts/domestic_etf.py etn-list --order-type priceTop --page-size 10
 python3 scripts/market_trend.py deposit --page-size 10
+python3 scripts/market_trend.py trend-foreign-org --page-size 10
 python3 scripts/marketindex.py majors
 python3 scripts/marketindex.py category --category energy
+python3 scripts/marketindex.py category --category transport
 python3 scripts/crypto.py rank --market UPBIT --sort-type marketValue --page-size 10
 python3 scripts/news.py list --category mainnews --page-size 10
 python3 scripts/news.py notice --page-size 10
 python3 scripts/research.py category --category COMPANY --page-size 10
 python3 scripts/discussion.py hot-home --page-size 10
+python3 scripts/discussion.py rankings --size 10
 ```
 
 ## 사용 프롬프트

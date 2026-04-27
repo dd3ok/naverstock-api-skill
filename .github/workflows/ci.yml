@@ -20,3 +20,5 @@ jobs:
           for file in scripts/*.py; do
             python "$file" --help >/dev/null
           done
+      - name: Run tests
+        run: python -m unittest discover -s tests

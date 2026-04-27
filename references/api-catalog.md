@@ -104,8 +104,9 @@
 | 업종/테마/그룹사 구성 종목 | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/{no}/stocklist?marketType=ALL&orderType=quantTop&startIdx=0&pageSize=20` |
 | 시장 집계 투자자 동향 | `needs-recheck` | POST | `/api/domestic/home/marketaggregate/aggregateInvestor`, JSON body는 `sections`, `tradeType`, `marketType`, `periodType`, 날짜를 포함합니다. |
 | 시장 집계 투자자 랭킹 | `needs-recheck` | POST | `/api/domestic/home/marketaggregate/aggregateInvestorRanking`, ranking section fields, `startIdx`, `pageSize`를 포함합니다. |
-| 투자자 예탁금 목록 | `observed` | GET | `/api/domestic/market/trendDeposit?startIdx=0&pageSize=20` |
-| 투자자 예탁금 차트 | `observed` | GET | `/api/domestic/market/trendDeposit/chart?startDate={yyyyMMdd}&endDate={yyyyMMdd}` |
+| 투자자 예탁금 목록 | `script-backed` | GET | `/api/domestic/market/trendDeposit?startIdx=0&pageSize=20` |
+| 투자자 예탁금 차트 | `script-backed` | GET | `/api/domestic/market/trendDeposit/chart?startDate={yyyyMMdd}&endDate={yyyyMMdd}` |
+| 외국인/기관 투자자 동향 랭킹 | `script-backed` | GET | `/api/domestic/market/trend/trendForeignOrg?marketType=ALL&tradeType=KRX&page=1&pageSize=20` |
 | 업종 전체 시가총액 | `observed` | GET | `/api/domestic/market/home/upjong/totalMarketSum?type=upjong` |
 | ETF 테마 | `observed` | GET | `/api/domestic/market/etf/themes` |
 | 국내 ETF 목록 | `script-backed` | GET | `/api/stockSecurity/etfs/v1/domestic?listingType=tradingValueDesc&size=20&index=0` |
@@ -152,7 +153,7 @@
 | 지수 가격 이력 | `observed` | GET | `/api/securityFe/api/index/{reutersCode}/price?page=1&pageSize=20` |
 | 국내 지수 폴링 | `script-backed` | GET | `/api/polling/domestic/index?itemCodes=KOSPI,KOSDAQ,KPI200` |
 | 지수 차트 | `script-backed` | GET | `/api/securityService/chart/domestic/index/{code}?periodType=day` |
-| 원자재 지표 | `script-backed` | GET | `/api/securityService/marketindex/energy`, `/metals`, `/agricultural` |
+| 원자재/운임 지표 | `script-backed` | GET | `/api/securityService/marketindex/energy`, `/metals`, `/agricultural`, `/transport` |
 | 국내 금리 | `script-backed` | GET | `/api/securityService/marketindex/domesticInterest` |
 | 기타 지표 카테고리 | `observed` | GET | `/api/securityService/marketindex/exchange`, `/bond`, `/standardInterest` 및 각 카테고리 상세 path |
 | 지표 상세 | `script-backed` | GET | `/api/securityService/marketindex/{energy\|metals\|agricultural\|exchange}/{reutersCode}` |
@@ -228,7 +229,7 @@
 | 최신 종목 글 | `observed` | GET | `/api/community/discussion/items/posts/latest?domesticCodes={codes}&limit=10` |
 | 댓글 수 | `observed` | GET | `/api/community/discussion/posts/comment-counts?postIds={ids}` |
 | 반응 조회 | `observed` | GET | `/api/community/discussion/posts/reactions?postIds={ids}` |
-| 랭킹 | `observed` | GET | `/api/community/discussion/rankings?nationType=KOR&page=1&size=20&postType=HOT` |
+| 랭킹 | `script-backed` | GET | `/api/community/discussion/rankings?nationType=KOR&page=1&size=20&postType=HOT` |
 | 종목 통계 | `observed` | GET | `/api/community/discussion/stats/by-items?itemCodes={codes}` |
 
 작성, 프로필 편집, 이미지 업로드, 닉네임 검증/추천, 반응 mutation, 인증된 커뮤니티 프로필 워크플로는 피합니다.

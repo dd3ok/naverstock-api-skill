@@ -50,6 +50,20 @@ def fetch_popular_hot(args: argparse.Namespace) -> Any:
     )
 
 
+def fetch_rankings(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/community/discussion/rankings",
+            {
+                "nationType": args.nation_type,
+                "page": args.page,
+                "size": args.size,
+                "postType": args.post_type,
+            },
+        )
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -87,6 +101,14 @@ def main() -> None:
     popular.add_argument("--viewer-profile-id")
     popular.add_argument("--output")
     popular.set_defaults(func=fetch_popular_hot)
+
+    rankings = sub.add_parser("rankings", help="Discussion item rankings")
+    rankings.add_argument("--nation-type", choices=["KOR", "USA"], default="KOR")
+    rankings.add_argument("--page", type=int, default=1)
+    rankings.add_argument("--size", type=int, default=20)
+    rankings.add_argument("--post-type", choices=["HOT", "LATEST"], default="HOT")
+    rankings.add_argument("--output")
+    rankings.set_defaults(func=fetch_rankings)
 
     args = parser.parse_args()
     emit_output(render_json(args.func(args)), args.output)

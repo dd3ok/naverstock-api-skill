@@ -32,6 +32,7 @@ python3 scripts/domestic_etf.py themes
 python3 scripts/domestic_etf.py etn-list --order-type priceTop --page-size 10
 python3 scripts/market_trend.py deposit --page-size 10
 python3 scripts/market_trend.py aggregate --market-type KOSPI --period-type TIME
+python3 scripts/market_trend.py trend-foreign-org --market-type ALL --trade-type KRX --page-size 10
 ```
 
 ## 시장 지수와 지표
@@ -47,6 +48,7 @@ python3 scripts/marketindex.py economic-upcoming --limit 5
 python3 scripts/marketindex.py exchange-rates --currencies USD,JPY
 python3 scripts/marketindex.py category --category metals
 python3 scripts/marketindex.py category --category domesticInterest
+python3 scripts/marketindex.py category --category transport
 ```
 
 ## 가상자산
@@ -77,4 +79,5 @@ python3 scripts/research.py detail --category COMPANY --research-id 91965
 python3 scripts/discussion.py hot-home --page-size 10
 python3 scripts/discussion.py post --post-id 418462889
 python3 scripts/discussion.py related-hot --item-code 005930 --page-size 5
+python3 scripts/discussion.py rankings --nation-type KOR --post-type HOT --size 10
 ```

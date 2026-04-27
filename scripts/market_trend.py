@@ -35,6 +35,20 @@ def fetch_aggregate(args: argparse.Namespace) -> Any:
     return request_json("/api/domestic/home/marketaggregate/aggregateInvestor", method="POST", body=body)
 
 
+def fetch_trend_foreign_org(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/domestic/market/trend/trendForeignOrg",
+            {
+                "marketType": args.market_type,
+                "tradeType": args.trade_type,
+                "page": args.page,
+                "pageSize": args.page_size,
+            },
+        )
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -59,6 +73,14 @@ def main() -> None:
     aggregate.add_argument("--end-date")
     aggregate.add_argument("--output")
     aggregate.set_defaults(func=fetch_aggregate)
+
+    trend_foreign_org = sub.add_parser("trend-foreign-org", help="Foreign and institution market trend rankings")
+    trend_foreign_org.add_argument("--market-type", choices=["ALL", "KOSPI", "KOSDAQ"], default="ALL")
+    trend_foreign_org.add_argument("--trade-type", choices=["KRX", "NXT"], default="KRX")
+    trend_foreign_org.add_argument("--page", type=int, default=1)
+    trend_foreign_org.add_argument("--page-size", type=int, default=20)
+    trend_foreign_org.add_argument("--output")
+    trend_foreign_org.set_defaults(func=fetch_trend_foreign_org)
 
     args = parser.parse_args()
     emit_output(render_json(args.func(args)), args.output)
