@@ -1,8 +1,8 @@
 # 네이버증권 API 스킬 - Naver Stock Web API Skill
 
-`naverstock-web-api`는 네이버증권(`stock.naver.com`)에서 확인되는 비공식 읽기 전용 웹 API, 내부 API, 네트워크 호출을 점검하고 사용하는 Codex 스킬이다. 네이버증권 API, 네이버 주식 API, Naver Stock API, 국내 주식 시세 API, ETF/ETN, 업종/테마/그룹사 구성 종목, 시장지표, 가상자산, 뉴스, 리서치, 종목토론 데이터를 다룬다.
+`naverstock-web-api`는 네이버증권(`stock.naver.com`)에서 확인되는 비공식 읽기 전용 웹 API, 내부 API, 네트워크 호출을 점검하고 사용하는 Codex 스킬입니다. 네이버증권 API, 네이버 주식 API, Naver Stock API, 국내 주식 시세 API, ETF/ETN, 업종/테마/그룹사 구성 종목, 시장지표, 가상자산, 뉴스, 리서치, 종목토론 데이터를 다룹니다.
 
-네이버증권은 별도 공개 API를 제공하지 않는다. 이 저장소의 엔드포인트는 모두 공개 페이지에서 관찰한 미문서화 내부 웹 호출이며, 실제 사용 전에는 현재 `stock.naver.com` 페이지 기준으로 재검증해야 한다.
+네이버증권은 별도 공개 API를 제공하지 않습니다. 이 저장소의 엔드포인트는 모두 공개 페이지에서 관찰한 미문서화 내부 웹 호출이며, 실제 사용 전에는 현재 `stock.naver.com` 페이지 기준으로 재검증해야 합니다.
 
 ## 목차
 
@@ -29,7 +29,7 @@
 
 ### Codex에 설치
 
-Codex의 스킬 디렉터리에 이 저장소를 clone한다. `CODEX_HOME`을 따로 설정하지 않았다면 기본값은 보통 `~/.codex`다.
+Codex의 스킬 디렉터리에 이 저장소를 clone합니다. `CODEX_HOME`을 따로 설정하지 않았다면 기본값은 보통 `~/.codex`입니다.
 
 ```bash
 mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
@@ -37,18 +37,18 @@ git clone https://github.com/dd3ok/naverstock-api-skills.git \
   "${CODEX_HOME:-$HOME/.codex}/skills/naverstock-web-api"
 ```
 
-이미 설치되어 있다면 최신 버전으로 갱신한다.
+이미 설치되어 있다면 최신 버전으로 갱신합니다.
 
 ```bash
 cd "${CODEX_HOME:-$HOME/.codex}/skills/naverstock-web-api"
 git pull
 ```
 
-설치 후 새 Codex 세션에서 `$naverstock-web-api`를 언급하면 스킬을 사용할 수 있다.
+설치 후 새 Codex 세션에서 `$naverstock-web-api`를 언급하면 스킬을 사용할 수 있습니다.
 
 ### 로컬 스크립트만 사용
 
-스킬 설치 없이 스크립트만 실행하려면 저장소를 clone한 뒤 Python 3로 실행한다. 현재 스크립트는 표준 라이브러리 중심으로 작성되어 별도 패키지 설치 없이 동작하도록 구성되어 있다.
+스킬 설치 없이 스크립트만 실행하려면 저장소를 clone한 뒤 Python 3로 실행합니다. 현재 스크립트는 표준 라이브러리 중심으로 작성되어 별도 패키지 설치 없이 동작하도록 구성되어 있습니다.
 
 ```bash
 git clone https://github.com/dd3ok/naverstock-api-skills.git
@@ -58,11 +58,11 @@ python3 scripts/stock_summary.py --code 005930 --include-industry
 
 ### Claude, Gemini, 다른 agent 환경
 
-이 저장소는 `SKILL.md` 중심 구조를 사용한다. Claude Code, Gemini CLI, 사내 agent처럼 로컬 지침 파일을 읽을 수 있는 환경에서는 저장소를 clone한 뒤 `SKILL.md`, `references/`, `scripts/`를 함께 참조하도록 설정한다. 각 도구의 스킬/메모리/프로젝트 지침 위치가 다르므로, 해당 도구가 지원하는 방식으로 이 폴더를 연결한다.
+이 저장소는 `SKILL.md` 중심 구조를 사용합니다. Claude Code, Gemini CLI, 사내 agent처럼 로컬 지침 파일을 읽을 수 있는 환경에서는 저장소를 clone한 뒤 `SKILL.md`, `references/`, `scripts/`를 함께 참조하도록 설정합니다. 각 도구의 스킬/메모리/프로젝트 지침 위치가 다르므로, 해당 도구가 지원하는 방식으로 이 폴더를 연결합니다.
 
 ## 사용 방법
 
-Codex에서 예시처럼 요청한다.
+Codex에서 예시처럼 요청합니다.
 
 ```text
 $naverstock-web-api로 삼성전자 005930 네이버증권 요약과 현재가를 가져와줘.
@@ -71,7 +71,7 @@ $naverstock-web-api로 KOSPI/KOSDAQ 주요 지수 데이터를 가져와줘.
 $naverstock-web-api로 COMPANY 리서치 최신 목록을 가져와줘.
 ```
 
-새 페이지나 아직 문서화되지 않은 메뉴를 점검할 때는 공개 페이지의 `stock.naver.com/api/...` 네트워크 호출만 확인한다. 로그인, 계정, 관심종목, 보유종목, 알림, 쓰기 요청은 범위에서 제외한다.
+새 페이지나 아직 문서화되지 않은 메뉴를 점검할 때는 공개 페이지의 `stock.naver.com/api/...` 네트워크 호출만 확인합니다. 로그인, 계정, 관심종목, 보유종목, 알림, 쓰기 요청은 범위에서 제외합니다.
 
 ## 스크립트 예시
 
@@ -89,7 +89,7 @@ python3 scripts/research.py category --category COMPANY --page-size 10
 python3 scripts/discussion.py hot-home --page-size 10
 ```
 
-더 많은 예시는 [references/script-cookbook.md](references/script-cookbook.md)를 참고한다.
+더 많은 예시는 [references/script-cookbook.md](references/script-cookbook.md)를 참고합니다.
 
 ## 문서 구성
 
@@ -105,7 +105,7 @@ python3 scripts/discussion.py hot-home --page-size 10
 
 ## 검색 키워드
 
-이 저장소는 다음 주제와 관련된 사용자를 위해 작성되었다.
+이 저장소는 다음 주제와 관련된 사용자를 위해 작성되었습니다.
 
 - 네이버증권 API, 네이버 주식 API, 네이버 금융 API 대체, 네이버증권 내부 API
 - Naver Stock API, Naver Finance API, stock.naver.com API, Korean stock API
@@ -118,19 +118,19 @@ python3 scripts/discussion.py hot-home --page-size 10
 
 ### 공식 네이버증권 API인가?
 
-아니다. 공개 `stock.naver.com` 페이지에서 확인되는 비공식 읽기 전용 웹 엔드포인트를 정리한 것이다. 네이버, 네이버페이, 네이버파이낸셜, 증권사가 보증하거나 지원하는 공개 개발자 API가 아니다.
+아닙니다. 공개 `stock.naver.com` 페이지에서 확인되는 비공식 읽기 전용 웹 엔드포인트를 정리한 것입니다. 네이버, 네이버페이, 네이버파이낸셜, 증권사가 보증하거나 지원하는 공개 개발자 API가 아닙니다.
 
 ### 업종이나 테마 안의 상세 주식도 확인할 수 있나?
 
-가능하다. `scripts/category_detail.py`가 업종(`industry`/`upjong`), 테마(`theme`), 그룹사(`groups`/`group`) 페이지의 랭킹, 상세 정보, 구성 종목을 조회한다. 단, URL의 숫자는 실제 카테고리 ID가 아니라 현재 랭킹 순번일 수 있으므로 list API로 `no`를 먼저 해석한다.
+가능합니다. `scripts/category_detail.py`가 업종(`industry`/`upjong`), 테마(`theme`), 그룹사(`groups`/`group`) 페이지의 랭킹, 상세 정보, 구성 종목을 조회합니다. 단, URL의 숫자는 실제 카테고리 ID가 아니라 현재 랭킹 순번일 수 있으므로 list API로 `no`를 먼저 해석합니다.
 
-### finance.naver.com도 사용하나?
+### finance.naver.com도 사용하나요?
 
-아니다. 이 저장소는 `stock.naver.com` 페이지와 `/api/` 호출만 대상으로 한다. 레거시 `finance.naver.com` HTML 스크래핑은 제외한다.
+아닙니다. 이 저장소는 `stock.naver.com` 페이지와 `/api/` 호출만 대상으로 합니다. 구버전 네이버 증권 페이지(`finance.naver.com`)가 필요하다면 [dd3ok/naverfinance-api-skills](https://github.com/dd3ok/naverfinance-api-skills) 저장소를 참고해 주세요.
 
-### 실시간 매매 봇에 써도 되나?
+### 실시간 매매 봇에 써도 되나요?
 
-권장하지 않는다. 엔드포인트는 비공식·미문서화·불안정할 수 있고, 데이터 지연이나 필드 의미가 바뀔 수 있다. 매매, 투자 판단, 제품 연동에는 별도 검증과 공식 데이터 소스 검토가 필요하다.
+권장하지 않습니다. 엔드포인트는 비공식·미문서화·불안정할 수 있고, 데이터 지연이나 필드 의미가 바뀔 수 있습니다. 매매, 투자 판단, 제품 연동에는 별도 검증과 공식 데이터 소스 검토가 필요합니다.
 
 ## 제외 범위
 
@@ -138,8 +138,8 @@ python3 scripts/discussion.py hot-home --page-size 10
 - 댓글 작성, 반응 mutation, 이미지 업로드 등 쓰기 작업.
 - 쿠키, 토큰, 세션, 계좌번호, 원본 HAR 저장.
 - 대량 스크래핑, rate limit 우회, 접근제어 우회.
-- `finance.naver.com` 레거시 HTML 스크래핑.
+- 구버전 네이버 증권 페이지(`finance.naver.com`) 스크래핑. 해당 범위는 [dd3ok/naverfinance-api-skills](https://github.com/dd3ok/naverfinance-api-skills)를 참고해 주세요.
 
 ## 책임 고지
 
-이 저장소는 네이버, 네이버페이, 네이버파이낸셜 또는 증권사가 보증하거나 지원하는 공식 API가 아니다. 결과는 정보 제공 목적이며 금융, 법률, 세무, 투자 조언이 아니다. 사용자와 연동 시스템은 데이터 정확성, 신선도, 약관, 라이선스, 제품 적합성을 직접 확인해야 한다.
+이 저장소는 네이버, 네이버페이, 네이버파이낸셜 또는 증권사가 보증하거나 지원하는 공식 API가 아닙니다. 결과는 정보 제공 목적이며 금융, 법률, 세무, 투자 조언이 아닙니다. 사용자와 연동 시스템은 데이터 정확성, 신선도, 약관, 라이선스, 제품 적합성을 직접 확인해야 합니다.
