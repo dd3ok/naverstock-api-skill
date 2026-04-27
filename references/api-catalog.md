@@ -17,6 +17,48 @@
 | `needs-recheck` | route, enum, 인증 민감도, 페이징 형태를 새로 검증해야 합니다. |
 | `excluded` | 읽기 전용 주식/시장 정보 범위 밖입니다. 호출하지 않습니다. |
 
+## 페이지 점검 메모
+
+2026-04-27 재점검에서는 `https://stock.naver.com/` 루트 HTML과 루트가 로드하는 Next.js chunk 58개에서 route/API 문자열을 추출하고, 후보 route를 작은 직접 요청으로 확인했습니다. `robots.txt`는 `Disallow: /`이고 sitemap은 404라서, 대량 크롤링 대신 루트와 정적 앱 chunk 기반으로만 점검했습니다.
+
+확인된 주요 페이지 route:
+
+| Route | 결과 | 메모 |
+| --- | --- | --- |
+| `/market` | 307 | `/market/stock/kr/`로 이동 |
+| `/market/stock/kr` | 200 | 국내 주식 메인 |
+| `/market/stock/kr/stocklist/{top\|priceTop\|trading}` | 200 | 국내 종목 목록 탭 |
+| `/market/stock/kr/{industry\|theme\|groups}` | 307 | 각각 `/1`로 이동 |
+| `/market/stock/kr/{industry\|theme\|groups}/1` | 200 | path 숫자는 현재 랭킹 순번이며 API category `no`와 다를 수 있음 |
+| `/market/stock/kr/etf` | 307 | `/market/stock/kr/etf/priceTop?etfListEntry=1`로 이동 |
+| `/market/stock/kr/etf/{priceTop\|trading}` | 200 | 국내 ETF 목록 탭 |
+| `/market/stock/kr/etn` | 307 | `/market/stock/kr/etn/priceTop?etnListEntry=1`로 이동 |
+| `/market/stock/kr/etn/{priceTop\|trading}` | 200 | 국내 ETN 목록 탭 |
+| `/market/stock/kr/ipo` | 200 | IPO 페이지. `/market/stock/kr/ipo/progress`는 404 |
+| `/market/stock/kr/deposit` | 200 | 예탁금 페이지 |
+| `/market/stock/kr/trend/{foreigner\|organization\|program\|trader}` | 200 | 투자자 동향 페이지 |
+| `/market/crypto` | 200 | 가상자산 페이지. `/crypto`는 404 |
+| `/market/marketindex` | 307 | `/market/marketindex/major/`로 이동 |
+| `/market/marketindex/{major\|energy\|metals\|agricultural\|transport}` | 200 | 주요 시장지표 탭 |
+| `/market/marketindex/exchangeRate/exchange` | 200 | 환율 탭. `/exchangeRate`는 이 경로로 이동 |
+| `/market/marketindex/bondAndInterest/{bond\|domesticInterest\|standardInterest}` | 200 | 채권/금리 탭 |
+| `/market/stock/global`, `/market/stock/usa` | 200 | 해외 주식 메인 |
+| `/market/stock/global/{chn\|hkg\|jpn\|vnm}/top` | 200 | 해외 국가별 상위 목록 |
+| `/market/stock/global/industry/{chn\|hkg\|jpn\|vnm}` | 307 | 현재 첫 industry code로 이동 |
+| `/domestic/stock/{itemCode}` | 307 | `/price`로 이동 |
+| `/domestic/stock/{itemCode}/{price\|news\|notice\|ir\|discussion\|research}` | 200 | 종목 상세 하위 페이지 |
+| `/domestic/stock/{itemCode}/info/{company\|overview\|financial\|investment\|consensus\|industry\|sector\|share\|esg}` | 200 | 종목 정보 탭 page route |
+| `/news`, `/news/mainnews`, `/notice` | 200 | 뉴스/공지 페이지 |
+| `/research`, `/research/{daily\|company\|industry\|invest\|economy}` | 200 | 리서치 페이지. `/research/firm`은 404 |
+| `/discussion`, `/discussion/feed/{all\|domesticStock\|market\|my}` | 200 | 토론 페이지. `/discussion/feed`는 `/discussion/feed/all`로 이동 |
+
+확인했지만 스킬 범위에서 제외하거나 404였던 route:
+
+- `/market/domestic`, `/market/domestic/stock`, `/market/domestic/etf`, `/market/domestic/etn`, `/market/domestic/ipo`는 404였습니다.
+- `/marketindex`는 404였고 `/market/marketindex`를 사용합니다.
+- `/my/favorite`는 200이지만 개인/관심종목 페이지라 제외합니다.
+- `/market/my/order`, `/my/timeline`, `/my/subscriptions`는 404였습니다.
+
 ## 식별자 규칙
 
 | 식별자 | 예시 | 의미 |
@@ -49,7 +91,7 @@
 | 종목 IR 상세 | `script-backed` | GET | `/api/domestic/detail/ir/{itemCode}/{articleId}` |
 | 집계 투자자 poll 통계 | `script-backed` | GET | `/api/stockDomestic/invest-info/poll/statistics/{itemCode}` |
 | 집계 투자자 분포 리소스 | `script-backed` | GET | `/api/myasset/resources/invest/{stock-trade\|stock-investor-rank\|stock-invest-rate\|stock-investor-age\|stock-floor}?item_code={itemCode}` |
-| 종목 정보 탭 | `needs-recheck` | GET | `/domestic/stock/{itemCode}/info/{company\|overview\|financial\|investment\|consensus\|industry\|sector\|share\|esg}` route chunk에서 종목 정보 API 참조가 보였지만 `/api/securityFe/api/stock/*`, `/api/securityService/stock/*` 단순 추정 호출은 spot check에서 404/409를 반환했습니다. |
+| 종목 정보 탭 page route | `observed` | PAGE | `/domestic/stock/{itemCode}/info/{company\|overview\|financial\|investment\|consensus\|industry\|sector\|share\|esg}`. 2026-04-27 직접 확인에서 200을 반환했습니다. 하위 JSON API는 아직 script-backed가 아니므로 필요 시 현재 트래픽으로 재확인합니다. |
 | 실시간 폴링 현재가 | `script-backed` | GET | `/api/polling/domestic/stock?itemCodes={codes}` |
 | NXT 폴링 현재가 | `observed` | GET | `/api/polling/domestic/NXT/stock?itemCodes={codes}` |
 | 국내 시장 기본 종목 목록 | `script-backed` | GET | `/api/domestic/market/stock/default?tradeType=KRX&marketType=ALL&orderType=marketSum&startIdx=0&pageSize=20` |
@@ -77,6 +119,13 @@
 | ETF 자금 흐름 일/주 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFSumFlowDayList?count=20`, `/ETFSumFlowWeekList?count=20` |
 | 국내 ETN 목록 | `script-backed` | GET | `/api/domestic/market/etn?orderType=AMOUNT_ETN&startIdx=0&pageSize=20` |
 | 주목할 ETF | `observed` | GET | `/api/domestic/market/home/notableETF?orderType=up_etf&startIdx=0&pageSize=10` |
+| 홈 브리핑 | `observed` | GET | `/api/securityService/home/v3/briefing` |
+| 홈 공지 목록 | `observed` | GET | `/api/domestic/home/noticeList?page=1&pageSize=5` |
+| 홈 공지 상세 | `observed` | GET | `/api/domestic/home/notice/{noticeId}` |
+| 홈 보유자산 랭킹 | `observed` | GET | `/api/domestic/home/ranking/assetAmount/{ageRange}?startIdx=0&pageSize=20`, `ageRange`는 `all`, `20`, `30`, `40`, `50`, `60` |
+| 홈 수익률 랭킹 | `observed` | GET | `/api/domestic/home/ranking/earningRate/{ageRange}?startIdx=0&pageSize=20`, `ageRange`는 `all`, `20`, `30`, `40`, `50`, `60` |
+| 국내 지수 시간대 시세 | `observed` | GET | `/api/domestic/indexSise/time?koreaIndexType=KOSPI&thistime={yyyyMMddHHmmss}&startIdx=0&pageSize=20` |
+| AI 현재 시장 브리핑 | `observed` | GET | `/api/securityAi/marketBriefing/current?marketBriefing={KOSPI\|KOSDAQ}` |
 
 관찰된 종목 목록 `orderType` 값에는 `marketSum`, `accAmount`, `searchTop`, `up`, `steady`, `down`, `quantTop`, 그리고 `investmentCaution`, `investmentWarning`, `investmentRisk` 같은 투자 경고 관련 값이 포함됩니다.
 
@@ -84,7 +133,7 @@
 
 관찰된 카테고리 종목 목록 `orderType` 값에는 `quantTop`, `priceTop`, `up`, `down`, `marketSum`, `sales`, `operatingProfit`이 포함됩니다. UI chip alias는 `accQuant -> quantTop`, `accAmount -> priceTop`으로 매핑됩니다.
 
-2026-04-27 직접 확인에서 열렸던 국내 주식 메뉴 route: `/market/stock/kr/stocklist/*`, `/market/stock/kr/etf/*`, `/market/stock/kr/etn`, `/market/stock/kr/ipo*`, `/market/stock/kr/deposit`, `/market/stock/kr/trend/{foreigner|organization|program|trader}`, 종목 상세 하위 페이지 `/domestic/stock/{itemCode}/{price|news|notice|ir|discussion|research}`. `/domestic/stock/{itemCode}/financial`, `/total`, `/chart`, `/analysis`, `/investment`는 직접 확인에서 404를 반환했습니다.
+2026-04-27 직접 확인에서 열렸던 국내 주식 메뉴 route: `/market/stock/kr/stocklist/*`, `/market/stock/kr/etf/*`, `/market/stock/kr/etn/*`, `/market/stock/kr/ipo`, `/market/stock/kr/deposit`, `/market/stock/kr/trend/{foreigner|organization|program|trader}`, 종목 상세 하위 페이지 `/domestic/stock/{itemCode}/{price|news|notice|ir|discussion|research}`, 종목 정보 탭 `/domestic/stock/{itemCode}/info/*`. `/domestic/stock/{itemCode}/financial`, `/total`, `/chart`, `/analysis`, `/investment`는 직접 확인에서 404를 반환했습니다.
 
 국내 ETF `listingType` alias는 UI chunk에서 `tradingValueDesc`, `aumDesc`, `changeRateDescUpAll`, `changeRateDescDownAll`, `tradingVolumeDesc`, `tradingVolumeIncreaseRateDesc`, `tradingVolumeIncreaseRateAsc`, `returnRate1mDesc`, `returnRate3mDesc`, `returnRate6mDesc`, `marketCapDesc`, `listedAtDesc`가 관찰되었습니다.
 
