@@ -97,10 +97,11 @@ python3 scripts/discussion.py hot-home --page-size 10
 
 ## 사용 프롬프트
 
-- `$naverstock-web-api로 005930 네이버증권 요약을 간단히 가져와줘.`
-- `$naverstock-web-api로 stock.naver.com 기준 KOSPI/KOSDAQ 주요 지수 데이터를 가져와줘.`
-- `$naverstock-web-api로 네이버증권 COMPANY 리서치 최신 목록을 가져와줘.`
-- `$naverstock-web-api로 네이버증권 가상자산 시장 페이지의 네트워크 호출을 점검해줘.`
+- `005930 네이버증권 요약을 간단히 가져와줘.`
+- `stock.naver.com 기준 KOSPI/KOSDAQ 주요 지수 데이터를 가져와줘.`
+- `네이버증권 COMPANY 리서치 최신 목록을 가져와줘.`
+- `네이버증권 가상자산 시장 페이지의 네트워크 호출을 점검해줘.`
+- 특정 skill을 명시해야 할 때만 `$naverstock-web-api로 ...` 형태를 사용합니다.
 
 ## 엄격한 규칙
 

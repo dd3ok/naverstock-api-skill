@@ -47,7 +47,7 @@ mkdir -p "$CODEX_SKILLS_DIR"
 ln -sfn /path/to/naverstock-api-skills "$CODEX_SKILLS_DIR/naverstock-web-api"
 ```
 
-설치 후 새 Codex 세션에서 `$naverstock-web-api`를 언급하면 스킬을 사용할 수 있습니다.
+설치 후 새 Codex 세션에서 네이버증권, Naver Stock, `stock.naver.com` 관련 주식 데이터 요청을 하면 skill 설명과 매칭되어 자동으로 선택될 수 있습니다. 특정 skill 사용을 확실히 지정하고 싶을 때만 `$naverstock-web-api`를 함께 적어 주세요.
 
 ### Claude Code
 
@@ -185,14 +185,20 @@ python3 scripts/category_detail.py stocks theme --rank 1 --page-size 2
 
 ## 프롬프트 예시
 
-처음 써볼 때는 이런 요청이 유용합니다.
+처음 써볼 때는 이런 요청이 유용합니다. 설치된 agent가 skill 설명을 보고 자동 선택할 수 있으므로 `$naverstock-web-api`를 꼭 붙일 필요는 없습니다. 여러 skill 중 하나를 명확히 지정하고 싶을 때만 붙이면 됩니다.
+
+```text
+삼성전자 005930 네이버증권 요약과 현재가를 가져와줘.
+네이버증권 테마 1위 구성 종목을 확인해줘.
+KOSPI/KOSDAQ 주요 지수 데이터를 stock.naver.com 기준으로 가져와줘.
+네이버증권 COMPANY 리서치 최신 목록을 가져와줘.
+stock.naver.com 가상자산 시장 페이지의 네트워크 호출을 점검해줘.
+```
+
+명시 호출이 필요한 경우:
 
 ```text
 $naverstock-web-api로 삼성전자 005930 네이버증권 요약과 현재가를 가져와줘.
-$naverstock-web-api로 네이버증권 테마 1위 구성 종목을 확인해줘.
-$naverstock-web-api로 KOSPI/KOSDAQ 주요 지수 데이터를 가져와줘.
-$naverstock-web-api로 COMPANY 리서치 최신 목록을 가져와줘.
-$naverstock-web-api로 stock.naver.com 가상자산 시장 페이지의 네트워크 호출을 점검해줘.
 ```
 
 새로운 네트워크 호출을 조사하기 전에는 [references/capture-workflow.md](references/capture-workflow.md)와 [references/safety-rules.md](references/safety-rules.md)를 먼저 확인하세요.
