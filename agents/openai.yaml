@@ -1,4 +1,4 @@
 interface:
-  display_name: "NaverStock Web API"
-  short_description: "Query Naver Stock read-only web APIs"
-  default_prompt: "Use $naverstock-web-api to query Naver Stock/네이버증권 read-only stock information APIs and network-call notes."
+  display_name: "네이버증권 Web API"
+  short_description: "네이버증권 읽기 전용 웹 API 조회"
+  default_prompt: "$naverstock-web-api로 네이버증권 읽기 전용 주식 정보 API와 네트워크 호출 참고사항을 조회해줘."

@@ -1,197 +1,197 @@
-# NaverStock Web API Catalog
+# NaverStock Web API 카탈로그
 
-Base observation date: 2026-04-27
-Observed from: public `https://stock.naver.com/` pages and Next.js chunks in a non-authenticated session.
-Primary host: `https://stock.naver.com`
+기준 관찰일: 2026-04-27  
+관찰 출처: 로그인하지 않은 공개 `https://stock.naver.com/` 페이지와 Next.js chunk  
+기본 호스트: `https://stock.naver.com`
 
-Naver Stock internal APIs are undocumented and can change without notice. Re-verify endpoints before depending on current production behavior.
+네이버증권 내부 API는 문서화되어 있지 않으며 예고 없이 바뀔 수 있다. 현재 운영 동작에 의존하기 전에는 엔드포인트를 다시 검증한다.
 
-This catalog intentionally excludes legacy `finance.naver.com` HTML pages. Add only endpoints visible from `stock.naver.com` pages or relative `stock.naver.com/api/...` calls.
+이 카탈로그는 레거시 `finance.naver.com` HTML 페이지를 의도적으로 제외한다. `stock.naver.com` 페이지 또는 상대 `stock.naver.com/api/...` 호출에서 확인되는 엔드포인트만 추가한다.
 
-## Status Labels
+## 상태 라벨
 
-| Status | Meaning |
+| 상태 | 의미 |
 | --- | --- |
-| `script-backed` | A bundled script calls this endpoint family. |
-| `observed` | Observed in public page traffic or static chunks, but not wrapped by a script. |
-| `needs-recheck` | Route, enum, auth sensitivity, or pagination shape needs fresh verification. |
-| `excluded` | Outside read-only stock/market information scope. Do not call. |
+| `script-backed` | 번들 스크립트가 이 엔드포인트 계열을 호출한다. |
+| `observed` | 공개 페이지 트래픽 또는 정적 chunk에서 관찰했지만 스크립트로 감싸지 않았다. |
+| `needs-recheck` | route, enum, 인증 민감도, 페이징 형태를 새로 검증해야 한다. |
+| `excluded` | 읽기 전용 주식/시장 정보 범위 밖이다. 호출하지 않는다. |
 
-## Identifier Conventions
+## 식별자 규칙
 
-| Identifier | Example | Meaning |
+| 식별자 | 예시 | 의미 |
 | --- | --- | --- |
-| `itemCode` | `005930` | Six-digit Korean stock code. |
-| `codeType` | `KRX`, `NXT` | Domestic detail trade route. |
-| `itemCodes` | `005930,000660` | Comma-separated domestic stock/index code list. |
-| `reutersCode` | `KOSPI`, `GCcv1` | Index, futures, or indicator code used by market indicator APIs. |
-| `fqnfTicker` | `BTC_KRW_UPBIT` | Crypto ticker used by polling endpoints. |
-| `market` | `UPBIT`, `BITHUMB` | Crypto exchange enum; uppercase is required. |
+| `itemCode` | `005930` | 6자리 국내 종목 코드. |
+| `codeType` | `KRX`, `NXT` | 국내 종목 상세 거래 route. |
+| `itemCodes` | `005930,000660` | comma로 구분한 국내 종목/지수 코드 목록. |
+| `reutersCode` | `KOSPI`, `GCcv1` | 시장지표 API에서 쓰는 지수, 선물, 지표 코드. |
+| `fqnfTicker` | `BTC_KRW_UPBIT` | 폴링 엔드포인트에서 쓰는 가상자산 ticker. |
+| `market` | `UPBIT`, `BITHUMB` | 가상자산 거래소 enum. 대문자가 필요하다. |
 
-## Domestic Stock APIs
+## 국내 주식 API
 
-| Purpose | Status | Method | Path / params |
+| 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
-| Stock detail | `script-backed` | GET | `/api/domestic/detail/{itemCode}/detail?codeType=KRX` or `NXT` |
-| Stock price tab | `script-backed` | GET | `/api/domestic/detail/{itemCode}/price` |
-| Stock hoga / order book | `script-backed` | GET | `/api/domestic/detail/{itemCode}/hoga` |
-| Stock daily prices | `script-backed` | GET | `/api/domestic/detail/{itemCode}/siseDay?pageSize=20&bizdate={yyyyMMdd}` |
-| Stock ticks | `script-backed` | GET | `/api/domestic/detail/{itemCode}/siseTick?startIdx=0&pageSize=20` |
-| Stock investor trend rows | `script-backed` | GET | `/api/domestic/detail/{itemCode}/trend?tradeType=KRX&startIdx=0&pageSize=20` |
-| Stock broker trader info | `script-backed` | GET | `/api/domestic/detail/{itemCode}/traderInfo` |
-| Stock chart payload | `script-backed` | GET | `/api/securityFe/api/fchart/domestic/stock/{itemCode}?periodType=day&range={range}` |
-| Market classification | `script-backed` | GET | `/api/domestic/detail/{itemCode}/sosok` |
-| Consensus | `script-backed` | GET | `/api/domestic/detail/{itemCode}/consensus` |
-| Industry peers | `script-backed` | GET | `/api/domestic/detail/{itemCode}/stock/industry?page=1&pageSize=10&marketType=ALL` |
-| Stock news | `script-backed` | GET | `/api/domestic/detail/news?itemCode={itemCode}&page=1&pageSize=20` |
-| Stock disclosures / 공시 | `script-backed` | GET | `/api/domestic/detail/notice?itemCode={itemCode}&startIdx=0&pageSize=20&causeCode={code}` |
-| Stock IR list | `script-backed` | GET | `/api/domestic/detail/ir?itemCode={itemCode}&startIdx=0&pageSize=20` |
-| Stock IR detail | `script-backed` | GET | `/api/domestic/detail/ir/{itemCode}/{articleId}` |
-| Aggregate investor poll statistics | `script-backed` | GET | `/api/stockDomestic/invest-info/poll/statistics/{itemCode}` |
-| Aggregate investor distribution resources | `script-backed` | GET | `/api/myasset/resources/invest/{stock-trade\|stock-investor-rank\|stock-invest-rate\|stock-investor-age\|stock-floor}?item_code={itemCode}` |
-| Stock info tabs | `needs-recheck` | GET | `/domestic/stock/{itemCode}/info/{company\|overview\|financial\|investment\|consensus\|industry\|sector\|share\|esg}` route chunks reference stock info APIs, but simple direct guesses under `/api/securityFe/api/stock/*` and `/api/securityService/stock/*` returned 404/409 in spot checks |
-| Realtime polling quote | `script-backed` | GET | `/api/polling/domestic/stock?itemCodes={codes}` |
-| NXT polling quote | `observed` | GET | `/api/polling/domestic/NXT/stock?itemCodes={codes}` |
-| Market stock default list | `script-backed` | GET | `/api/domestic/market/stock/default?tradeType=KRX&marketType=ALL&orderType=marketSum&startIdx=0&pageSize=20` |
-| Dividend list | `script-backed` | GET | `/api/domestic/market/stock/dividend?page=1&pageSize=20` |
-| Search popularity | `script-backed` | GET | `/api/domestic/market/searchTop?page=1&pageSize=20` |
-| IPO progress | `script-backed` | GET | `/api/domestic/market/ipo/progress?page=1&pageSize=20` |
-| Sector/theme ranking | `script-backed` | GET | `/api/domestic/home/upjongTheme/ranking?rankingType=upjong&page=1&pageSize=20` |
-| Industry/theme/group ranking list | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/list?startIdx=0&pageSize=100&sortType=changeRate` |
-| Industry/theme/group detail info | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/{no}/info?marketType=ALL` |
-| Industry/theme/group constituent stocks | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/{no}/stocklist?marketType=ALL&orderType=quantTop&startIdx=0&pageSize=20` |
-| Market aggregate investor trend | `needs-recheck` | POST | `/api/domestic/home/marketaggregate/aggregateInvestor` with JSON body containing `sections`, `tradeType`, `marketType`, `periodType`, and dates |
-| Market aggregate investor ranking | `needs-recheck` | POST | `/api/domestic/home/marketaggregate/aggregateInvestorRanking` with ranking section fields, `startIdx`, and `pageSize` |
-| Investor deposit list | `observed` | GET | `/api/domestic/market/trendDeposit?startIdx=0&pageSize=20` |
-| Investor deposit chart | `observed` | GET | `/api/domestic/market/trendDeposit/chart?startDate={yyyyMMdd}&endDate={yyyyMMdd}` |
-| Sector total market cap | `observed` | GET | `/api/domestic/market/home/upjong/totalMarketSum?type=upjong` |
-| ETF themes | `observed` | GET | `/api/domestic/market/etf/themes` |
-| Domestic ETF list | `script-backed` | GET | `/api/stockSecurity/etfs/v1/domestic?listingType=tradingValueDesc&size=20&index=0` |
-| Domestic ETF category metadata | `script-backed` | GET | `/api/stockSecurity/etfs/v1/domestic/themes` |
-| Domestic ETF leverage metadata | `script-backed` | GET | `/api/stockSecurity/etfs/v1/domestic/leverage-types` |
-| ETF base info | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFBase` |
-| ETF dividend summary | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFDividend` |
-| ETF dividend history | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFDividendHist?startIdx=0&pageSize=20` |
-| ETF components | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFComponent?startIdx=0&pageSize=20` |
-| ETF theme tags | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFTheme` |
-| ETF fund-flow day/week | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFSumFlowDayList?count=20`, `/ETFSumFlowWeekList?count=20` |
-| Domestic ETN list | `script-backed` | GET | `/api/domestic/market/etn?orderType=AMOUNT_ETN&startIdx=0&pageSize=20` |
-| Notable ETF | `observed` | GET | `/api/domestic/market/home/notableETF?orderType=up_etf&startIdx=0&pageSize=10` |
+| 종목 상세 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/detail?codeType=KRX` 또는 `NXT` |
+| 종목 가격 탭 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/price` |
+| 종목 호가 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/hoga` |
+| 종목 일별 시세 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/siseDay?pageSize=20&bizdate={yyyyMMdd}` |
+| 종목 체결 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/siseTick?startIdx=0&pageSize=20` |
+| 종목 투자자 동향 행 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/trend?tradeType=KRX&startIdx=0&pageSize=20` |
+| 종목 증권사 거래 정보 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/traderInfo` |
+| 종목 차트 payload | `script-backed` | GET | `/api/securityFe/api/fchart/domestic/stock/{itemCode}?periodType=day&range={range}` |
+| 시장 구분 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/sosok` |
+| 컨센서스 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/consensus` |
+| 업종 관련 종목 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/stock/industry?page=1&pageSize=10&marketType=ALL` |
+| 종목 뉴스 | `script-backed` | GET | `/api/domestic/detail/news?itemCode={itemCode}&page=1&pageSize=20` |
+| 종목 공시 | `script-backed` | GET | `/api/domestic/detail/notice?itemCode={itemCode}&startIdx=0&pageSize=20&causeCode={code}` |
+| 종목 IR 목록 | `script-backed` | GET | `/api/domestic/detail/ir?itemCode={itemCode}&startIdx=0&pageSize=20` |
+| 종목 IR 상세 | `script-backed` | GET | `/api/domestic/detail/ir/{itemCode}/{articleId}` |
+| 집계 투자자 poll 통계 | `script-backed` | GET | `/api/stockDomestic/invest-info/poll/statistics/{itemCode}` |
+| 집계 투자자 분포 리소스 | `script-backed` | GET | `/api/myasset/resources/invest/{stock-trade\|stock-investor-rank\|stock-invest-rate\|stock-investor-age\|stock-floor}?item_code={itemCode}` |
+| 종목 정보 탭 | `needs-recheck` | GET | `/domestic/stock/{itemCode}/info/{company\|overview\|financial\|investment\|consensus\|industry\|sector\|share\|esg}` route chunk에서 종목 정보 API 참조가 보였지만 `/api/securityFe/api/stock/*`, `/api/securityService/stock/*` 단순 추정 호출은 spot check에서 404/409를 반환했다. |
+| 실시간 폴링 현재가 | `script-backed` | GET | `/api/polling/domestic/stock?itemCodes={codes}` |
+| NXT 폴링 현재가 | `observed` | GET | `/api/polling/domestic/NXT/stock?itemCodes={codes}` |
+| 국내 시장 기본 종목 목록 | `script-backed` | GET | `/api/domestic/market/stock/default?tradeType=KRX&marketType=ALL&orderType=marketSum&startIdx=0&pageSize=20` |
+| 배당 목록 | `script-backed` | GET | `/api/domestic/market/stock/dividend?page=1&pageSize=20` |
+| 검색 인기 | `script-backed` | GET | `/api/domestic/market/searchTop?page=1&pageSize=20` |
+| IPO 진행 | `script-backed` | GET | `/api/domestic/market/ipo/progress?page=1&pageSize=20` |
+| 업종/테마 랭킹 | `script-backed` | GET | `/api/domestic/home/upjongTheme/ranking?rankingType=upjong&page=1&pageSize=20` |
+| 업종/테마/그룹사 랭킹 목록 | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/list?startIdx=0&pageSize=100&sortType=changeRate` |
+| 업종/테마/그룹사 상세 정보 | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/{no}/info?marketType=ALL` |
+| 업종/테마/그룹사 구성 종목 | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/{no}/stocklist?marketType=ALL&orderType=quantTop&startIdx=0&pageSize=20` |
+| 시장 집계 투자자 동향 | `needs-recheck` | POST | `/api/domestic/home/marketaggregate/aggregateInvestor`, JSON body는 `sections`, `tradeType`, `marketType`, `periodType`, 날짜를 포함한다. |
+| 시장 집계 투자자 랭킹 | `needs-recheck` | POST | `/api/domestic/home/marketaggregate/aggregateInvestorRanking`, ranking section fields, `startIdx`, `pageSize`를 포함한다. |
+| 투자자 예탁금 목록 | `observed` | GET | `/api/domestic/market/trendDeposit?startIdx=0&pageSize=20` |
+| 투자자 예탁금 차트 | `observed` | GET | `/api/domestic/market/trendDeposit/chart?startDate={yyyyMMdd}&endDate={yyyyMMdd}` |
+| 업종 전체 시가총액 | `observed` | GET | `/api/domestic/market/home/upjong/totalMarketSum?type=upjong` |
+| ETF 테마 | `observed` | GET | `/api/domestic/market/etf/themes` |
+| 국내 ETF 목록 | `script-backed` | GET | `/api/stockSecurity/etfs/v1/domestic?listingType=tradingValueDesc&size=20&index=0` |
+| 국내 ETF 카테고리 메타데이터 | `script-backed` | GET | `/api/stockSecurity/etfs/v1/domestic/themes` |
+| 국내 ETF 레버리지 메타데이터 | `script-backed` | GET | `/api/stockSecurity/etfs/v1/domestic/leverage-types` |
+| ETF 기본 정보 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFBase` |
+| ETF 배당 요약 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFDividend` |
+| ETF 배당 이력 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFDividendHist?startIdx=0&pageSize=20` |
+| ETF 구성 종목 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFComponent?startIdx=0&pageSize=20` |
+| ETF 테마 태그 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFTheme` |
+| ETF 자금 흐름 일/주 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFSumFlowDayList?count=20`, `/ETFSumFlowWeekList?count=20` |
+| 국내 ETN 목록 | `script-backed` | GET | `/api/domestic/market/etn?orderType=AMOUNT_ETN&startIdx=0&pageSize=20` |
+| 주목할 ETF | `observed` | GET | `/api/domestic/market/home/notableETF?orderType=up_etf&startIdx=0&pageSize=10` |
 
-Observed stock-list `orderType` values include `marketSum`, `accAmount`, `searchTop`, `up`, `steady`, `down`, `quantTop`, and alert-related order types such as `investmentCaution`, `investmentWarning`, and `investmentRisk`.
+관찰된 종목 목록 `orderType` 값에는 `marketSum`, `accAmount`, `searchTop`, `up`, `steady`, `down`, `quantTop`, 그리고 `investmentCaution`, `investmentWarning`, `investmentRisk` 같은 투자 경고 관련 값이 포함된다.
 
-The `stock.naver.com/market/stock/kr/{industry|theme|groups}/{rank}` pages resolve the path rank to a current category `no` from the list API, then call `info` and `stocklist`. The API path uses `upjong` for `industry`, `theme` for `theme`, and `group` for `groups`. Directly calling `/industry/1` as a category id is incorrect because `1` is the page rank, not necessarily the category `no`.
+`stock.naver.com/market/stock/kr/{industry|theme|groups}/{rank}` 페이지는 path의 rank를 현재 카테고리 `no`로 해석하지 않는다. 먼저 list API에서 현재 카테고리 `no`를 찾은 뒤 `info`와 `stocklist`를 호출한다. API path는 `industry`에 `upjong`, `theme`에 `theme`, `groups`에 `group`을 사용한다. `/industry/1`의 `1`은 페이지 rank이며 실제 카테고리 `no`와 다를 수 있다.
 
-Observed category stock-list `orderType` values include `quantTop`, `priceTop`, `up`, `down`, `marketSum`, `sales`, and `operatingProfit`. UI chip aliases map as `accQuant -> quantTop` and `accAmount -> priceTop`.
+관찰된 카테고리 종목 목록 `orderType` 값에는 `quantTop`, `priceTop`, `up`, `down`, `marketSum`, `sales`, `operatingProfit`이 포함된다. UI chip alias는 `accQuant -> quantTop`, `accAmount -> priceTop`으로 매핑된다.
 
-Observed domestic stock-menu routes opened successfully on 2026-04-27: `/market/stock/kr/stocklist/*`, `/market/stock/kr/etf/*`, `/market/stock/kr/etn`, `/market/stock/kr/ipo*`, `/market/stock/kr/deposit`, `/market/stock/kr/trend/{foreigner|organization|program|trader}`, and stock detail subpages `/domestic/stock/{itemCode}/{price|news|notice|ir|discussion|research}`. Routes such as `/domestic/stock/{itemCode}/financial`, `/total`, `/chart`, `/analysis`, and `/investment` returned 404 in direct checks.
+2026-04-27 직접 확인에서 열렸던 국내 주식 메뉴 route: `/market/stock/kr/stocklist/*`, `/market/stock/kr/etf/*`, `/market/stock/kr/etn`, `/market/stock/kr/ipo*`, `/market/stock/kr/deposit`, `/market/stock/kr/trend/{foreigner|organization|program|trader}`, 종목 상세 하위 페이지 `/domestic/stock/{itemCode}/{price|news|notice|ir|discussion|research}`. `/domestic/stock/{itemCode}/financial`, `/total`, `/chart`, `/analysis`, `/investment`는 직접 확인에서 404를 반환했다.
 
-Domestic ETF `listingType` aliases observed from UI chunks include `tradingValueDesc`, `aumDesc`, `changeRateDescUpAll`, `changeRateDescDownAll`, `tradingVolumeDesc`, `tradingVolumeIncreaseRateDesc`, `tradingVolumeIncreaseRateAsc`, `returnRate1mDesc`, `returnRate3mDesc`, `returnRate6mDesc`, `marketCapDesc`, and `listedAtDesc`.
+국내 ETF `listingType` alias는 UI chunk에서 `tradingValueDesc`, `aumDesc`, `changeRateDescUpAll`, `changeRateDescDownAll`, `tradingVolumeDesc`, `tradingVolumeIncreaseRateDesc`, `tradingVolumeIncreaseRateAsc`, `returnRate1mDesc`, `returnRate3mDesc`, `returnRate6mDesc`, `marketCapDesc`, `listedAtDesc`가 관찰되었다.
 
-Domestic ETN `orderType` values observed from UI chunks include `MARKET_SUM_ETN`, `AMOUNT_ETN`, `UP_ETN`, `DOWN_ETN`, `QUANT_ETN`, `QUANT_HIGH_ETN`, `QUANT_LOW_ETN`, and `NEW_STOCK_ETN`.
+국내 ETN `orderType` 값은 UI chunk에서 `MARKET_SUM_ETN`, `AMOUNT_ETN`, `UP_ETN`, `DOWN_ETN`, `QUANT_ETN`, `QUANT_HIGH_ETN`, `QUANT_LOW_ETN`, `NEW_STOCK_ETN`이 관찰되었다.
 
-Foreign stock routes such as `/market/stock/global`, `/market/stock/usa/stocklist`, and country subpages under `/market/stock/global/{chn|hkg|jpn|vnm}` are reachable and expose `/api/foreign/*`, `/api/securityService/stock/*`, `/api/securityService/etf/*`, and worldstock polling families. They are stock-related but are kept separate from the domestic scripts to avoid mixing code systems.
+`/market/stock/global`, `/market/stock/usa/stocklist`, `/market/stock/global/{chn|hkg|jpn|vnm}` 하위 국가 페이지 같은 해외 주식 route도 접근 가능하며 `/api/foreign/*`, `/api/securityService/stock/*`, `/api/securityService/etf/*`, worldstock polling 계열을 노출한다. 주식 관련이지만 국내 스크립트와 코드 체계를 섞지 않기 위해 별도로 둔다.
 
-## Market Index And Indicators
+## 시장 지수와 지표
 
-| Purpose | Status | Method | Path / params |
+| 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
-| Major indices | `script-backed` | GET | `/api/securityFe/api/index/majors` |
-| Market-index major blocks | `observed` | GET | `/api/securityService/marketindex/majors/{type}` where observed `type` values include `exchange`, `exchangeWorld`, `domesticInterest`, and `rpc` |
-| Index basic | `observed` | GET | `/api/securityFe/api/index/{reutersCode}/basic` |
-| Index integration | `observed` | GET | `/api/securityFe/api/index/{reutersCode}/integration` |
-| Index price history | `observed` | GET | `/api/securityFe/api/index/{reutersCode}/price?page=1&pageSize=20` |
-| Domestic index polling | `script-backed` | GET | `/api/polling/domestic/index?itemCodes=KOSPI,KOSDAQ,KPI200` |
-| Index chart | `script-backed` | GET | `/api/securityService/chart/domestic/index/{code}?periodType=day` |
-| Commodity indicators | `script-backed` | GET | `/api/securityService/marketindex/energy`, `/metals`, `/agricultural` |
-| Domestic interest rates | `script-backed` | GET | `/api/securityService/marketindex/domesticInterest` |
-| Other indicator categories | `observed` | GET | `/api/securityService/marketindex/exchange`, `/bond`, `/standardInterest`, and detail paths under those categories |
-| Indicator detail | `script-backed` | GET | `/api/securityService/marketindex/{energy\|metals\|agricultural\|exchange}/{reutersCode}` |
-| Indicator price history | `script-backed` | GET | `/api/securityService/marketindex/{energy\|metals\|agricultural\|exchange}/{reutersCode}/prices?page=1&pageSize=20` |
-| Bond by nation | `script-backed` | GET | `/api/securityService/marketindex/bond/nation/{nationType}?sortType={sortType}` |
-| Standard interest detail | `script-backed` | GET | `/api/securityService/marketindex/standardInterest/{nationType}` |
-| Economic upcoming indicators | `script-backed` | GET | `/api/securityService/economic/indicator/nations/upcoming?limit=10&nationTypeList=USA` |
-| Economic release-date indicators | `script-backed` | GET | `/api/securityService/economic/indicator/nations/releaseDate?page=1&pageSize=20&releaseDate={yyyyMMdd}` |
-| Exchange-rate helper | `script-backed` | GET | `/api/stockDomestic/exchangeRates/list?currencies=USD,JPY` |
-| Market-index polling | `observed` | GET | `/api/polling/marketindex/{category}/{codes}` |
-| Integration indicators | `observed` | GET | `/api/securityService/integration/indicators?stockType=domestic&indicatorCodes=KOSPI&indicatorCodes=KOSDAQ` |
-| Integration prices | `observed` | GET | `/api/securityService/integration/price?domesticKrxCodes=005930&foreignCodes=.IXIC&cryptoCodes=BTC_KRW_UPBIT` |
+| 주요 지수 | `script-backed` | GET | `/api/securityFe/api/index/majors` |
+| 시장지표 주요 블록 | `observed` | GET | `/api/securityService/marketindex/majors/{type}`. 관찰된 `type`: `exchange`, `exchangeWorld`, `domesticInterest`, `rpc` |
+| 지수 기본 정보 | `observed` | GET | `/api/securityFe/api/index/{reutersCode}/basic` |
+| 지수 통합 정보 | `observed` | GET | `/api/securityFe/api/index/{reutersCode}/integration` |
+| 지수 가격 이력 | `observed` | GET | `/api/securityFe/api/index/{reutersCode}/price?page=1&pageSize=20` |
+| 국내 지수 폴링 | `script-backed` | GET | `/api/polling/domestic/index?itemCodes=KOSPI,KOSDAQ,KPI200` |
+| 지수 차트 | `script-backed` | GET | `/api/securityService/chart/domestic/index/{code}?periodType=day` |
+| 원자재 지표 | `script-backed` | GET | `/api/securityService/marketindex/energy`, `/metals`, `/agricultural` |
+| 국내 금리 | `script-backed` | GET | `/api/securityService/marketindex/domesticInterest` |
+| 기타 지표 카테고리 | `observed` | GET | `/api/securityService/marketindex/exchange`, `/bond`, `/standardInterest` 및 각 카테고리 상세 path |
+| 지표 상세 | `script-backed` | GET | `/api/securityService/marketindex/{energy\|metals\|agricultural\|exchange}/{reutersCode}` |
+| 지표 가격 이력 | `script-backed` | GET | `/api/securityService/marketindex/{energy\|metals\|agricultural\|exchange}/{reutersCode}/prices?page=1&pageSize=20` |
+| 국가별 채권 | `script-backed` | GET | `/api/securityService/marketindex/bond/nation/{nationType}?sortType={sortType}` |
+| 기준금리 상세 | `script-backed` | GET | `/api/securityService/marketindex/standardInterest/{nationType}` |
+| 예정 경제지표 | `script-backed` | GET | `/api/securityService/economic/indicator/nations/upcoming?limit=10&nationTypeList=USA` |
+| 발표일별 경제지표 | `script-backed` | GET | `/api/securityService/economic/indicator/nations/releaseDate?page=1&pageSize=20&releaseDate={yyyyMMdd}` |
+| 환율 helper | `script-backed` | GET | `/api/stockDomestic/exchangeRates/list?currencies=USD,JPY` |
+| 시장지표 폴링 | `observed` | GET | `/api/polling/marketindex/{category}/{codes}` |
+| 통합 지표 | `observed` | GET | `/api/securityService/integration/indicators?stockType=domestic&indicatorCodes=KOSPI&indicatorCodes=KOSDAQ` |
+| 통합 가격 | `observed` | GET | `/api/securityService/integration/price?domesticKrxCodes=005930&foreignCodes=.IXIC&cryptoCodes=BTC_KRW_UPBIT` |
 
-Some older-looking routes such as `/api/securityService/marketindex/majors` returned 404 on 2026-04-27; use `/api/securityFe/api/index/majors`.
+`/api/securityService/marketindex/majors` 같은 오래된 형태의 route는 2026-04-27에 404를 반환했다. 주요 지수에는 `/api/securityFe/api/index/majors`를 사용한다.
 
-## Crypto APIs
+## 가상자산 API
 
-| Purpose | Status | Method | Path / params |
+| 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
-| Ranking list | `script-backed` | GET | `/api/coin/rank/{market}?sortType=marketValue&page=1&pageSize=60` |
-| Major coins | `script-backed` | GET | `/api/coin/rank/{market}/majors` |
-| Coin price by market | `script-backed` | GET | `/api/coin/price/{market}/{ticker}` |
-| Coin price across exchanges | `script-backed` | GET | `/api/coin/price/{ticker}?excludeExchange={market}` |
-| Polling prices | `script-backed` | GET | `/api/polling/coin/price?fqnfTickers=BTC_KRW_UPBIT` |
-| Minute candles | `script-backed` | GET | `/api/coin/candle/{market}/KRW/{ticker}/minutes/{unit}/marketInfo?from={iso}&to={iso}` |
+| 랭킹 목록 | `script-backed` | GET | `/api/coin/rank/{market}?sortType=marketValue&page=1&pageSize=60` |
+| 주요 코인 | `script-backed` | GET | `/api/coin/rank/{market}/majors` |
+| 거래소별 코인 가격 | `script-backed` | GET | `/api/coin/price/{market}/{ticker}` |
+| 거래소 비교용 코인 가격 | `script-backed` | GET | `/api/coin/price/{ticker}?excludeExchange={market}` |
+| 폴링 가격 | `script-backed` | GET | `/api/polling/coin/price?fqnfTickers=BTC_KRW_UPBIT` |
+| 분봉 캔들 | `script-backed` | GET | `/api/coin/candle/{market}/KRW/{ticker}/minutes/{unit}/marketInfo?from={iso}&to={iso}` |
 
-Use uppercase `UPBIT` or `BITHUMB`. The polling endpoint accepts `fqnfTicker` values such as `BTC_KRW_UPBIT`; plain `KRW-BTC` returned an empty list in direct checks.
+`UPBIT` 또는 `BITHUMB`을 대문자로 사용한다. 폴링 엔드포인트는 `BTC_KRW_UPBIT` 같은 `fqnfTicker` 값을 받는다. 직접 확인에서 일반 `KRW-BTC`는 빈 list를 반환했다.
 
-## News APIs
+## 뉴스 API
 
-| Purpose | Status | Method | Path / params |
+| 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
-| News list | `script-backed` | GET | `/api/domestic/news/list?category=mainnews&page=1&pageSize=20` |
-| Focus news | `script-backed` | GET | `/api/domestic/news/focus?sid=401&page=1&pageSize=20` |
-| News search | `script-backed` | GET | `/api/domestic/news/search?query=반도체&page=1&pageSize=20` |
-| Market disclosure/notice news | `script-backed` | GET | `/api/domestic/news/noticeList?page=1&pageSize=20&keyword={keyword}&typeIdx={idx}` |
-| World/foreign market news | `script-backed` | GET | `/api/foreign/news/worldNews?page=1&pageSize=20&date={yyyyMMdd}` |
-| News aggregate home | `script-backed` | GET | `/api/domestic/news/aggregate/home?flashNewsSize=5&mainNewsSize=5&rankingNewsSize=5&overseasNewsSize=5&focusSize=5&moneyStorySize=5&noticeSize=5` |
+| 뉴스 목록 | `script-backed` | GET | `/api/domestic/news/list?category=mainnews&page=1&pageSize=20` |
+| 포커스 뉴스 | `script-backed` | GET | `/api/domestic/news/focus?sid=401&page=1&pageSize=20` |
+| 뉴스 검색 | `script-backed` | GET | `/api/domestic/news/search?query=반도체&page=1&pageSize=20` |
+| 시장 공시/공지 뉴스 | `script-backed` | GET | `/api/domestic/news/noticeList?page=1&pageSize=20&keyword={keyword}&typeIdx={idx}` |
+| 세계/해외 시장 뉴스 | `script-backed` | GET | `/api/foreign/news/worldNews?page=1&pageSize=20&date={yyyyMMdd}` |
+| 뉴스 홈 집계 | `script-backed` | GET | `/api/domestic/news/aggregate/home?flashNewsSize=5&mainNewsSize=5&rankingNewsSize=5&overseasNewsSize=5&focusSize=5&moneyStorySize=5&noticeSize=5` |
 
-Observed list categories include `mainnews`, `flashnews`, and `ranknews`; ad hoc values such as `stock`, `market`, and `all` can fail. Observed focus section map: `market-outlook=401`, `company-analysis=402`, `global-market=403`, `bond-futures=404`, `disclosure-memo=406`, `exchange-rate=429`.
+관찰된 목록 카테고리에는 `mainnews`, `flashnews`, `ranknews`가 있다. `stock`, `market`, `all` 같은 임의 값은 실패할 수 있다. 관찰된 포커스 섹션 맵: `market-outlook=401`, `company-analysis=402`, `global-market=403`, `bond-futures=404`, `disclosure-memo=406`, `exchange-rate=429`.
 
-## Research APIs
+## 리서치 API
 
-| Purpose | Status | Method | Path / params |
+| 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
-| Research category list | `script-backed` | GET | `/api/domestic/research/category?category=COMPANY&page=1&pageSize=15` |
-| Category detail | `script-backed` | GET | `/api/domestic/research/category/{researchId}?category=COMPANY` |
-| Stock report list | `observed` | GET | `/api/domestic/research/{itemCode}/research?page=0&size=30` |
-| Stock report detail | `observed` | GET | `/api/domestic/research/{itemCode}/research/{researchId}` |
-| Recent popular | `script-backed` | GET | `/api/domestic/research/recent-popular` |
-| Research home aggregate | `script-backed` | POST | `/api/domestic/home/researchaggregate/static` with boolean `sections` such as `researchCategory`, `researchRanking`, `recentPopular` |
-| Category latest | `observed` | GET | `/api/domestic/research/category-lastest` |
-| Industry research | `observed` | GET | `/api/domestic/research/industry-research` |
-| Ranking | `observed` | GET | `/api/domestic/research/ranking?rankingType={type}&selectedRank={rank}` |
-| Broker list | `script-backed` | GET | `/api/domestic/research/broker-list` |
+| 리서치 카테고리 목록 | `script-backed` | GET | `/api/domestic/research/category?category=COMPANY&page=1&pageSize=15` |
+| 카테고리 상세 | `script-backed` | GET | `/api/domestic/research/category/{researchId}?category=COMPANY` |
+| 종목 리포트 목록 | `observed` | GET | `/api/domestic/research/{itemCode}/research?page=0&size=30` |
+| 종목 리포트 상세 | `observed` | GET | `/api/domestic/research/{itemCode}/research/{researchId}` |
+| 최근 인기 | `script-backed` | GET | `/api/domestic/research/recent-popular` |
+| 리서치 홈 집계 | `script-backed` | POST | `/api/domestic/home/researchaggregate/static`, `researchCategory`, `researchRanking`, `recentPopular` 같은 boolean `sections` 포함 |
+| 카테고리 최신 | `observed` | GET | `/api/domestic/research/category-lastest` |
+| 산업 리서치 | `observed` | GET | `/api/domestic/research/industry-research` |
+| 랭킹 | `observed` | GET | `/api/domestic/research/ranking?rankingType={type}&selectedRank={rank}` |
+| 증권사 목록 | `script-backed` | GET | `/api/domestic/research/broker-list` |
 
-Category enum values observed from validation errors and chunks: `INVEST`, `MARKET`, `INDUSTRY`, `COMPANY`, `ECONOMY`, `DEBENTURE`.
+검증 오류와 chunk에서 관찰된 카테고리 enum: `INVEST`, `MARKET`, `INDUSTRY`, `COMPANY`, `ECONOMY`, `DEBENTURE`.
 
-## Discussion APIs
+## 종목토론 API
 
-| Purpose | Status | Method | Path / params |
+| 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
-| Hot feed | `observed` | GET | `/api/community/discussion/posts/hot?pageSize=20&page=1&discussionType={type}&itemCode={itemCode}` |
-| Hot home feed | `observed` | GET | `/api/community/discussion/posts/hot/home?pageSize=20&page=1` |
-| Post detail | `script-backed` | GET | `/api/community/discussion/posts/{postId}` |
-| Adjacent post navigation | `script-backed` | GET | `/api/community/discussion/posts/{postId}/adjacent?pageSize=20&itemCode={itemCode}` |
-| Related hot posts | `script-backed` | GET | `/api/community/discussion/posts/related/hot?itemCode={itemCode}&pageSize=20&discussionType=domesticStock` |
-| Popular hot posts | `script-backed` | GET | `/api/community/discussion/posts/popular/hot` |
-| Market feed | `observed` | GET | `/api/community/discussion/posts/market?offset={offset}&pageSize=20` |
-| Item posts | `observed` | GET | `/api/community/discussion/posts?itemCode={itemCode}&pageSize=20` |
-| Posts by item | `observed` | GET | `/api/community/discussion/posts/by-item?itemCode={itemCode}&pageSize=20` |
-| Posts by item codes | `observed` | GET | `/api/community/discussion/posts/by-item-codes?filterType=itemCodes&pageSize=20&offset={offset}&domesticCodes={codes}` |
-| Latest item posts | `observed` | GET | `/api/community/discussion/items/posts/latest?domesticCodes={codes}&limit=10` |
-| Comment counts | `observed` | GET | `/api/community/discussion/posts/comment-counts?postIds={ids}` |
-| Reactions | `observed` | GET | `/api/community/discussion/posts/reactions?postIds={ids}` |
-| Rankings | `observed` | GET | `/api/community/discussion/rankings?nationType=KOR&page=1&size=20&postType=HOT` |
-| Item stats | `observed` | GET | `/api/community/discussion/stats/by-items?itemCodes={codes}` |
+| 인기 feed | `observed` | GET | `/api/community/discussion/posts/hot?pageSize=20&page=1&discussionType={type}&itemCode={itemCode}` |
+| 홈 인기 feed | `observed` | GET | `/api/community/discussion/posts/hot/home?pageSize=20&page=1` |
+| 글 상세 | `script-backed` | GET | `/api/community/discussion/posts/{postId}` |
+| 이전/다음 글 이동 | `script-backed` | GET | `/api/community/discussion/posts/{postId}/adjacent?pageSize=20&itemCode={itemCode}` |
+| 관련 인기 글 | `script-backed` | GET | `/api/community/discussion/posts/related/hot?itemCode={itemCode}&pageSize=20&discussionType=domesticStock` |
+| 인기 글 | `script-backed` | GET | `/api/community/discussion/posts/popular/hot` |
+| 시장 feed | `observed` | GET | `/api/community/discussion/posts/market?offset={offset}&pageSize=20` |
+| 종목 글 | `observed` | GET | `/api/community/discussion/posts?itemCode={itemCode}&pageSize=20` |
+| 종목별 글 | `observed` | GET | `/api/community/discussion/posts/by-item?itemCode={itemCode}&pageSize=20` |
+| 여러 종목 글 | `observed` | GET | `/api/community/discussion/posts/by-item-codes?filterType=itemCodes&pageSize=20&offset={offset}&domesticCodes={codes}` |
+| 최신 종목 글 | `observed` | GET | `/api/community/discussion/items/posts/latest?domesticCodes={codes}&limit=10` |
+| 댓글 수 | `observed` | GET | `/api/community/discussion/posts/comment-counts?postIds={ids}` |
+| 반응 조회 | `observed` | GET | `/api/community/discussion/posts/reactions?postIds={ids}` |
+| 랭킹 | `observed` | GET | `/api/community/discussion/rankings?nationType=KOR&page=1&size=20&postType=HOT` |
+| 종목 통계 | `observed` | GET | `/api/community/discussion/stats/by-items?itemCodes={codes}` |
 
-Avoid write, profile-editing, image-upload, nickname validation/recommendation, reaction mutation, and authenticated community profile workflows.
+작성, 프로필 편집, 이미지 업로드, 닉네임 검증/추천, 반응 mutation, 인증된 커뮤니티 프로필 워크플로는 피한다.
 
-## Excluded Families
+## 제외 계열
 
-| Family | Status | Reason |
+| 계열 | 상태 | 이유 |
 | --- | --- | --- |
-| `/api/auth/*` | `excluded` | Login/authentication. |
-| `/api/personal/users/holding/*` | `excluded` | Account holdings and refresh workflows. |
-| `/api/personal/users/favorite/*` | `excluded` | User-specific favorites and groups. |
-| `/api/personal/users/notification*` | `excluded` | User notification settings/messages. |
-| `/api/community/profile/users/*` mutation-like routes | `excluded` | User profile and image workflows. |
-| `https://finance.naver.com/*` | `excluded` | Legacy HTML pages outside the `stock.naver.com` scope requested for this skill. |
-| Telemetry, ads, static chunks, fonts, images | `excluded` | Not stock-information APIs. |
+| `/api/auth/*` | `excluded` | 로그인/인증. |
+| `/api/personal/users/holding/*` | `excluded` | 계좌 보유종목과 refresh 워크플로. |
+| `/api/personal/users/favorite/*` | `excluded` | 사용자별 관심종목과 그룹. |
+| `/api/personal/users/notification*` | `excluded` | 사용자 알림 설정/메시지. |
+| `/api/community/profile/users/*` mutation-like routes | `excluded` | 사용자 프로필과 이미지 워크플로. |
+| `https://finance.naver.com/*` | `excluded` | 이 스킬 범위인 `stock.naver.com` 밖의 레거시 HTML 페이지. |
+| 텔레메트리, 광고, 정적 chunk, 폰트, 이미지 | `excluded` | 주식 정보 API가 아니다. |

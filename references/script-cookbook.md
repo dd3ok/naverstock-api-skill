@@ -1,8 +1,8 @@
-# Script Cookbook
+# 스크립트 쿡북
 
-Run scripts from the skill root.
+명령은 스킬 루트에서 실행한다.
 
-## Korean Stocks
+## 국내 주식
 
 ```bash
 python3 scripts/stock_summary.py --code 005930
@@ -34,7 +34,7 @@ python3 scripts/market_trend.py deposit --page-size 10
 python3 scripts/market_trend.py aggregate --market-type KOSPI --period-type TIME
 ```
 
-## Market Index And Indicators
+## 시장 지수와 지표
 
 ```bash
 python3 scripts/marketindex.py majors
@@ -49,7 +49,7 @@ python3 scripts/marketindex.py category --category metals
 python3 scripts/marketindex.py category --category domesticInterest
 ```
 
-## Crypto
+## 가상자산
 
 ```bash
 python3 scripts/crypto.py rank --market UPBIT --sort-type marketValue --page-size 20
@@ -60,7 +60,7 @@ python3 scripts/crypto.py polling --fqnf-tickers BTC_KRW_UPBIT,ETH_KRW_UPBIT
 python3 scripts/crypto.py candles --market UPBIT --ticker BTC --unit 1 --from-time 2026-04-27T09:00:00 --to-time 2026-04-27T09:40:00
 ```
 
-## News And Research
+## 뉴스와 리서치
 
 ```bash
 python3 scripts/news.py list --category mainnews --page-size 20
