@@ -36,7 +36,7 @@ python3 scripts/stock_detail_pages.py etf-detail --code 069500 base
 python3 scripts/stock_detail_pages.py etf-detail --code 069500 component --page-size 10
 python3 scripts/market_stock.py default --order-type marketSum --page-size 10
 python3 scripts/market_stock.py default --order-type marketSum --market-type KOSPI --page-size 20
-python3 scripts/market_stock.py default --order-type searchTop --page-size 10
+python3 scripts/market_stock.py search-top --page-size 10
 python3 scripts/market_stock.py dividend --page-size 10
 python3 scripts/market_stock.py ipo --page-size 10
 python3 scripts/market_stock.py upjong-theme --ranking-type upjong --page-size 10
