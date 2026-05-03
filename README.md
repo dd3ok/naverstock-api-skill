@@ -1,6 +1,6 @@
 # NaverStock Web API Skill
 
-[![NaverStock API Skills CI](https://github.com/dd3ok/naverstock-api-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/dd3ok/naverstock-api-skill/actions/workflows/ci.yml)
+[![NaverStock API Skill CI](https://github.com/dd3ok/naverstock-api-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/dd3ok/naverstock-api-skill/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/dd3ok/naverstock-api-skill?sort=semver)](https://github.com/dd3ok/naverstock-api-skill/releases/latest)
 
 > 30초 요약: `stock.naver.com` 공개 페이지에서 관찰되는 비공식 read-only 웹 API를 agent가 안전하게 다시 조회하도록 돕는 skill입니다.  
