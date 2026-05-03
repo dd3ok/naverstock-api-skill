@@ -6,6 +6,7 @@
 
 ```bash
 python3 scripts/stock_summary.py --code 005930
+python3 scripts/stock_summary.py --code 005930 --include-industry
 python3 scripts/stock_summary.py --code 005930 --code-type NXT --include-industry
 python3 scripts/stock_detail_pages.py price --code 005930
 python3 scripts/stock_detail_pages.py hoga --code 005930
@@ -19,6 +20,7 @@ python3 scripts/stock_detail_pages.py invest-poll --code 005930
 python3 scripts/stock_detail_pages.py invest-resource --code 005930 invest-rate --size 10
 python3 scripts/stock_detail_pages.py etf-detail --code 069500 base
 python3 scripts/stock_detail_pages.py etf-detail --code 069500 component --page-size 10
+python3 scripts/market_stock.py default --order-type marketSum --page-size 10
 python3 scripts/market_stock.py default --order-type marketSum --market-type KOSPI --page-size 20
 python3 scripts/market_stock.py default --order-type searchTop --page-size 10
 python3 scripts/market_stock.py dividend --page-size 10
@@ -26,6 +28,7 @@ python3 scripts/market_stock.py ipo --page-size 10
 python3 scripts/market_stock.py upjong-theme --ranking-type upjong --page-size 10
 python3 scripts/category_detail.py rank industry --page-size 10
 python3 scripts/category_detail.py detail theme --rank 1 --stock-page-size 10
+python3 scripts/category_detail.py stocks theme --rank 1 --page-size 10
 python3 scripts/category_detail.py stocks groups --no 19 --order-type marketSum --page-size 10
 python3 scripts/domestic_etf.py list --listing-type priceTop --size 10
 python3 scripts/domestic_etf.py themes
@@ -42,18 +45,19 @@ python3 scripts/marketindex.py majors
 python3 scripts/marketindex.py polling --codes KOSPI,KOSDAQ,KPI200
 python3 scripts/marketindex.py chart --code KOSPI --period-type day
 python3 scripts/marketindex.py category --category energy
+python3 scripts/marketindex.py category --category transport
 python3 scripts/marketindex.py detail --category energy --code CLcv1
 python3 scripts/marketindex.py prices --category energy --code CLcv1 --page-size 5
 python3 scripts/marketindex.py economic-upcoming --limit 5
 python3 scripts/marketindex.py exchange-rates --currencies USD,JPY
 python3 scripts/marketindex.py category --category metals
 python3 scripts/marketindex.py category --category domesticInterest
-python3 scripts/marketindex.py category --category transport
 ```
 
 ## 가상자산
 
 ```bash
+python3 scripts/crypto.py rank --market UPBIT --sort-type marketValue --page-size 10
 python3 scripts/crypto.py rank --market UPBIT --sort-type marketValue --page-size 20
 python3 scripts/crypto.py majors --market UPBIT
 python3 scripts/crypto.py price --market UPBIT --ticker BTC
@@ -65,7 +69,9 @@ python3 scripts/crypto.py candles --market UPBIT --ticker BTC --unit 1 --from-ti
 ## 뉴스와 리서치
 
 ```bash
+python3 scripts/news.py list --category mainnews --page-size 10
 python3 scripts/news.py list --category mainnews --page-size 20
+python3 scripts/news.py notice --page-size 10
 python3 scripts/news.py notice --page-size 20
 python3 scripts/news.py world --page-size 10
 python3 scripts/news.py aggregate --main-news-size 3 --notice-size 3
@@ -79,5 +85,6 @@ python3 scripts/research.py detail --category COMPANY --research-id 91965
 python3 scripts/discussion.py hot-home --page-size 10
 python3 scripts/discussion.py post --post-id 418462889
 python3 scripts/discussion.py related-hot --item-code 005930 --page-size 5
+python3 scripts/discussion.py rankings --size 10
 python3 scripts/discussion.py rankings --nation-type KOR --post-type HOT --size 10
 ```

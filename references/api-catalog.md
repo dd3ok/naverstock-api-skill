@@ -8,6 +8,19 @@
 
 이 카탈로그는 레거시 `finance.naver.com` HTML 페이지를 의도적으로 제외합니다. 구버전 네이버 증권 페이지가 필요하면 [dd3ok/naverfinance-api-skills](https://github.com/dd3ok/naverfinance-api-skills)를 참고해 주세요. 이 카탈로그에는 `stock.naver.com` 페이지 또는 상대 `stock.naver.com/api/...` 호출에서 확인되는 엔드포인트만 추가합니다.
 
+## 목차
+
+- [상태 라벨](#상태-라벨)
+- [페이지 점검 메모](#페이지-점검-메모)
+- [식별자 규칙](#식별자-규칙)
+- [국내 주식 API](#국내-주식-api)
+- [시장 지수와 지표](#시장-지수와-지표)
+- [가상자산 API](#가상자산-api)
+- [뉴스 API](#뉴스-api)
+- [리서치 API](#리서치-api)
+- [종목토론 API](#종목토론-api)
+- [제외 계열](#제외-계열)
+
 ## 상태 라벨
 
 | 상태 | 의미 |

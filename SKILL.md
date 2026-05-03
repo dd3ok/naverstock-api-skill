@@ -73,29 +73,16 @@ description: Use when a user asks to inspect, catalog, or call unofficial read-o
 
 옵션은 `python3 scripts/<name>.py --help`로 확인하고, 자주 쓰는 명령은 [references/script-cookbook.md](references/script-cookbook.md)를 참고합니다.
 
-## 실행 예시
+## 대표 실행 예시
+
+더 많은 명령과 옵션 조합은 [references/script-cookbook.md](references/script-cookbook.md)를 읽습니다.
 
 ```bash
 python3 scripts/stock_summary.py --code 005930 --include-industry
-python3 scripts/stock_detail_pages.py sise-day --code 005930 --page-size 5
 python3 scripts/stock_detail_pages.py notice --code 005930 --page-size 5
-python3 scripts/stock_detail_pages.py etf-detail --code 069500 component --page-size 10
-python3 scripts/market_stock.py default --order-type marketSum --page-size 10
-python3 scripts/market_stock.py dividend --page-size 10
-python3 scripts/category_detail.py stocks theme --rank 1 --page-size 10
 python3 scripts/domestic_etf.py list --listing-type priceTop --size 10
-python3 scripts/domestic_etf.py etn-list --order-type priceTop --page-size 10
-python3 scripts/market_trend.py deposit --page-size 10
 python3 scripts/market_trend.py trend-foreign-org --page-size 10
 python3 scripts/marketindex.py majors
-python3 scripts/marketindex.py category --category energy
-python3 scripts/marketindex.py category --category transport
-python3 scripts/crypto.py rank --market UPBIT --sort-type marketValue --page-size 10
-python3 scripts/news.py list --category mainnews --page-size 10
-python3 scripts/news.py notice --page-size 10
-python3 scripts/research.py category --category COMPANY --page-size 10
-python3 scripts/discussion.py hot-home --page-size 10
-python3 scripts/discussion.py rankings --size 10
 ```
 
 ## 사용 프롬프트
