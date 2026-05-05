@@ -76,11 +76,6 @@ def fetch_notice(args: argparse.Namespace) -> Any:
     )
 
 
-def fetch_world(args: argparse.Namespace) -> Any:
-    return request_json(
-        build_path("/api/foreign/news/worldNews", {"page": args.page, "pageSize": args.page_size, "date": args.date})
-    )
-
 
 def fetch_aggregate(args: argparse.Namespace) -> Any:
     return request_json(
@@ -139,13 +134,6 @@ def main() -> None:
     notice.add_argument("--type-idx", action="append")
     notice.add_argument("--output")
     notice.set_defaults(func=fetch_notice)
-
-    world = sub.add_parser("world", help="World/foreign market news")
-    world.add_argument("--page", type=int, default=1)
-    world.add_argument("--page-size", type=int, default=20)
-    world.add_argument("--date")
-    world.add_argument("--output")
-    world.set_defaults(func=fetch_world)
 
     aggregate = sub.add_parser("aggregate", help="News home aggregate blocks")
     aggregate.add_argument("--flash-news-size", type=int, default=5)

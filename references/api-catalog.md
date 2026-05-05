@@ -186,13 +186,15 @@
 | 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
 | 뉴스 목록 | `script-backed` | GET | `/api/domestic/news/list?category=mainnews&page=1&pageSize=20` |
-| 포커스 뉴스 | `script-backed` | GET | `/api/domestic/news/focus?sid=401&page=1&pageSize=20` |
+| 포커스 뉴스 (`/news/section`) | `script-backed` | GET | `/api/domestic/news/focus?sid=401&page=1&pageSize=20` |
+| 미국주식 뉴스 후보 (`/news/section`, `global-market`) | `script-backed` | GET | `/api/domestic/news/focus?sid=403&page=1&pageSize=20` |
 | 뉴스 검색 | `script-backed` | GET | `/api/domestic/news/search?query=반도체&page=1&pageSize=20` |
 | 시장 공시/공지 뉴스 | `script-backed` | GET | `/api/domestic/news/noticeList?page=1&pageSize=20&keyword={keyword}&typeIdx={idx}` |
-| 세계/해외 시장 뉴스 | `script-backed` | GET | `/api/foreign/news/worldNews?page=1&pageSize=20&date={yyyyMMdd}` |
 | 뉴스 홈 집계 | `script-backed` | GET | `/api/domestic/news/aggregate/home?flashNewsSize=5&mainNewsSize=5&rankingNewsSize=5&overseasNewsSize=5&focusSize=5&moneyStorySize=5&noticeSize=5` |
 
-관찰된 목록 카테고리에는 `mainnews`, `flashnews`, `ranknews`가 있습니다. `stock`, `market`, `all` 같은 임의 값은 실패할 수 있습니다. 관찰된 포커스 섹션 맵: `market-outlook=401`, `company-analysis=402`, `global-market=403`, `bond-futures=404`, `disclosure-memo=406`, `exchange-rate=429`.
+관찰된 목록 카테고리에는 `mainnews`, `flashnews`, `ranknews`가 있습니다. `stock`, `market`, `all` 같은 임의 값은 실패할 수 있습니다.
+
+`/news/section`의 포커스 뉴스는 `/api/domestic/news/focus`를 사용하며, 관찰된 포커스 섹션 맵은 `market-outlook=401`, `company-analysis=402`, `global-market=403`, `bond-futures=404`, `disclosure-memo=406`, `exchange-rate=429`입니다. dotol 미국주식 브리핑 뉴스는 `global-market` / `sid=403`을 미국주식 뉴스 후보로 매핑해 사용합니다.
 
 ## 리서치 API
 
