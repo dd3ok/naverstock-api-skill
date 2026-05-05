@@ -108,6 +108,7 @@ python3 scripts/domestic_etf.py list --listing-type priceTop --size 10
 python3 scripts/marketindex.py majors
 python3 scripts/crypto.py rank --market UPBIT --page-size 10
 python3 scripts/news.py list --category mainnews --page-size 10
+python3 scripts/news.py world-news --page-size 10
 python3 scripts/research.py category --category COMPANY --page-size 10
 python3 scripts/discussion.py hot-home --page-size 10
 ```

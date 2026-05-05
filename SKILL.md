@@ -67,7 +67,7 @@ description: Use when a user asks to inspect, catalog, or call unofficial read-o
 - `scripts/market_trend.py`: 투자자 예탁금 목록/차트와 시장 집계 투자자 동향 조회.
 - `scripts/marketindex.py`: 주요 지수 목록, 시장지표 카테고리, 지수 폴링, 지수 차트 조회.
 - `scripts/crypto.py`: 업비트/빗썸 랭킹, 주요 코인, 폴링 가격, 분봉 캔들 조회.
-- `scripts/news.py`: 시장 뉴스 목록, 포커스 카테고리, 키워드 검색 조회.
+- `scripts/news.py`: 시장 뉴스 목록, 포커스 카테고리, 해외뉴스(`/news/worldnews`), 키워드 검색 조회.
 - `scripts/research.py`: 리서치 카테고리별 목록, 최근 인기 리서치, 증권사 목록, 리포트 상세, 리서치 홈 집계 블록 조회.
 - `scripts/discussion.py`: 읽기 전용 종목토론 인기 목록, 글 상세, 이전/다음 글, 관련 인기 글 조회.
 
@@ -90,6 +90,7 @@ python3 scripts/marketindex.py majors
 python3 scripts/marketindex.py category --category energy
 python3 scripts/crypto.py rank --market UPBIT --sort-type marketValue --page-size 10
 python3 scripts/news.py list --category mainnews --page-size 10
+python3 scripts/news.py world-news --page-size 10
 python3 scripts/news.py notice --page-size 10
 python3 scripts/research.py category --category COMPANY --page-size 10
 python3 scripts/discussion.py hot-home --page-size 10

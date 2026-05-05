@@ -66,6 +66,7 @@ python3 scripts/crypto.py candles --market UPBIT --ticker BTC --unit 1 --from-ti
 python3 scripts/news.py list --category mainnews --page-size 20
 python3 scripts/news.py notice --page-size 20
 python3 scripts/news.py focus --focus global-market --page-size 10
+python3 scripts/news.py world-news --page-size 10
 python3 scripts/news.py aggregate --main-news-size 3 --notice-size 3
 python3 scripts/news.py focus --focus market-outlook --page-size 20
 python3 scripts/news.py search --query 반도체 --page-size 10
