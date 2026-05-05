@@ -16,7 +16,7 @@
 - 국내 시장 목록 `marketType`: `ALL`, `KOSPI`, `KOSDAQ`.
 - 리서치 카테고리: `INVEST`, `MARKET`, `INDUSTRY`, `COMPANY`, `ECONOMY`, `DEBENTURE`.
 - 가상자산 거래소: `UPBIT`, `BITHUMB`.
-- 뉴스 포커스 slug: `market-outlook`, `company-analysis`, `global-market`, `bond-futures`, `disclosure-memo`, `exchange-rate`.
+- 뉴스 포커스 slug: `market-outlook`, `company-analysis`, `global-market`, `bond-futures`, `disclosure-memo`, `exchange-rate`. `/news/section?tab=global-market`의 “해외증시” 탭은 `global-market`이며 API sid는 `403`입니다.
 - 뉴스 목록 카테고리: `mainnews`, `flashnews`, `ranknews`.
 - 시장지표 카테고리 목록 호출: `energy`, `metals`, `agricultural`, `transport`, `domesticInterest`. 상세 호출에는 `exchange`, `standardInterest`, `bond` 같은 추가 category가 있습니다.
 - 토론 랭킹 `postType`: 확인된 기본값은 `HOT`입니다. `LATEST`는 chunk enum으로 관찰했지만 중요한 사용 전 재검증합니다.
@@ -31,6 +31,8 @@
 - 2026-04-27 확인 기준 `/api/securityService/marketindex/majors`는 404를 반환했고 `/api/securityFe/api/index/majors`는 동작했습니다.
 - 가상자산 폴링에는 `KRW-BTC`가 아니라 `BTC_KRW_UPBIT` 같은 `fqnfTicker`가 필요합니다.
 - 검증에서 뉴스 목록 카테고리 `main`은 실패했습니다. 새 라이브 트래픽에서 다른 값을 확인하지 않는 한 `mainnews`를 사용합니다.
+- 뉴스포커스 최신순 UI는 `date=yyyyMMdd&enableFallback=true`를 함께 보낼 수 있습니다. 직접 확인 기준 `maxDays`는 1-7만 허용되고, 더 큰 값은 검증 오류를 반환합니다.
+- 해외뉴스 상세 `/api/foreign/news/worldNews/{aid}`의 `article.subcontent`는 HTML을 포함할 수 있으므로 렌더링/요약 전에 신뢰할 수 없는 원격 콘텐츠로 처리합니다.
 - 일부 차트 route는 path enum에 엄격합니다. 새 차트 스크립트 경로를 추가하기 전에 작은 요청으로 검증합니다.
 - 가상자산 candle 응답의 `tradeBaseAt` 같은 시간 필드는 UTC 등 응답 기준 시간대일 수 있습니다. 입력한 로컬처럼 보이는 ISO 문자열과 같은 시간대라고 단정하지 않습니다.
 - 네이버증권은 폴링 응답에서 숫자 필드를 comma가 포함된 문자열로, 상세 응답에서 일반 숫자 문자열로 포맷할 수 있습니다.

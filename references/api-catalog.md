@@ -1,6 +1,6 @@
 # NaverStock Web API 카탈로그
 
-기준 관찰일: 2026-04-27  
+기준 관찰일: 2026-05-05  
 관찰 출처: 로그인하지 않은 공개 `https://stock.naver.com/` 페이지와 Next.js chunk  
 기본 호스트: `https://stock.naver.com`
 
@@ -61,7 +61,7 @@
 | `/domestic/stock/{itemCode}` | 307 | `/price`로 이동 |
 | `/domestic/stock/{itemCode}/{price\|news\|notice\|ir\|discussion\|research}` | 200 | 종목 상세 하위 페이지 |
 | `/domestic/stock/{itemCode}/info/{company\|overview\|financial\|investment\|consensus\|industry\|sector\|share\|esg}` | 200 | 종목 정보 탭 page route |
-| `/news`, `/news/mainnews`, `/notice` | 200 | 뉴스/공지 페이지 |
+| `/news`, `/news/flashnews`, `/news/mainnews`, `/news/ranknews`, `/news/section`, `/news/worldnews`, `/notice` | 200 | 뉴스/뉴스포커스/해외뉴스/공지 페이지 |
 | `/research`, `/research/{daily\|company\|industry\|invest\|economy}` | 200 | 리서치 페이지. `/research/firm`은 404 |
 | `/discussion`, `/discussion/feed/{all\|domesticStock\|market\|my}` | 200 | 토론 페이지. `/discussion/feed`는 `/discussion/feed/all`로 이동 |
 
@@ -204,9 +204,14 @@
 | 뉴스 검색 | `script-backed` | GET | `/api/domestic/news/search?query=반도체&page=1&pageSize=20` |
 | 시장 공시/공지 뉴스 | `script-backed` | GET | `/api/domestic/news/noticeList?page=1&pageSize=20&keyword={keyword}&typeIdx={idx}` |
 | 세계/해외 시장 뉴스 | `script-backed` | GET | `/api/foreign/news/worldNews?page=1&pageSize=20&date={yyyyMMdd}` |
+| 세계/해외 시장 뉴스 상세 | `script-backed` | GET | `/api/foreign/news/worldNews/{aid}` |
 | 뉴스 홈 집계 | `script-backed` | GET | `/api/domestic/news/aggregate/home?flashNewsSize=5&mainNewsSize=5&rankingNewsSize=5&overseasNewsSize=5&focusSize=5&moneyStorySize=5&noticeSize=5` |
 
-관찰된 목록 카테고리에는 `mainnews`, `flashnews`, `ranknews`가 있습니다. `stock`, `market`, `all` 같은 임의 값은 실패할 수 있습니다. 관찰된 포커스 섹션 맵: `market-outlook=401`, `company-analysis=402`, `global-market=403`, `bond-futures=404`, `disclosure-memo=406`, `exchange-rate=429`.
+관찰된 목록 카테고리에는 `mainnews`, `flashnews`, `ranknews`가 있습니다. `stock`, `market`, `all` 같은 임의 값은 실패할 수 있습니다.
+
+2026-05-05 직접 확인에서 뉴스 상단 탭 route는 `/news/flashnews`, `/news/mainnews`, `/news/ranknews`, `/news/section`, `/news/worldnews`였습니다. `/news/worldnews`는 `page`가 1부터 증가하는 목록 API를 사용하고, 날짜 필터는 `date=yyyyMMdd`를 추가합니다. 각 목록 item의 `aid`로 `/news/worldnews/{aid}` 페이지와 `/api/foreign/news/worldNews/{aid}` 상세 API를 조회할 수 있습니다. 상세 응답은 `{ "article": ..., "latestList": [...] }` 형태이며 `article.subcontent`에 HTML 원문/고지 문구가 포함될 수 있습니다.
+
+`/news/section` 하위 탭은 query `tab`으로 선택되며 관찰된 탭/섹션 맵은 `market-outlook=401`(시황·전망), `company-analysis=402`(기업·종목분석), `global-market=403`(해외증시), `bond-futures=404`(채권·선물), `disclosure-memo=406`(공시·메모), `exchange-rate=429`(환율)입니다. 최신순 기본 호출은 현재 날짜 `date=yyyyMMdd`와 `enableFallback=true`를 함께 보내 과거 기사로 fallback할 수 있고, 직접 지정 시 `maxDays`는 1-7 범위만 허용됩니다. 날짜별 필터에서는 선택 날짜의 기사만 남기도록 클라이언트가 추가 필터링합니다.
 
 ## 리서치 API
 

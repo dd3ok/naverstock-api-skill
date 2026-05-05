@@ -16,6 +16,7 @@ sys.path.insert(0, str(SCRIPTS))
 import discussion  # noqa: E402
 import market_trend  # noqa: E402
 import marketindex  # noqa: E402
+import news  # noqa: E402
 
 
 class MarketIndexTests(unittest.TestCase):
@@ -53,6 +54,35 @@ class DiscussionTests(unittest.TestCase):
         request_json.assert_called_once_with(
             "/api/community/discussion/rankings?nationType=KOR&page=1&size=5&postType=HOT"
         )
+
+
+class NewsTests(unittest.TestCase):
+    def test_focus_can_match_section_latest_fallback_params(self) -> None:
+        args = argparse.Namespace(
+            focus="global-market",
+            page=1,
+            page_size=15,
+            date="20260505",
+            enable_fallback=True,
+            max_days=7,
+        )
+
+        with patch.object(news, "request_json", return_value={"articles": []}) as request_json:
+            result = news.fetch_focus(args)
+
+        self.assertEqual(result, {"articles": []})
+        request_json.assert_called_once_with(
+            "/api/domestic/news/focus?sid=403&page=1&pageSize=15&date=20260505&enableFallback=true&maxDays=7"
+        )
+
+    def test_world_detail_uses_foreign_worldnews_article_endpoint(self) -> None:
+        args = argparse.Namespace(article_id="2580641")
+
+        with patch.object(news, "request_json", return_value={"article": {"aid": "2580641"}}) as request_json:
+            result = news.fetch_world_detail(args)
+
+        self.assertEqual(result, {"article": {"aid": "2580641"}})
+        request_json.assert_called_once_with("/api/foreign/news/worldNews/2580641")
 
 
 if __name__ == "__main__":

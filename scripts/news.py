@@ -82,6 +82,10 @@ def fetch_world(args: argparse.Namespace) -> Any:
     )
 
 
+def fetch_world_detail(args: argparse.Namespace) -> Any:
+    return request_json(f"/api/foreign/news/worldNews/{args.article_id}")
+
+
 def fetch_aggregate(args: argparse.Namespace) -> Any:
     return request_json(
         build_path(
@@ -117,7 +121,7 @@ def main() -> None:
     focus.add_argument("--page-size", type=int, default=20)
     focus.add_argument("--date")
     focus.add_argument("--enable-fallback", action=argparse.BooleanOptionalAction, default=None)
-    focus.add_argument("--max-days", type=int)
+    focus.add_argument("--max-days", type=int, choices=range(1, 8), metavar="1..7")
     focus.add_argument("--output")
     focus.set_defaults(func=fetch_focus)
 
@@ -146,6 +150,11 @@ def main() -> None:
     world.add_argument("--date")
     world.add_argument("--output")
     world.set_defaults(func=fetch_world)
+
+    world_detail = sub.add_parser("world-detail", help="World/foreign market news article detail")
+    world_detail.add_argument("--article-id", required=True, help="World news aid from the world list")
+    world_detail.add_argument("--output")
+    world_detail.set_defaults(func=fetch_world_detail)
 
     aggregate = sub.add_parser("aggregate", help="News home aggregate blocks")
     aggregate.add_argument("--flash-news-size", type=int, default=5)

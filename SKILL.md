@@ -32,7 +32,7 @@ description: Use when a user asks to inspect, catalog, or call unofficial read-o
 | 예탁금, 국내 투자자 동향 집계, 외국인/기관 투자자 동향 랭킹 | `scripts/market_trend.py` | [references/api-catalog.md](references/api-catalog.md) |
 | KOSPI/KOSDAQ/KPI200, 원자재, 운임, 금리, 시장지표, 지수 차트 | `scripts/marketindex.py` | [references/api-catalog.md](references/api-catalog.md) |
 | 가상자산 랭킹, 주요 코인, 폴링 가격, 캔들 | `scripts/crypto.py` | [references/api-catalog.md](references/api-catalog.md) |
-| 시장 뉴스, 포커스 섹션, 키워드 검색 | `scripts/news.py` | [references/api-catalog.md](references/api-catalog.md) |
+| 시장 뉴스, 뉴스포커스 하위 탭, 해외뉴스 목록/상세, 키워드 검색 | `scripts/news.py` | [references/api-catalog.md](references/api-catalog.md) |
 | 리서치 리포트 카테고리, 증권사 목록, 최근 인기 리포트 | `scripts/research.py` | [references/api-catalog.md](references/api-catalog.md) |
 | 종목토론 글, 인기 글, 상세/이전다음/관련 글, 종목 토론 랭킹 | `scripts/discussion.py` | [references/api-catalog.md](references/api-catalog.md) |
 | 새 엔드포인트 캡처 또는 문서화되지 않은 페이지 분석 | 브라우저 네트워크 캡처와 chunk 검사 | [references/capture-workflow.md](references/capture-workflow.md), [references/safety-rules.md](references/safety-rules.md) |
