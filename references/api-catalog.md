@@ -4,7 +4,7 @@
 관찰 출처: 로그인하지 않은 공개 `https://stock.naver.com/` 페이지와 Next.js chunk  
 기본 호스트: `https://stock.naver.com`
 
-네이버증권 내부 API는 문서화되어 있지 않으며 예고 없이 바뀔 수 있습니다. 현재 운영 동작에 의존하기 전에는 엔드포인트를 다시 검증합니다.
+네이버증권 내부 API는 미문서화 상태이며 예고 없이 바뀔 수 있습니다. 이 카탈로그는 정답이 아니라 관찰 기록입니다. 운영에 의존하기 전에 현재 공개 페이지 트래픽, Next.js chunk, 소량 read-only 요청으로 다시 확인합니다.
 
 이 카탈로그는 레거시 `finance.naver.com` HTML 페이지를 의도적으로 제외합니다. 구버전 네이버 증권 페이지가 필요하면 [dd3ok/naverfinance-api-skills](https://github.com/dd3ok/naverfinance-api-skills)를 참고해 주세요. 이 카탈로그에는 `stock.naver.com` 페이지 또는 상대 `stock.naver.com/api/...` 호출에서 확인되는 엔드포인트만 추가합니다.
 
