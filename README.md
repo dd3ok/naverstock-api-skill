@@ -115,7 +115,7 @@ python3 scripts/news.py world-news --page-size 10
 python3 scripts/news.py world-detail --article-id 2580641
 python3 scripts/research.py category --category COMPANY --page-size 10
 python3 scripts/discussion.py hot-home --page-size 10
-python3 scripts/discussion.py rankings --size 10
+python3 scripts/discussion.py rankings --page-size 10
 ```
 
 스크립트별 옵션은 `--help`로 확인합니다.

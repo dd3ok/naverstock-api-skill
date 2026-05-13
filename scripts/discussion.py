@@ -105,7 +105,7 @@ def main() -> None:
     rankings = sub.add_parser("rankings", help="Discussion item rankings")
     rankings.add_argument("--nation-type", choices=["KOR", "USA"], default="KOR")
     rankings.add_argument("--page", type=int, default=1)
-    rankings.add_argument("--size", type=int, default=20)
+    rankings.add_argument("--page-size", type=int, default=20, dest="size")
     rankings.add_argument("--post-type", choices=["HOT", "LATEST"], default="HOT")
     rankings.add_argument("--output")
     rankings.set_defaults(func=fetch_rankings)

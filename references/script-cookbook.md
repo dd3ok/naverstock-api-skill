@@ -103,6 +103,6 @@ python3 scripts/research.py detail --category COMPANY --research-id 91965
 python3 scripts/discussion.py hot-home --page-size 10
 python3 scripts/discussion.py post --post-id 418462889
 python3 scripts/discussion.py related-hot --item-code 005930 --page-size 5
-python3 scripts/discussion.py rankings --size 10
-python3 scripts/discussion.py rankings --nation-type KOR --post-type HOT --size 10
+python3 scripts/discussion.py rankings --page-size 10
+python3 scripts/discussion.py rankings --nation-type KOR --post-type HOT --page-size 10
 ```

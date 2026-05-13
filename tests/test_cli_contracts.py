@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import sys
 import unittest
+from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
@@ -51,6 +52,20 @@ class DiscussionTests(unittest.TestCase):
             result = discussion.fetch_rankings(args)
 
         self.assertEqual(result, {"contents": []})
+        request_json.assert_called_once_with(
+            "/api/community/discussion/rankings?nationType=KOR&page=1&size=5&postType=HOT"
+        )
+
+    def test_rankings_cli_maps_page_size_to_api_size_param(self) -> None:
+        argv = ["discussion.py", "rankings", "--page-size", "5"]
+
+        with (
+            patch.object(sys, "argv", argv),
+            patch.object(discussion, "request_json", return_value={"contents": []}) as request_json,
+            patch("sys.stdout", new_callable=StringIO),
+        ):
+            discussion.main()
+
         request_json.assert_called_once_with(
             "/api/community/discussion/rankings?nationType=KOR&page=1&size=5&postType=HOT"
         )
