@@ -111,6 +111,7 @@ python3 scripts/marketindex.py category --category transport
 python3 scripts/crypto.py rank --market UPBIT --page-size 10
 python3 scripts/news.py list --category mainnews --page-size 10
 python3 scripts/news.py focus --focus global-market --date 20260505 --enable-fallback --page-size 15
+python3 scripts/news.py world-news --page-size 10
 python3 scripts/news.py world-detail --article-id 2580641
 python3 scripts/research.py category --category COMPANY --page-size 10
 python3 scripts/discussion.py hot-home --page-size 10

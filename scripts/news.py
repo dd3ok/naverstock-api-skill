@@ -76,9 +76,12 @@ def fetch_notice(args: argparse.Namespace) -> Any:
     )
 
 
-def fetch_world(args: argparse.Namespace) -> Any:
+def fetch_world_news(args: argparse.Namespace) -> Any:
     return request_json(
-        build_path("/api/foreign/news/worldNews", {"page": args.page, "pageSize": args.page_size, "date": args.date})
+        build_path(
+            "/api/foreign/news/worldNews",
+            {"page": args.page, "pageSize": args.page_size, "date": args.date},
+        )
     )
 
 
@@ -144,12 +147,12 @@ def main() -> None:
     notice.add_argument("--output")
     notice.set_defaults(func=fetch_notice)
 
-    world = sub.add_parser("world", help="World/foreign market news")
-    world.add_argument("--page", type=int, default=1)
-    world.add_argument("--page-size", type=int, default=20)
-    world.add_argument("--date")
-    world.add_argument("--output")
-    world.set_defaults(func=fetch_world)
+    world_news = sub.add_parser("world-news", help="Overseas news from /news/worldnews")
+    world_news.add_argument("--page", type=int, default=1)
+    world_news.add_argument("--page-size", type=int, default=20)
+    world_news.add_argument("--date")
+    world_news.add_argument("--output")
+    world_news.set_defaults(func=fetch_world_news)
 
     world_detail = sub.add_parser("world-detail", help="World/foreign market news article detail")
     world_detail.add_argument("--article-id", required=True, help="World news aid from the world list")

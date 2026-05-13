@@ -16,7 +16,7 @@
 - 국내 시장 목록 `marketType`: `ALL`, `KOSPI`, `KOSDAQ`.
 - 리서치 카테고리: `INVEST`, `MARKET`, `INDUSTRY`, `COMPANY`, `ECONOMY`, `DEBENTURE`.
 - 가상자산 거래소: `UPBIT`, `BITHUMB`.
-- 뉴스 포커스 slug: `market-outlook`, `company-analysis`, `global-market`, `bond-futures`, `disclosure-memo`, `exchange-rate`. `/news/section?tab=global-market`의 “해외증시” 탭은 `global-market`이며 API sid는 `403`입니다.
+- 뉴스 포커스 slug: `market-outlook`, `company-analysis`, `global-market`, `bond-futures`, `disclosure-memo`, `exchange-rate`. `/news/section`의 “해외증시” 탭은 `global-market`이고 API sid는 `403`이지만, 미국장/해외뉴스 목록에는 `/api/foreign/news/worldNews`를 우선 사용합니다.
 - 뉴스 목록 카테고리: `mainnews`, `flashnews`, `ranknews`.
 - 시장지표 카테고리 목록 호출: `energy`, `metals`, `agricultural`, `transport`, `domesticInterest`. 상세 호출에는 `exchange`, `standardInterest`, `bond` 같은 추가 category가 있습니다.
 - 토론 랭킹 `postType`: 확인된 기본값은 `HOT`입니다. `LATEST`는 chunk enum으로 관찰했지만 중요한 사용 전 재검증합니다.
@@ -36,6 +36,7 @@
 - 일부 차트 route는 path enum에 엄격합니다. 새 차트 스크립트 경로를 추가하기 전에 작은 요청으로 검증합니다.
 - 가상자산 candle 응답의 `tradeBaseAt` 같은 시간 필드는 UTC 등 응답 기준 시간대일 수 있습니다. 입력한 로컬처럼 보이는 ISO 문자열과 같은 시간대라고 단정하지 않습니다.
 - 네이버증권은 폴링 응답에서 숫자 필드를 comma가 포함된 문자열로, 상세 응답에서 일반 숫자 문자열로 포맷할 수 있습니다.
+
 - 스킬 범위는 `stock.naver.com`으로 유지합니다. 테마나 업종 구성 종목을 추론하기 위해 `finance.naver.com` 그룹 상세 HTML을 사용하지 않습니다. 구버전 네이버 증권 페이지는 [dd3ok/naverfinance-api-skills](https://github.com/dd3ok/naverfinance-api-skills)를 참고해 주세요.
 - `/market/stock/kr/{industry|theme|groups}/{rank}` route의 path 값은 카테고리 ID가 아니라 화면 랭킹 순번입니다. `info` 또는 `stocklist` 호출 전에 `/api/domestic/market/{upjong|theme|group}/list`로 현재 카테고리 `no`를 찾아야 합니다.
 - 종목 공시/IR 엔드포인트는 `startIdx`를 사용하고, 종목 뉴스는 `page`를 사용합니다. 상세 하위 페이지 전체에 하나의 페이징 방식을 가정하지 않습니다.

@@ -87,8 +87,9 @@ python3 scripts/news.py list --category mainnews --page-size 10
 python3 scripts/news.py list --category mainnews --page-size 20
 python3 scripts/news.py notice --page-size 10
 python3 scripts/news.py notice --page-size 20
-python3 scripts/news.py world --page-size 10
-python3 scripts/news.py world --page-size 10 --date 20260505
+python3 scripts/news.py focus --focus global-market --page-size 10
+python3 scripts/news.py world-news --page-size 10
+python3 scripts/news.py world-news --page-size 10 --date 20260505
 python3 scripts/news.py world-detail --article-id 2580641
 python3 scripts/news.py aggregate --main-news-size 3 --notice-size 3
 python3 scripts/news.py focus --focus market-outlook --page-size 20

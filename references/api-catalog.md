@@ -200,18 +200,19 @@
 | 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
 | 뉴스 목록 | `script-backed` | GET | `/api/domestic/news/list?category=mainnews&page=1&pageSize=20` |
-| 포커스 뉴스 | `script-backed` | GET | `/api/domestic/news/focus?sid=401&page=1&pageSize=20` |
+| 포커스 뉴스 (`/news/section`) | `script-backed` | GET | `/api/domestic/news/focus?sid=401&page=1&pageSize=20` |
+| 뉴스포커스 해외증시 후보 (`/news/section`, `global-market`) | `script-backed` | GET | `/api/domestic/news/focus?sid=403&page=1&pageSize=20`. 2026-05-06 재확인에서 빈 결과가 나왔으므로 미국 public briefing의 단독 해외뉴스 소스로 쓰지 않습니다. |
 | 뉴스 검색 | `script-backed` | GET | `/api/domestic/news/search?query=반도체&page=1&pageSize=20` |
 | 시장 공시/공지 뉴스 | `script-backed` | GET | `/api/domestic/news/noticeList?page=1&pageSize=20&keyword={keyword}&typeIdx={idx}` |
-| 세계/해외 시장 뉴스 | `script-backed` | GET | `/api/foreign/news/worldNews?page=1&pageSize=20&date={yyyyMMdd}` |
-| 세계/해외 시장 뉴스 상세 | `script-backed` | GET | `/api/foreign/news/worldNews/{aid}` |
+| 해외뉴스 목록 (`/news/worldnews`) | `script-backed` | GET | `/api/foreign/news/worldNews?page=1&pageSize=20&date={yyyyMMdd}`. Reuters/해외 시장 뉴스 목록입니다. |
+| 해외뉴스 상세 (`/news/worldnews/{aid}`) | `script-backed` | GET | `/api/foreign/news/worldNews/{aid}` |
 | 뉴스 홈 집계 | `script-backed` | GET | `/api/domestic/news/aggregate/home?flashNewsSize=5&mainNewsSize=5&rankingNewsSize=5&overseasNewsSize=5&focusSize=5&moneyStorySize=5&noticeSize=5` |
 
 관찰된 목록 카테고리에는 `mainnews`, `flashnews`, `ranknews`가 있습니다. `stock`, `market`, `all` 같은 임의 값은 실패할 수 있습니다.
 
 2026-05-05 직접 확인에서 뉴스 상단 탭 route는 `/news/flashnews`, `/news/mainnews`, `/news/ranknews`, `/news/section`, `/news/worldnews`였습니다. `/news/worldnews`는 `page`가 1부터 증가하는 목록 API를 사용하고, 날짜 필터는 `date=yyyyMMdd`를 추가합니다. 각 목록 item의 `aid`로 `/news/worldnews/{aid}` 페이지와 `/api/foreign/news/worldNews/{aid}` 상세 API를 조회할 수 있습니다. 상세 응답은 `{ "article": ..., "latestList": [...] }` 형태이며 `article.subcontent`에 HTML 원문/고지 문구가 포함될 수 있습니다.
 
-`/news/section` 하위 탭은 query `tab`으로 선택되며 관찰된 탭/섹션 맵은 `market-outlook=401`(시황·전망), `company-analysis=402`(기업·종목분석), `global-market=403`(해외증시), `bond-futures=404`(채권·선물), `disclosure-memo=406`(공시·메모), `exchange-rate=429`(환율)입니다. 최신순 기본 호출은 현재 날짜 `date=yyyyMMdd`와 `enableFallback=true`를 함께 보내 과거 기사로 fallback할 수 있고, 직접 지정 시 `maxDays`는 1-7 범위만 허용됩니다. 날짜별 필터에서는 선택 날짜의 기사만 남기도록 클라이언트가 추가 필터링합니다.
+`/news/section`의 포커스 뉴스는 `/api/domestic/news/focus`를 사용하며, 하위 탭은 query `tab`으로 선택됩니다. 관찰된 탭/섹션 맵은 `market-outlook=401`(시황·전망), `company-analysis=402`(기업·종목분석), `global-market=403`(해외증시), `bond-futures=404`(채권·선물), `disclosure-memo=406`(공시·메모), `exchange-rate=429`(환율)입니다. 최신순 기본 호출은 현재 날짜 `date=yyyyMMdd`와 `enableFallback=true`를 함께 보내 과거 기사로 fallback할 수 있고, 직접 지정 시 `maxDays`는 1-7 범위만 허용됩니다. 날짜별 필터에서는 선택 날짜의 기사만 남기도록 클라이언트가 추가 필터링합니다. 단, 2026-05-06 재확인에서 `global-market`/`sid=403`은 빈 결과였고 실제 해외뉴스 목록은 `/news/worldnews`의 `/api/foreign/news/worldNews`가 반환했습니다. 미국장/해외뉴스 briefing에는 `/api/foreign/news/worldNews`를 우선 사용하고, `sid=403`은 포커스 섹션 보조 후보로만 취급합니다.
 
 ## 리서치 API
 
