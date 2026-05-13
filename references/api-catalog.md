@@ -1,12 +1,25 @@
 # NaverStock Web API 카탈로그
 
-기준 관찰일: 2026-04-27  
+기준 관찰일: 2026-05-05  
 관찰 출처: 로그인하지 않은 공개 `https://stock.naver.com/` 페이지와 Next.js chunk  
 기본 호스트: `https://stock.naver.com`
 
-네이버증권 내부 API는 문서화되어 있지 않으며 예고 없이 바뀔 수 있습니다. 현재 운영 동작에 의존하기 전에는 엔드포인트를 다시 검증합니다.
+네이버증권 내부 API는 미문서화 상태이며 예고 없이 바뀔 수 있습니다. 이 카탈로그는 정답이 아니라 관찰 기록입니다. 운영에 의존하기 전에 현재 공개 페이지 트래픽, Next.js chunk, 소량 read-only 요청으로 다시 확인합니다.
 
 이 카탈로그는 레거시 `finance.naver.com` HTML 페이지를 의도적으로 제외합니다. 구버전 네이버 증권 페이지가 필요하면 [dd3ok/naverfinance-api-skills](https://github.com/dd3ok/naverfinance-api-skills)를 참고해 주세요. 이 카탈로그에는 `stock.naver.com` 페이지 또는 상대 `stock.naver.com/api/...` 호출에서 확인되는 엔드포인트만 추가합니다.
+
+## 목차
+
+- [상태 라벨](#상태-라벨)
+- [페이지 점검 메모](#페이지-점검-메모)
+- [식별자 규칙](#식별자-규칙)
+- [국내 주식 API](#국내-주식-api)
+- [시장 지수와 지표](#시장-지수와-지표)
+- [가상자산 API](#가상자산-api)
+- [뉴스 API](#뉴스-api)
+- [리서치 API](#리서치-api)
+- [종목토론 API](#종목토론-api)
+- [제외 계열](#제외-계열)
 
 ## 상태 라벨
 
@@ -48,7 +61,7 @@
 | `/domestic/stock/{itemCode}` | 307 | `/price`로 이동 |
 | `/domestic/stock/{itemCode}/{price\|news\|notice\|ir\|discussion\|research}` | 200 | 종목 상세 하위 페이지 |
 | `/domestic/stock/{itemCode}/info/{company\|overview\|financial\|investment\|consensus\|industry\|sector\|share\|esg}` | 200 | 종목 정보 탭 page route |
-| `/news`, `/news/mainnews`, `/notice` | 200 | 뉴스/공지 페이지 |
+| `/news`, `/news/flashnews`, `/news/mainnews`, `/news/ranknews`, `/news/section`, `/news/worldnews`, `/notice` | 200 | 뉴스/뉴스포커스/해외뉴스/공지 페이지 |
 | `/research`, `/research/{daily\|company\|industry\|invest\|economy}` | 200 | 리서치 페이지. `/research/firm`은 404 |
 | `/discussion`, `/discussion/feed/{all\|domesticStock\|market\|my}` | 200 | 토론 페이지. `/discussion/feed`는 `/discussion/feed/all`로 이동 |
 
@@ -104,8 +117,9 @@
 | 업종/테마/그룹사 구성 종목 | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/{no}/stocklist?marketType=ALL&orderType=quantTop&startIdx=0&pageSize=20` |
 | 시장 집계 투자자 동향 | `needs-recheck` | POST | `/api/domestic/home/marketaggregate/aggregateInvestor`, JSON body는 `sections`, `tradeType`, `marketType`, `periodType`, 날짜를 포함합니다. |
 | 시장 집계 투자자 랭킹 | `needs-recheck` | POST | `/api/domestic/home/marketaggregate/aggregateInvestorRanking`, ranking section fields, `startIdx`, `pageSize`를 포함합니다. |
-| 투자자 예탁금 목록 | `observed` | GET | `/api/domestic/market/trendDeposit?startIdx=0&pageSize=20` |
-| 투자자 예탁금 차트 | `observed` | GET | `/api/domestic/market/trendDeposit/chart?startDate={yyyyMMdd}&endDate={yyyyMMdd}` |
+| 투자자 예탁금 목록 | `script-backed` | GET | `/api/domestic/market/trendDeposit?startIdx=0&pageSize=20` |
+| 투자자 예탁금 차트 | `script-backed` | GET | `/api/domestic/market/trendDeposit/chart?startDate={yyyyMMdd}&endDate={yyyyMMdd}` |
+| 외국인/기관 투자자 동향 랭킹 | `script-backed` | GET | `/api/domestic/market/trend/trendForeignOrg?marketType=ALL&tradeType=KRX&page=1&pageSize=20` |
 | 업종 전체 시가총액 | `observed` | GET | `/api/domestic/market/home/upjong/totalMarketSum?type=upjong` |
 | ETF 테마 | `observed` | GET | `/api/domestic/market/etf/themes` |
 | 국내 ETF 목록 | `script-backed` | GET | `/api/stockSecurity/etfs/v1/domestic?listingType=tradingValueDesc&size=20&index=0` |
@@ -152,7 +166,7 @@
 | 지수 가격 이력 | `observed` | GET | `/api/securityFe/api/index/{reutersCode}/price?page=1&pageSize=20` |
 | 국내 지수 폴링 | `script-backed` | GET | `/api/polling/domestic/index?itemCodes=KOSPI,KOSDAQ,KPI200` |
 | 지수 차트 | `script-backed` | GET | `/api/securityService/chart/domestic/index/{code}?periodType=day` |
-| 원자재 지표 | `script-backed` | GET | `/api/securityService/marketindex/energy`, `/metals`, `/agricultural` |
+| 원자재/운임 지표 | `script-backed` | GET | `/api/securityService/marketindex/energy`, `/metals`, `/agricultural`, `/transport` |
 | 국내 금리 | `script-backed` | GET | `/api/securityService/marketindex/domesticInterest` |
 | 기타 지표 카테고리 | `observed` | GET | `/api/securityService/marketindex/exchange`, `/bond`, `/standardInterest` 및 각 카테고리 상세 path |
 | 지표 상세 | `script-backed` | GET | `/api/securityService/marketindex/{energy\|metals\|agricultural\|exchange}/{reutersCode}` |
@@ -191,11 +205,14 @@
 | 뉴스 검색 | `script-backed` | GET | `/api/domestic/news/search?query=반도체&page=1&pageSize=20` |
 | 시장 공시/공지 뉴스 | `script-backed` | GET | `/api/domestic/news/noticeList?page=1&pageSize=20&keyword={keyword}&typeIdx={idx}` |
 | 해외뉴스 목록 (`/news/worldnews`) | `script-backed` | GET | `/api/foreign/news/worldNews?page=1&pageSize=20&date={yyyyMMdd}`. Reuters/해외 시장 뉴스 목록입니다. |
+| 해외뉴스 상세 (`/news/worldnews/{aid}`) | `script-backed` | GET | `/api/foreign/news/worldNews/{aid}` |
 | 뉴스 홈 집계 | `script-backed` | GET | `/api/domestic/news/aggregate/home?flashNewsSize=5&mainNewsSize=5&rankingNewsSize=5&overseasNewsSize=5&focusSize=5&moneyStorySize=5&noticeSize=5` |
 
 관찰된 목록 카테고리에는 `mainnews`, `flashnews`, `ranknews`가 있습니다. `stock`, `market`, `all` 같은 임의 값은 실패할 수 있습니다.
 
-`/news/section`의 포커스 뉴스는 `/api/domestic/news/focus`를 사용하며, 관찰된 포커스 섹션 맵은 `market-outlook=401`, `company-analysis=402`, `global-market=403`, `bond-futures=404`, `disclosure-memo=406`, `exchange-rate=429`입니다. 단, 2026-05-06 재확인에서 `global-market`/`sid=403`은 빈 결과였고 실제 해외뉴스 목록은 `/news/worldnews`의 `/api/foreign/news/worldNews`가 반환했습니다. 미국장/해외뉴스 briefing에는 `/api/foreign/news/worldNews`를 우선 사용하고, `sid=403`은 포커스 섹션 보조 후보로만 취급합니다.
+2026-05-05 직접 확인에서 뉴스 상단 탭 route는 `/news/flashnews`, `/news/mainnews`, `/news/ranknews`, `/news/section`, `/news/worldnews`였습니다. `/news/worldnews`는 `page`가 1부터 증가하는 목록 API를 사용하고, 날짜 필터는 `date=yyyyMMdd`를 추가합니다. 각 목록 item의 `aid`로 `/news/worldnews/{aid}` 페이지와 `/api/foreign/news/worldNews/{aid}` 상세 API를 조회할 수 있습니다. 상세 응답은 `{ "article": ..., "latestList": [...] }` 형태이며 `article.subcontent`에 HTML 원문/고지 문구가 포함될 수 있습니다.
+
+`/news/section`의 포커스 뉴스는 `/api/domestic/news/focus`를 사용하며, 하위 탭은 query `tab`으로 선택됩니다. 관찰된 탭/섹션 맵은 `market-outlook=401`(시황·전망), `company-analysis=402`(기업·종목분석), `global-market=403`(해외증시), `bond-futures=404`(채권·선물), `disclosure-memo=406`(공시·메모), `exchange-rate=429`(환율)입니다. 최신순 기본 호출은 현재 날짜 `date=yyyyMMdd`와 `enableFallback=true`를 함께 보내 과거 기사로 fallback할 수 있고, 직접 지정 시 `maxDays`는 1-7 범위만 허용됩니다. 날짜별 필터에서는 선택 날짜의 기사만 남기도록 클라이언트가 추가 필터링합니다. 단, 2026-05-06 재확인에서 `global-market`/`sid=403`은 빈 결과였고 실제 해외뉴스 목록은 `/news/worldnews`의 `/api/foreign/news/worldNews`가 반환했습니다. 미국장/해외뉴스 briefing에는 `/api/foreign/news/worldNews`를 우선 사용하고, `sid=403`은 포커스 섹션 보조 후보로만 취급합니다.
 
 ## 리서치 API
 
@@ -231,7 +248,7 @@
 | 최신 종목 글 | `observed` | GET | `/api/community/discussion/items/posts/latest?domesticCodes={codes}&limit=10` |
 | 댓글 수 | `observed` | GET | `/api/community/discussion/posts/comment-counts?postIds={ids}` |
 | 반응 조회 | `observed` | GET | `/api/community/discussion/posts/reactions?postIds={ids}` |
-| 랭킹 | `observed` | GET | `/api/community/discussion/rankings?nationType=KOR&page=1&size=20&postType=HOT` |
+| 랭킹 | `script-backed` | GET | `/api/community/discussion/rankings?nationType=KOR&page=1&size=20&postType=HOT` |
 | 종목 통계 | `observed` | GET | `/api/community/discussion/stats/by-items?itemCodes={codes}` |
 
 작성, 프로필 편집, 이미지 업로드, 닉네임 검증/추천, 반응 mutation, 인증된 커뮤니티 프로필 워크플로는 피합니다.

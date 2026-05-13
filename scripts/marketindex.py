@@ -90,7 +90,7 @@ def main() -> None:
     category = sub.add_parser("category", help="Market indicator category")
     category.add_argument(
         "--category",
-        choices=["energy", "metals", "agricultural", "domesticInterest"],
+        choices=["energy", "metals", "agricultural", "transport", "domesticInterest"],
         required=True,
     )
     category.add_argument("--output")
