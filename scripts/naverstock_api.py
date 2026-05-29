@@ -97,7 +97,9 @@ def add_output_argument(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--output", help="Write output to a file instead of stdout")
 
 
-def _query_value(value: Any) -> str:
+def _query_value(value: Any) -> Any:
     if isinstance(value, bool):
         return "true" if value else "false"
+    if isinstance(value, (list, tuple)):
+        return [_query_value(item) for item in value]
     return str(value)

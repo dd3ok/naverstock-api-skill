@@ -26,6 +26,18 @@ import stock_detail_pages  # noqa: E402
 
 
 class OutputTests(unittest.TestCase):
+    def test_build_path_preserves_repeated_query_params(self) -> None:
+        self.assertEqual(
+            naverstock_api.build_path("/x", {"causeCode": ["A", "B"]}),
+            "/x?causeCode=A&causeCode=B",
+        )
+
+    def test_build_path_preserves_bool_values_inside_lists(self) -> None:
+        self.assertEqual(
+            naverstock_api.build_path("/x", {"flag": [True, False]}),
+            "/x?flag=true&flag=false",
+        )
+
     def test_emit_output_writes_unicode_to_text_stdout(self) -> None:
         stream = StringIO()
 
@@ -240,6 +252,33 @@ class MarketTrendTests(unittest.TestCase):
             "/api/domestic/market/trendProgram?tradeType=KRX&krxMarketType=ALL&bizdate=20260529&startIdx=0&pageSize=5&periodType=TIME"
         )
 
+    def test_aggregate_uses_read_post_body(self) -> None:
+        args = argparse.Namespace(
+            trade_type="KRX",
+            market_type="KOSPI",
+            period_type="TIME",
+            start_date=None,
+            end_date=None,
+        )
+
+        with patch.object(market_trend, "request_json", return_value={"success": True}) as request_json:
+            result = market_trend.fetch_aggregate(args)
+
+        self.assertEqual(result, {"success": True})
+        request_json.assert_called_once_with(
+            "/api/domestic/home/marketaggregate/aggregateInvestor",
+            method="POST",
+            body={
+                "sections": {
+                    "investorTrend": {
+                        "tradeType": "KRX",
+                        "marketType": "KOSPI",
+                        "periodType": "TIME",
+                    }
+                }
+            },
+        )
+
 
 class DiscussionTests(unittest.TestCase):
     def test_rankings_uses_discussion_rankings_endpoint(self) -> None:
@@ -324,6 +363,17 @@ class StockDetailPageTests(unittest.TestCase):
 
         self.assertEqual(result, [])
         request_json.assert_called_once_with("/api/domestic/research/005930/research?page=0&size=10")
+
+    def test_notice_repeats_cause_code_query_params(self) -> None:
+        args = argparse.Namespace(code="005930", start_idx=0, page_size=5, cause_code=["20", "30"])
+
+        with patch.object(stock_detail_pages, "request_json", return_value={"content": []}) as request_json:
+            result = stock_detail_pages.fetch_notice(args)
+
+        self.assertEqual(result, {"content": []})
+        request_json.assert_called_once_with(
+            "/api/domestic/detail/notice?itemCode=005930&startIdx=0&pageSize=5&causeCode=20&causeCode=30"
+        )
 
     def test_chart_prices_cli_maps_to_current_endpoint(self) -> None:
         argv = ["stock_detail_pages.py", "chart-prices", "--code", "A005930"]

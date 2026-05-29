@@ -52,10 +52,11 @@ python3 scripts/domestic_etf.py etn-list --order-type priceTop --page-size 10
 python3 scripts/market_trend.py deposit --page-size 10
 python3 scripts/market_trend.py aggregate --market-type KOSPI --period-type TIME
 python3 scripts/market_trend.py trend-foreign-org --market-type ALL --trade-type KRX --page-size 10
-python3 scripts/market_trend.py trend-daily --bizdate 20260529 --page-size 10
-python3 scripts/market_trend.py trend-time-chart --bizdate 20260529 --start-date 20260529 --end-date 20260529
-python3 scripts/market_trend.py trend-program --bizdate 20260529 --page-size 10
-python3 scripts/market_trend.py trend-program-chart --bizdate 20260529 --start-date 20260529 --end-date 20260529
+TODAY="$(date +%Y%m%d)"
+python3 scripts/market_trend.py trend-daily --bizdate "$TODAY" --page-size 10
+python3 scripts/market_trend.py trend-time-chart --bizdate "$TODAY" --start-date "$TODAY" --end-date "$TODAY"
+python3 scripts/market_trend.py trend-program --bizdate "$TODAY" --page-size 10
+python3 scripts/market_trend.py trend-program-chart --bizdate "$TODAY" --start-date "$TODAY" --end-date "$TODAY"
 ```
 
 ## 시장 지수와 지표
@@ -100,11 +101,11 @@ python3 scripts/news.py notice --page-size 10
 python3 scripts/news.py notice --page-size 20
 python3 scripts/news.py focus --focus global-market --page-size 10
 python3 scripts/news.py world-news --page-size 10
-python3 scripts/news.py world-news --page-size 10 --date 20260505
+python3 scripts/news.py world-news --page-size 10 --date "{YYYYMMDD}"
 python3 scripts/news.py world-detail --article-id 2580641
 python3 scripts/news.py aggregate --main-news-size 3 --notice-size 3
 python3 scripts/news.py focus --focus market-outlook --page-size 20
-python3 scripts/news.py focus --focus global-market --page-size 15 --date 20260505 --enable-fallback
+python3 scripts/news.py focus --focus global-market --page-size 15 --date "{YYYYMMDD}" --enable-fallback
 python3 scripts/news.py search --query 반도체 --page-size 10
 python3 scripts/research.py category --category COMPANY --page-size 10
 python3 scripts/research.py aggregate-static
