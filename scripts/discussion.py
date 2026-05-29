@@ -55,7 +55,7 @@ def fetch_feed(args: argparse.Namespace) -> Any:
             {
                 "pageSize": args.page_size,
                 "offset": args.offset,
-                "discussionGroupType": getattr(args, "discussion_group_type", None),
+                "discussionGroupType": args.discussion_group_type,
             },
         )
     )

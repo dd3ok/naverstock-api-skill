@@ -10,11 +10,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - name: Compile scripts
-        run: python -m py_compile scripts/*.py
+        run: python -m compileall -q scripts
+      - name: Check whitespace
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            git diff --check "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
+          else
+            before="${{ github.event.before }}"
+            if [[ "$before" =~ ^0+$ ]] || ! git cat-file -e "$before^{commit}" 2>/dev/null; then
+              git show --check --pretty=format: --no-ext-diff "${{ github.sha }}"
+            else
+              git diff --check "$before" "${{ github.sha }}"
+            fi
+          fi
       - name: Check script help
         run: |
           for file in scripts/*.py; do

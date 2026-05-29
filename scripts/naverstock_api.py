@@ -88,7 +88,7 @@ def emit_output(text: str, output_path: str | None) -> None:
         if hasattr(sys.stdout, "reconfigure"):
             try:
                 sys.stdout.reconfigure(encoding="utf-8")
-            except (AttributeError, ValueError):
+            except (AttributeError, ValueError, OSError):
                 pass
         print(text, end="" if text.endswith("\n") else "\n")
 

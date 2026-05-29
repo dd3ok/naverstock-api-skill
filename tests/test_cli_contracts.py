@@ -46,6 +46,18 @@ class OutputTests(unittest.TestCase):
 
         self.assertEqual(stream.getvalue(), "낯선문자\u11a2\n")
 
+    def test_emit_output_ignores_stdout_reconfigure_oserror(self) -> None:
+        class ReconfigureRaisesOSError(StringIO):
+            def reconfigure(self, **_: object) -> None:
+                raise OSError("unsupported stream")
+
+        stream = ReconfigureRaisesOSError()
+
+        with patch.object(sys, "stdout", stream):
+            naverstock_api.emit_output("ok\n", None)
+
+        self.assertEqual(stream.getvalue(), "ok\n")
+
 
 class MarketIndexTests(unittest.TestCase):
     def test_transport_category_uses_marketindex_transport_endpoint(self) -> None:
@@ -472,7 +484,7 @@ class CryptoTests(unittest.TestCase):
 
 class DiscussionFeedTests(unittest.TestCase):
     def test_feed_uses_general_discussion_posts_endpoint(self) -> None:
-        args = argparse.Namespace(page_size=5, offset=None)
+        args = argparse.Namespace(page_size=5, offset=None, discussion_group_type=None)
 
         with patch.object(discussion, "request_json", return_value={"posts": []}) as request_json:
             result = discussion.fetch_feed(args)
