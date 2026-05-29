@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch Naver Stock market index and indicator payloads."""
+"""Fetch Naver Stock market index, indicator, and exchange payloads."""
 
 from __future__ import annotations
 
@@ -11,6 +11,10 @@ from naverstock_api import build_path, emit_output, render_json, request_json
 
 def fetch_majors(args: argparse.Namespace) -> Any:
     return request_json("/api/securityFe/api/index/majors")
+
+
+def fetch_major_block(args: argparse.Namespace) -> Any:
+    return request_json(f"/api/securityService/marketindex/majors/{args.block_type}")
 
 
 def fetch_polling(args: argparse.Namespace) -> Any:
@@ -67,6 +71,10 @@ def fetch_exchange_rates(args: argparse.Namespace) -> Any:
     return request_json(build_path("/api/stockDomestic/exchangeRates/list", {"currencies": args.currencies}))
 
 
+def fetch_exchange_list(args: argparse.Namespace) -> Any:
+    return request_json("/api/domestic/exchange/List")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -74,6 +82,11 @@ def main() -> None:
     majors = sub.add_parser("majors", help="Major Korean indices")
     majors.add_argument("--output")
     majors.set_defaults(func=fetch_majors)
+
+    major_block = sub.add_parser("major-block", help="Market-index major block by type")
+    major_block.add_argument("--block-type", default="exchange")
+    major_block.add_argument("--output")
+    major_block.set_defaults(func=fetch_major_block)
 
     polling = sub.add_parser("polling", help="Domestic index polling")
     polling.add_argument("--codes", default="KOSPI,KOSDAQ,KPI200")
@@ -90,7 +103,7 @@ def main() -> None:
     category = sub.add_parser("category", help="Market indicator category")
     category.add_argument(
         "--category",
-        choices=["energy", "metals", "agricultural", "transport", "domesticInterest"],
+        choices=["energy", "metals", "agricultural", "transport", "domesticInterest", "exchange", "bond", "standardInterest"],
         required=True,
     )
     category.add_argument("--output")
@@ -129,6 +142,10 @@ def main() -> None:
     rates.add_argument("--currencies", default="USD,JPY,EUR,CNY")
     rates.add_argument("--output")
     rates.set_defaults(func=fetch_exchange_rates)
+
+    exchange_list = sub.add_parser("exchange-list", help="Domestic exchange list")
+    exchange_list.add_argument("--output")
+    exchange_list.set_defaults(func=fetch_exchange_list)
 
     args = parser.parse_args()
     emit_output(render_json(args.func(args)), args.output)

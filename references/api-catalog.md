@@ -1,6 +1,6 @@
 # NaverStock Web API 카탈로그
 
-기준 관찰일: 2026-05-05  
+기준 관찰일: 2026-05-05, 부분 재점검: 2026-05-29
 관찰 출처: 로그인하지 않은 공개 `https://stock.naver.com/` 페이지와 Next.js chunk  
 기본 호스트: `https://stock.naver.com`
 
@@ -94,7 +94,8 @@
 | 종목 체결 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/siseTick?startIdx=0&pageSize=20` |
 | 종목 투자자 동향 행 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/trend?tradeType=KRX&startIdx=0&pageSize=20` |
 | 종목 증권사 거래 정보 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/traderInfo` |
-| 종목 차트 payload | `script-backed` | GET | `/api/securityFe/api/fchart/domestic/stock/{itemCode}?periodType=day&range={range}` |
+| 종목 차트 메타 payload | `script-backed` | GET | `/api/securityFe/api/fchart/domestic/stock/{itemCode}?periodType=day&range={range}` |
+| 종목 차트 가격 행 | `script-backed` | GET | `/api/securityService/chart/domestic/item/{itemCode}?periodType=day&range={range}` |
 | 시장 구분 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/sosok` |
 | 컨센서스 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/consensus` |
 | 업종 관련 종목 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/stock/industry?page=1&pageSize=10&marketType=ALL` |
@@ -108,18 +109,22 @@
 | 실시간 폴링 현재가 | `script-backed` | GET | `/api/polling/domestic/stock?itemCodes={codes}` |
 | NXT 폴링 현재가 | `observed` | GET | `/api/polling/domestic/NXT/stock?itemCodes={codes}` |
 | 국내 시장 기본 종목 목록 | `script-backed` | GET | `/api/domestic/market/stock/default?tradeType=KRX&marketType=ALL&orderType=marketSum&startIdx=0&pageSize=20` |
-| 배당 목록 | `script-backed` | GET | `/api/domestic/market/stock/dividend?page=1&pageSize=20` |
-| 검색 인기 | `script-backed` | GET | `/api/domestic/market/searchTop?page=1&pageSize=20` |
-| IPO 진행 | `script-backed` | GET | `/api/domestic/market/ipo/progress?page=1&pageSize=20` |
-| 업종/테마 랭킹 | `script-backed` | GET | `/api/domestic/home/upjongTheme/ranking?rankingType=upjong&page=1&pageSize=20` |
+| 배당 목록 | `script-backed` | GET | `/api/domestic/market/stock/dividend?tradeType=KRX&marketType=ALL&dividend=dividendRate&startIdx=0&pageSize=20` |
+| 검색 인기 | `script-backed` | GET | `/api/domestic/market/searchTop?nationType=KOR&startIdx=0&pageSize=20` |
+| IPO 진행 | `script-backed` | GET | `/api/domestic/market/ipo/progress?IpoProgressType=LISTING&startIdx=0&pageSize=20` |
+| 업종/테마 랭킹 | `script-backed` | GET | `/api/domestic/home/upjongTheme/ranking?sortType=changeRate` |
 | 업종/테마/그룹사 랭킹 목록 | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/list?startIdx=0&pageSize=100&sortType=changeRate` |
 | 업종/테마/그룹사 상세 정보 | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/{no}/info?marketType=ALL` |
 | 업종/테마/그룹사 구성 종목 | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/{no}/stocklist?marketType=ALL&orderType=quantTop&startIdx=0&pageSize=20` |
-| 시장 집계 투자자 동향 | `needs-recheck` | POST | `/api/domestic/home/marketaggregate/aggregateInvestor`, JSON body는 `sections`, `tradeType`, `marketType`, `periodType`, 날짜를 포함합니다. |
+| 시장 집계 투자자 동향 | `script-backed` | POST | `/api/domestic/home/marketaggregate/aggregateInvestor`, JSON body는 `sections`, `tradeType`, `marketType`, `periodType`, 날짜를 포함합니다. 출력 이상 또는 4xx가 있으면 현재 페이지에서 재확인합니다. |
 | 시장 집계 투자자 랭킹 | `needs-recheck` | POST | `/api/domestic/home/marketaggregate/aggregateInvestorRanking`, ranking section fields, `startIdx`, `pageSize`를 포함합니다. |
 | 투자자 예탁금 목록 | `script-backed` | GET | `/api/domestic/market/trendDeposit?startIdx=0&pageSize=20` |
 | 투자자 예탁금 차트 | `script-backed` | GET | `/api/domestic/market/trendDeposit/chart?startDate={yyyyMMdd}&endDate={yyyyMMdd}` |
-| 외국인/기관 투자자 동향 랭킹 | `script-backed` | GET | `/api/domestic/market/trend/trendForeignOrg?marketType=ALL&tradeType=KRX&page=1&pageSize=20` |
+| 외국인/기관 투자자 동향 랭킹 | `script-backed` | GET | `/api/domestic/market/trend/trendForeignOrg?investorType=FOREIGNER&tradeType=KRX&marketType=ALL&startIdx=0&pageSize=20&periodType=DAY` |
+| 투자자 동향 일별 행 | `script-backed` | GET | `/api/domestic/market/trend/daily?tradeType=KRX&marketType=ALL&bizdate={yyyyMMdd}&startIdx=0&pageSize=20` |
+| 투자자 동향 시간 차트 | `script-backed` | GET | `/api/domestic/market/trend/chart/time?tradeType=KRX&marketType=ALL&selectedRange=1일&bizdate={yyyyMMdd}&startDate={yyyyMMdd}&endDate={yyyyMMdd}` |
+| 프로그램 매매 동향 행 | `script-backed` | GET | `/api/domestic/market/trendProgram?tradeType=KRX&krxMarketType=ALL&bizdate={yyyyMMdd}&startIdx=0&pageSize=20&periodType=TIME` |
+| 프로그램 매매 동향 차트 | `script-backed` | GET | `/api/domestic/market/trendProgram/chart?tradeType=KRX&krxMarketType=ALL&bizdate={yyyyMMdd}&startDate={yyyyMMdd}&endDate={yyyyMMdd}&periodType=TIME` |
 | 업종 전체 시가총액 | `observed` | GET | `/api/domestic/market/home/upjong/totalMarketSum?type=upjong` |
 | ETF 테마 | `observed` | GET | `/api/domestic/market/etf/themes` |
 | 국내 ETF 목록 | `script-backed` | GET | `/api/stockSecurity/etfs/v1/domestic?listingType=tradingValueDesc&size=20&index=0` |
@@ -160,7 +165,7 @@
 | 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
 | 주요 지수 | `script-backed` | GET | `/api/securityFe/api/index/majors` |
-| 시장지표 주요 블록 | `observed` | GET | `/api/securityService/marketindex/majors/{type}`. 관찰된 `type`: `exchange`, `exchangeWorld`, `domesticInterest`, `rpc` |
+| 시장지표 주요 블록 | `script-backed` | GET | `/api/securityService/marketindex/majors/{type}`. 관찰된 `type`: `exchange`, `exchangeWorld`, `domesticInterest`, `bond`, `rpc` |
 | 지수 기본 정보 | `observed` | GET | `/api/securityFe/api/index/{reutersCode}/basic` |
 | 지수 통합 정보 | `observed` | GET | `/api/securityFe/api/index/{reutersCode}/integration` |
 | 지수 가격 이력 | `observed` | GET | `/api/securityFe/api/index/{reutersCode}/price?page=1&pageSize=20` |
@@ -176,6 +181,7 @@
 | 예정 경제지표 | `script-backed` | GET | `/api/securityService/economic/indicator/nations/upcoming?limit=10&nationTypeList=USA` |
 | 발표일별 경제지표 | `script-backed` | GET | `/api/securityService/economic/indicator/nations/releaseDate?page=1&pageSize=20&releaseDate={yyyyMMdd}` |
 | 환율 helper | `script-backed` | GET | `/api/stockDomestic/exchangeRates/list?currencies=USD,JPY` |
+| 환율 목록 | `script-backed` | GET | `/api/domestic/exchange/List` |
 | 시장지표 폴링 | `observed` | GET | `/api/polling/marketindex/{category}/{codes}` |
 | 통합 지표 | `observed` | GET | `/api/securityService/integration/indicators?stockType=domestic&indicatorCodes=KOSPI&indicatorCodes=KOSDAQ` |
 | 통합 가격 | `observed` | GET | `/api/securityService/integration/price?domesticKrxCodes=005930&foreignCodes=.IXIC&cryptoCodes=BTC_KRW_UPBIT` |
@@ -192,8 +198,11 @@
 | 거래소 비교용 코인 가격 | `script-backed` | GET | `/api/coin/price/{ticker}?excludeExchange={market}` |
 | 폴링 가격 | `script-backed` | GET | `/api/polling/coin/price?fqnfTickers=BTC_KRW_UPBIT` |
 | 분봉 캔들 | `script-backed` | GET | `/api/coin/candle/{market}/KRW/{ticker}/minutes/{unit}/marketInfo?from={iso}&to={iso}` |
+| 글로벌 뉴스 | `script-backed` | GET | `/api/coin/globalNews/{ticker}?pageSize=20&offsetTimestamp={timestamp}` |
+| 시장 업데이트 | `script-backed` | GET | `/api/coin/marketUpdates/{ticker}?pageSize=20&offsetTimestamp={timestamp}` |
+| 코인 프로필 | `script-backed` | GET | `/api/coin/profile/{ticker}` |
 
-`UPBIT` 또는 `BITHUMB`을 대문자로 사용합니다. 폴링 엔드포인트는 `BTC_KRW_UPBIT` 같은 `fqnfTicker` 값을 받습니다. 직접 확인에서 일반 `KRW-BTC`는 빈 list를 반환했습니다.
+`UPBIT` 또는 `BITHUMB`을 대문자로 사용합니다. 폴링 엔드포인트는 `BTC_KRW_UPBIT` 같은 `fqnfTicker` 값을 받고, 뉴스/업데이트/프로필 엔드포인트는 `BTC` 같은 plain ticker를 받습니다. 직접 확인에서 일반 `KRW-BTC`는 빈 list를 반환했습니다.
 
 ## 뉴스 API
 
@@ -220,13 +229,13 @@
 | --- | --- | ---: | --- |
 | 리서치 카테고리 목록 | `script-backed` | GET | `/api/domestic/research/category?category=COMPANY&page=1&pageSize=15` |
 | 카테고리 상세 | `script-backed` | GET | `/api/domestic/research/category/{researchId}?category=COMPANY` |
-| 종목 리포트 목록 | `observed` | GET | `/api/domestic/research/{itemCode}/research?page=0&size=30` |
+| 종목 리포트 목록 | `script-backed` | GET | `/api/domestic/research/{itemCode}/research?page=0&size=30` |
 | 종목 리포트 상세 | `observed` | GET | `/api/domestic/research/{itemCode}/research/{researchId}` |
 | 최근 인기 | `script-backed` | GET | `/api/domestic/research/recent-popular` |
 | 리서치 홈 집계 | `script-backed` | POST | `/api/domestic/home/researchaggregate/static`, `researchCategory`, `researchRanking`, `recentPopular` 같은 boolean `sections` 포함 |
-| 카테고리 최신 | `observed` | GET | `/api/domestic/research/category-lastest` |
-| 산업 리서치 | `observed` | GET | `/api/domestic/research/industry-research` |
-| 랭킹 | `observed` | GET | `/api/domestic/research/ranking?rankingType={type}&selectedRank={rank}` |
+| 카테고리 최신 | `script-backed` | GET | `/api/domestic/research/category-lastest`. API path의 `lastest` 오탈자 형태를 그대로 사용합니다. |
+| 산업 리서치 | `script-backed` | GET | `/api/domestic/research/industry-research` |
+| 랭킹 | `script-backed` | GET | `/api/domestic/research/ranking?rankingType={type}&selectedRank={rank}` |
 | 증권사 목록 | `script-backed` | GET | `/api/domestic/research/broker-list` |
 
 검증 오류와 chunk에서 관찰된 카테고리 enum: `INVEST`, `MARKET`, `INDUSTRY`, `COMPANY`, `ECONOMY`, `DEBENTURE`.
@@ -241,7 +250,8 @@
 | 이전/다음 글 이동 | `script-backed` | GET | `/api/community/discussion/posts/{postId}/adjacent?pageSize=20&itemCode={itemCode}` |
 | 관련 인기 글 | `script-backed` | GET | `/api/community/discussion/posts/related/hot?itemCode={itemCode}&pageSize=20&discussionType=domesticStock` |
 | 인기 글 | `script-backed` | GET | `/api/community/discussion/posts/popular/hot` |
-| 시장 feed | `observed` | GET | `/api/community/discussion/posts/market?offset={offset}&pageSize=20` |
+| 일반 feed | `script-backed` | GET | `/api/community/discussion/posts?pageSize=20&offset={offset}` |
+| 시장 feed | `script-backed` | GET | `/api/community/discussion/posts/market?filterType=marketIndex&offset={offset}&pageSize=20` |
 | 종목 글 | `observed` | GET | `/api/community/discussion/posts?itemCode={itemCode}&pageSize=20` |
 | 종목별 글 | `observed` | GET | `/api/community/discussion/posts/by-item?itemCode={itemCode}&pageSize=20` |
 | 여러 종목 글 | `observed` | GET | `/api/community/discussion/posts/by-item-codes?filterType=itemCodes&pageSize=20&offset={offset}&domesticCodes={codes}` |

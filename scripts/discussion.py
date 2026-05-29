@@ -45,8 +45,33 @@ def fetch_related_hot(args: argparse.Namespace) -> Any:
 
 
 def fetch_popular_hot(args: argparse.Namespace) -> Any:
+    return request_json("/api/community/discussion/posts/popular/hot")
+
+
+def fetch_feed(args: argparse.Namespace) -> Any:
     return request_json(
-        build_path("/api/community/discussion/posts/popular/hot", {"viewerProfileId": args.viewer_profile_id})
+        build_path(
+            "/api/community/discussion/posts",
+            {
+                "pageSize": args.page_size,
+                "offset": args.offset,
+                "discussionGroupType": getattr(args, "discussion_group_type", None),
+            },
+        )
+    )
+
+
+def fetch_market_feed(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/community/discussion/posts/market",
+            {
+                "filterType": args.filter_type,
+                "pageSize": args.page_size,
+                "offset": args.offset,
+                "discussionGroupType": args.discussion_group_type,
+            },
+        )
     )
 
 
@@ -98,9 +123,23 @@ def main() -> None:
     related.set_defaults(func=fetch_related_hot)
 
     popular = sub.add_parser("popular-hot", help="Popular hot discussion posts")
-    popular.add_argument("--viewer-profile-id")
     popular.add_argument("--output")
     popular.set_defaults(func=fetch_popular_hot)
+
+    feed = sub.add_parser("feed", help="General discussion feed")
+    feed.add_argument("--page-size", type=int, default=20)
+    feed.add_argument("--offset")
+    feed.add_argument("--discussion-group-type")
+    feed.add_argument("--output")
+    feed.set_defaults(func=fetch_feed)
+
+    market_feed = sub.add_parser("market-feed", help="Market discussion feed")
+    market_feed.add_argument("--filter-type", default="marketIndex")
+    market_feed.add_argument("--page-size", type=int, default=20)
+    market_feed.add_argument("--offset")
+    market_feed.add_argument("--discussion-group-type")
+    market_feed.add_argument("--output")
+    market_feed.set_defaults(func=fetch_market_feed)
 
     rankings = sub.add_parser("rankings", help="Discussion item rankings")
     rankings.add_argument("--nation-type", choices=["KOR", "USA"], default="KOR")

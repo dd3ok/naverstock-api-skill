@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch domestic market deposit and investor-trend payloads."""
+"""Fetch domestic market deposit, investor-trend, and program-trend payloads."""
 
 from __future__ import annotations
 
@@ -40,10 +40,75 @@ def fetch_trend_foreign_org(args: argparse.Namespace) -> Any:
         build_path(
             "/api/domestic/market/trend/trendForeignOrg",
             {
-                "marketType": args.market_type,
+                "investorType": args.investor_type,
                 "tradeType": args.trade_type,
-                "page": args.page,
+                "marketType": args.market_type,
+                "startIdx": args.start_idx,
                 "pageSize": args.page_size,
+                "periodType": args.period_type,
+            },
+        )
+    )
+
+
+def fetch_trend_daily(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/domestic/market/trend/daily",
+            {
+                "tradeType": args.trade_type,
+                "marketType": args.market_type,
+                "bizdate": args.bizdate,
+                "startIdx": args.start_idx,
+                "pageSize": args.page_size,
+            },
+        )
+    )
+
+
+def fetch_trend_time_chart(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/domestic/market/trend/chart/time",
+            {
+                "tradeType": args.trade_type,
+                "marketType": args.market_type,
+                "selectedRange": args.selected_range,
+                "bizdate": args.bizdate,
+                "startDate": args.start_date,
+                "endDate": args.end_date,
+            },
+        )
+    )
+
+
+def fetch_trend_program(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/domestic/market/trendProgram",
+            {
+                "tradeType": args.trade_type,
+                "krxMarketType": args.krx_market_type,
+                "bizdate": args.bizdate,
+                "startIdx": args.start_idx,
+                "pageSize": args.page_size,
+                "periodType": args.period_type,
+            },
+        )
+    )
+
+
+def fetch_trend_program_chart(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/domestic/market/trendProgram/chart",
+            {
+                "tradeType": args.trade_type,
+                "krxMarketType": args.krx_market_type,
+                "bizdate": args.bizdate,
+                "startDate": args.start_date,
+                "endDate": args.end_date,
+                "periodType": args.period_type,
             },
         )
     )
@@ -75,12 +140,53 @@ def main() -> None:
     aggregate.set_defaults(func=fetch_aggregate)
 
     trend_foreign_org = sub.add_parser("trend-foreign-org", help="Foreign and institution market trend rankings")
+    trend_foreign_org.add_argument("--investor-type", default="FOREIGNER")
     trend_foreign_org.add_argument("--market-type", choices=["ALL", "KOSPI", "KOSDAQ"], default="ALL")
     trend_foreign_org.add_argument("--trade-type", choices=["KRX", "NXT"], default="KRX")
-    trend_foreign_org.add_argument("--page", type=int, default=1)
+    trend_foreign_org.add_argument("--start-idx", type=int, default=0)
     trend_foreign_org.add_argument("--page-size", type=int, default=20)
+    trend_foreign_org.add_argument("--period-type", default="DAY")
     trend_foreign_org.add_argument("--output")
     trend_foreign_org.set_defaults(func=fetch_trend_foreign_org)
+
+    daily = sub.add_parser("trend-daily", help="Daily investor trend rows")
+    daily.add_argument("--trade-type", choices=["KRX", "NXT"], default="KRX")
+    daily.add_argument("--market-type", choices=["ALL", "KOSPI", "KOSDAQ"], default="ALL")
+    daily.add_argument("--bizdate", required=True, help="YYYYMMDD")
+    daily.add_argument("--start-idx", type=int, default=0)
+    daily.add_argument("--page-size", type=int, default=20)
+    daily.add_argument("--output")
+    daily.set_defaults(func=fetch_trend_daily)
+
+    time_chart = sub.add_parser("trend-time-chart", help="Investor trend time chart")
+    time_chart.add_argument("--trade-type", choices=["KRX", "NXT"], default="KRX")
+    time_chart.add_argument("--market-type", choices=["ALL", "KOSPI", "KOSDAQ"], default="ALL")
+    time_chart.add_argument("--selected-range", default="1일")
+    time_chart.add_argument("--bizdate", required=True, help="YYYYMMDD")
+    time_chart.add_argument("--start-date", required=True, help="YYYYMMDD")
+    time_chart.add_argument("--end-date", required=True, help="YYYYMMDD")
+    time_chart.add_argument("--output")
+    time_chart.set_defaults(func=fetch_trend_time_chart)
+
+    program = sub.add_parser("trend-program", help="Program trading trend rows")
+    program.add_argument("--trade-type", choices=["KRX", "NXT"], default="KRX")
+    program.add_argument("--krx-market-type", choices=["ALL", "KOSPI", "KOSDAQ"], default="ALL")
+    program.add_argument("--bizdate", required=True, help="YYYYMMDD")
+    program.add_argument("--start-idx", type=int, default=0)
+    program.add_argument("--page-size", type=int, default=20)
+    program.add_argument("--period-type", default="TIME")
+    program.add_argument("--output")
+    program.set_defaults(func=fetch_trend_program)
+
+    program_chart = sub.add_parser("trend-program-chart", help="Program trading trend chart")
+    program_chart.add_argument("--trade-type", choices=["KRX", "NXT"], default="KRX")
+    program_chart.add_argument("--krx-market-type", choices=["ALL", "KOSPI", "KOSDAQ"], default="ALL")
+    program_chart.add_argument("--bizdate", required=True, help="YYYYMMDD")
+    program_chart.add_argument("--start-date", required=True, help="YYYYMMDD")
+    program_chart.add_argument("--end-date", required=True, help="YYYYMMDD")
+    program_chart.add_argument("--period-type", default="TIME")
+    program_chart.add_argument("--output")
+    program_chart.set_defaults(func=fetch_trend_program_chart)
 
     args = parser.parse_args()
     emit_output(render_json(args.func(args)), args.output)
