@@ -9,6 +9,18 @@
 
 `naverstock-web-api`는 네이버증권 API, 네이버 주식 API, Naver Stock API, 국내 주식 시세 API, ETF/ETN, 업종/테마/그룹사 구성 종목, 시장지표, 가상자산, 뉴스, 리서치, 종목토론 데이터를 다루는 Agent Skill입니다.
 
+## 왜 필요한가
+
+`stock.naver.com`은 공식 개발자 API가 아니라 공개 웹앱 내부 호출을 사용합니다. 이 저장소는 에이전트가 네이버증권 데이터를 다룰 때 엔드포인트 경로, 쿼리 파라미터, 페이징 방식, 안전 거절 기준을 추측하지 않도록 `SKILL.md`, API 카탈로그, Python CLI 스크립트, contract tests를 함께 제공합니다.
+
+## 검색어와 별칭
+
+이 저장소는 다음처럼 찾는 사용자를 위한 네이버증권 비공식 read-only API skill입니다.
+
+- 네이버증권 API, 네이버 주식 API, 네이버 주식 시세 API
+- stock.naver.com API, 네이버증권 내부 API
+- Codex Skill, Claude Skill, Gemini CLI context
+
 ## 지원 범위
 
 - 국내 종목 상세, 현재가 폴링, 호가, 차트 가격, 일별 시세, 체결 시세, 뉴스, 공시, IR, 리서치, 투자자 통계
