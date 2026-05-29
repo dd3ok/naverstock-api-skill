@@ -15,6 +15,12 @@ Use this checklist when changing endpoints, scripts, safety rules, or vendor-fac
    git diff --check
    ```
 
+   PowerShell:
+
+   ```powershell
+   Get-ChildItem scripts -Filter *.py | ForEach-Object { python $_.FullName --help > $null }
+   ```
+
 6. Use only 1-2 low-volume unauthenticated live smoke requests when live verification is necessary.
 7. Update [eval-prompts.md](eval-prompts.md) when scope, trigger behavior, refusal behavior, or safety boundaries change.
 8. Update README examples and the repository structure table when files, commands, install paths, or validation notes change.
