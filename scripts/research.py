@@ -38,6 +38,23 @@ def fetch_recent_popular(args: argparse.Namespace) -> Any:
     return request_json("/api/domestic/research/recent-popular")
 
 
+def fetch_ranking(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/domestic/research/ranking",
+            {"rankingType": args.ranking_type, "selectedRank": args.selected_rank},
+        )
+    )
+
+
+def fetch_category_latest(args: argparse.Namespace) -> Any:
+    return request_json("/api/domestic/research/category-lastest")
+
+
+def fetch_industry_research(args: argparse.Namespace) -> Any:
+    return request_json("/api/domestic/research/industry-research")
+
+
 def fetch_broker_list(args: argparse.Namespace) -> Any:
     return request_json("/api/domestic/research/broker-list")
 
@@ -79,6 +96,20 @@ def main() -> None:
     recent = sub.add_parser("recent-popular", help="Recent popular research")
     recent.add_argument("--output")
     recent.set_defaults(func=fetch_recent_popular)
+
+    ranking = sub.add_parser("ranking", help="Research ranking")
+    ranking.add_argument("--ranking-type", default="SEARCH_TOP")
+    ranking.add_argument("--selected-rank", type=int, default=1)
+    ranking.add_argument("--output")
+    ranking.set_defaults(func=fetch_ranking)
+
+    latest = sub.add_parser("category-latest", help="Latest research category blocks")
+    latest.add_argument("--output")
+    latest.set_defaults(func=fetch_category_latest)
+
+    industry = sub.add_parser("industry-research", help="Industry research block")
+    industry.add_argument("--output")
+    industry.set_defaults(func=fetch_industry_research)
 
     brokers = sub.add_parser("broker-list", help="Broker list")
     brokers.add_argument("--output")

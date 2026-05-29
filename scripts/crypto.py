@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch Naver Stock crypto ranking, polling, and candle payloads."""
+"""Fetch Naver Stock crypto ranking, polling, candle, news, and profile payloads."""
 
 from __future__ import annotations
 
@@ -41,6 +41,28 @@ def fetch_candles(args: argparse.Namespace) -> Any:
     )
 
 
+def fetch_global_news(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            f"/api/coin/globalNews/{args.ticker.upper()}",
+            {"pageSize": args.page_size, "offsetTimestamp": args.offset_timestamp},
+        )
+    )
+
+
+def fetch_market_updates(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            f"/api/coin/marketUpdates/{args.ticker.upper()}",
+            {"pageSize": args.page_size, "offsetTimestamp": args.offset_timestamp},
+        )
+    )
+
+
+def fetch_profile(args: argparse.Namespace) -> Any:
+    return request_json(f"/api/coin/profile/{args.ticker.upper()}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -78,6 +100,22 @@ def main() -> None:
     candles.add_argument("--to-time", required=True, help="ISO-like time, e.g. 2026-04-27T09:40:00")
     candles.add_argument("--output")
     candles.set_defaults(func=fetch_candles)
+
+    for name, help_text, func in [
+        ("global-news", "Crypto global news", fetch_global_news),
+        ("market-updates", "Crypto market update feed", fetch_market_updates),
+    ]:
+        cmd = sub.add_parser(name, help=help_text)
+        cmd.add_argument("--ticker", default="BTC", help="Plain ticker, e.g. BTC")
+        cmd.add_argument("--page-size", type=int, default=20)
+        cmd.add_argument("--offset-timestamp")
+        cmd.add_argument("--output")
+        cmd.set_defaults(func=func)
+
+    profile = sub.add_parser("profile", help="Crypto profile")
+    profile.add_argument("--ticker", default="BTC", help="Plain ticker, e.g. BTC")
+    profile.add_argument("--output")
+    profile.set_defaults(func=fetch_profile)
 
     args = parser.parse_args()
     emit_output(render_json(args.func(args)), args.output)

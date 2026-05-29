@@ -8,6 +8,7 @@ import csv
 import io
 import json
 from pathlib import Path
+import sys
 from typing import Any
 import urllib.error
 import urllib.parse
@@ -84,6 +85,11 @@ def emit_output(text: str, output_path: str | None) -> None:
     if output_path:
         Path(output_path).write_text(text, encoding="utf-8")
     else:
+        if hasattr(sys.stdout, "reconfigure"):
+            try:
+                sys.stdout.reconfigure(encoding="utf-8")
+            except (AttributeError, ValueError):
+                pass
         print(text, end="" if text.endswith("\n") else "\n")
 
 
