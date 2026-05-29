@@ -10,7 +10,7 @@ Use this checklist when changing endpoints, scripts, safety rules, or vendor-fac
 
    ```bash
    python -B -m unittest tests.test_cli_contracts -v
-   python -m compileall scripts
+   python -m compileall -q scripts
    for file in scripts/*.py; do python "$file" --help >/dev/null; done
    git diff --check
    ```
