@@ -27,19 +27,34 @@ def fetch_default(args: argparse.Namespace) -> Any:
 
 def fetch_dividend(args: argparse.Namespace) -> Any:
     return request_json(
-        build_path("/api/domestic/market/stock/dividend", {"page": args.page, "pageSize": args.page_size})
+        build_path(
+            "/api/domestic/market/stock/dividend",
+            {
+                "tradeType": args.trade_type,
+                "marketType": args.market_type,
+                "dividend": args.dividend,
+                "startIdx": args.start_idx,
+                "pageSize": args.page_size,
+            },
+        )
     )
 
 
 def fetch_search_top(args: argparse.Namespace) -> Any:
     return request_json(
-        build_path("/api/domestic/market/searchTop", {"page": args.page, "pageSize": args.page_size})
+        build_path(
+            "/api/domestic/market/searchTop",
+            {"nationType": args.nation_type, "startIdx": args.start_idx, "pageSize": args.page_size},
+        )
     )
 
 
 def fetch_ipo(args: argparse.Namespace) -> Any:
     return request_json(
-        build_path("/api/domestic/market/ipo/progress", {"page": args.page, "pageSize": args.page_size})
+        build_path(
+            "/api/domestic/market/ipo/progress",
+            {"IpoProgressType": args.ipo_progress_type, "startIdx": args.start_idx, "pageSize": args.page_size},
+        )
     )
 
 
@@ -47,7 +62,7 @@ def fetch_upjong_theme(args: argparse.Namespace) -> Any:
     return request_json(
         build_path(
             "/api/domestic/home/upjongTheme/ranking",
-            {"rankingType": args.ranking_type, "page": args.page, "pageSize": args.page_size},
+            {"sortType": args.sort_type},
         )
     )
 
@@ -66,21 +81,31 @@ def main() -> None:
     default.add_argument("--output")
     default.set_defaults(func=fetch_default)
 
-    for name, help_text, func in [
-        ("dividend", "High-dividend stock list", fetch_dividend),
-        ("search-top", "Popular search ranking", fetch_search_top),
-        ("ipo", "IPO progress list", fetch_ipo),
-    ]:
-        cmd = sub.add_parser(name, help=help_text)
-        cmd.add_argument("--page", type=int, default=1)
-        cmd.add_argument("--page-size", type=int, default=20)
-        cmd.add_argument("--output")
-        cmd.set_defaults(func=func)
+    dividend = sub.add_parser("dividend", help="High-dividend stock list")
+    dividend.add_argument("--trade-type", choices=["KRX", "NXT"], default="KRX")
+    dividend.add_argument("--market-type", choices=["ALL", "KOSPI", "KOSDAQ"], default="ALL")
+    dividend.add_argument("--dividend", default="dividendRate")
+    dividend.add_argument("--start-idx", type=int, default=0)
+    dividend.add_argument("--page-size", type=int, default=20)
+    dividend.add_argument("--output")
+    dividend.set_defaults(func=fetch_dividend)
+
+    search = sub.add_parser("search-top", help="Popular search ranking")
+    search.add_argument("--nation-type", choices=["KOR", "USA"], default="KOR")
+    search.add_argument("--start-idx", type=int, default=0)
+    search.add_argument("--page-size", type=int, default=20)
+    search.add_argument("--output")
+    search.set_defaults(func=fetch_search_top)
+
+    ipo = sub.add_parser("ipo", help="IPO progress list")
+    ipo.add_argument("--ipo-progress-type", help="Observed value: LISTING")
+    ipo.add_argument("--start-idx", type=int, default=0)
+    ipo.add_argument("--page-size", type=int, default=20)
+    ipo.add_argument("--output")
+    ipo.set_defaults(func=fetch_ipo)
 
     upjong = sub.add_parser("upjong-theme", help="Sector/theme ranking")
-    upjong.add_argument("--ranking-type", default="upjong")
-    upjong.add_argument("--page", type=int, default=1)
-    upjong.add_argument("--page-size", type=int, default=20)
+    upjong.add_argument("--sort-type", default="changeRate")
     upjong.add_argument("--output")
     upjong.set_defaults(func=fetch_upjong_theme)
 

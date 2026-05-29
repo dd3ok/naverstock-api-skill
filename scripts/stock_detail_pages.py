@@ -76,12 +76,27 @@ def fetch_chart(args: argparse.Namespace) -> Any:
     )
 
 
+def fetch_chart_prices(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            f"/api/securityService/chart/domestic/item/{normalize_item_code(args.code)}",
+            {"periodType": args.period_type, "range": args.range},
+        )
+    )
+
+
 def fetch_news(args: argparse.Namespace) -> Any:
     return request_json(
         build_path(
             "/api/domestic/detail/news",
             {"itemCode": normalize_item_code(args.code), "page": args.page, "pageSize": args.page_size},
         )
+    )
+
+
+def fetch_research(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(f"/api/domestic/research/{normalize_item_code(args.code)}/research", {"page": args.page, "size": args.size})
     )
 
 
@@ -188,6 +203,13 @@ def main() -> None:
     chart.add_argument("--output")
     chart.set_defaults(func=fetch_chart)
 
+    chart_prices = sub.add_parser("chart-prices", help="Domestic stock chart price rows")
+    add_code(chart_prices)
+    chart_prices.add_argument("--period-type", default="day")
+    chart_prices.add_argument("--range")
+    chart_prices.add_argument("--output")
+    chart_prices.set_defaults(func=fetch_chart_prices)
+
     news = sub.add_parser("news", help="Stock-specific news clusters")
     add_code(news)
     news.add_argument("--page", type=int, default=1)
@@ -212,6 +234,13 @@ def main() -> None:
     ir_detail.add_argument("--article-id", required=True)
     ir_detail.add_argument("--output")
     ir_detail.set_defaults(func=fetch_ir_detail)
+
+    research = sub.add_parser("research", help="Stock-specific research reports")
+    add_code(research)
+    research.add_argument("--page", type=int, default=0)
+    research.add_argument("--size", type=int, default=30)
+    research.add_argument("--output")
+    research.set_defaults(func=fetch_research)
 
     poll = sub.add_parser("invest-poll", help="Aggregate investor poll statistics for a stock")
     add_code(poll)
