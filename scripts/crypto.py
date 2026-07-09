@@ -63,6 +63,36 @@ def fetch_profile(args: argparse.Namespace) -> Any:
     return request_json(f"/api/coin/profile/{args.ticker.upper()}")
 
 
+def fetch_categories_ranking(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/coin/categories/ranking",
+            {"exchangeType": args.exchange_type, "page": args.page, "pageSize": args.page_size},
+        )
+    )
+
+
+def fetch_prices(args: argparse.Namespace) -> Any:
+    return request_json(build_path("/api/coin/prices", {"fqnfTickers": args.fqnf_tickers}))
+
+
+def fetch_global_market_trend(args: argparse.Namespace) -> Any:
+    return request_json("/api/coin/globalMarketTrend")
+
+
+def fetch_coinmacro_news(args: argparse.Namespace) -> Any:
+    return request_json("/api/securityFe/api/news/coinmacro")
+
+
+def fetch_coin_briefing(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/securityAi/coinBriefing/current",
+            {"exchangeType": args.exchange_type, "nfTicker": args.ticker.upper()},
+        )
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -116,6 +146,32 @@ def main() -> None:
     profile.add_argument("--ticker", default="BTC", help="Plain ticker, e.g. BTC")
     profile.add_argument("--output")
     profile.set_defaults(func=fetch_profile)
+
+    categories = sub.add_parser("categories-ranking", help="Crypto category ranking")
+    categories.add_argument("--exchange-type", choices=["UPBIT", "BITHUMB"], default="UPBIT")
+    categories.add_argument("--page", type=int, default=1)
+    categories.add_argument("--page-size", type=int, default=20)
+    categories.add_argument("--output")
+    categories.set_defaults(func=fetch_categories_ranking)
+
+    prices = sub.add_parser("prices", help="Crypto prices for repeated fqnfTickers")
+    prices.add_argument("--fqnf-tickers", action="append", required=True, help="Repeat for each FQNF ticker")
+    prices.add_argument("--output")
+    prices.set_defaults(func=fetch_prices)
+
+    trend = sub.add_parser("global-market-trend", help="Global crypto market trend")
+    trend.add_argument("--output")
+    trend.set_defaults(func=fetch_global_market_trend)
+
+    coinmacro = sub.add_parser("coinmacro-news", help="Coin macro news")
+    coinmacro.add_argument("--output")
+    coinmacro.set_defaults(func=fetch_coinmacro_news)
+
+    briefing = sub.add_parser("coin-briefing", help="Security AI coin briefing")
+    briefing.add_argument("--exchange-type", choices=["UPBIT", "BITHUMB"], default="UPBIT")
+    briefing.add_argument("--ticker", default="BTC", help="Plain ticker, e.g. BTC")
+    briefing.add_argument("--output")
+    briefing.set_defaults(func=fetch_coin_briefing)
 
     args = parser.parse_args()
     emit_output(render_json(args.func(args)), args.output)

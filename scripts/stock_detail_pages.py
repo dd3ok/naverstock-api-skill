@@ -140,6 +140,14 @@ def fetch_invest_resource(args: argparse.Namespace) -> Any:
     return request_json(build_path(f"/api/myasset/resources/invest/{INVEST_RESOURCES[args.resource]}", params))
 
 
+def fetch_finance_menu(args: argparse.Namespace) -> Any:
+    return request_json(f"/api/stockSecurity/finances/v1/domestic/{normalize_item_code(args.code)}/menu-info")
+
+
+def fetch_finance_esg(args: argparse.Namespace) -> Any:
+    return request_json(f"/api/stockSecurity/finances/v1/domestic/{normalize_item_code(args.code)}/esg")
+
+
 def fetch_etf_detail(args: argparse.Namespace) -> Any:
     code = normalize_item_code(args.code)
     endpoint = ETF_DETAIL_TYPES[args.detail_type]
@@ -257,6 +265,16 @@ def main() -> None:
     resource.add_argument("--sort-by")
     resource.add_argument("--output")
     resource.set_defaults(func=fetch_invest_resource)
+
+    finance_menu = sub.add_parser("finance-menu", help="stockSecurity finance menu metadata")
+    add_code(finance_menu)
+    finance_menu.add_argument("--output")
+    finance_menu.set_defaults(func=fetch_finance_menu)
+
+    finance_esg = sub.add_parser("finance-esg", help="stockSecurity finance ESG payload")
+    add_code(finance_esg)
+    finance_esg.add_argument("--output")
+    finance_esg.set_defaults(func=fetch_finance_esg)
 
     etf = sub.add_parser("etf-detail", help="ETF detail subpage data")
     add_code(etf)

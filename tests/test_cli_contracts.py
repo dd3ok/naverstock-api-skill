@@ -21,6 +21,7 @@ import market_trend  # noqa: E402
 import marketindex  # noqa: E402
 import naverstock_api  # noqa: E402
 import news  # noqa: E402
+import notices  # noqa: E402
 import research  # noqa: E402
 import stock_detail_pages  # noqa: E402
 
@@ -98,6 +99,17 @@ class MarketIndexTests(unittest.TestCase):
             marketindex.main()
 
         request_json.assert_called_once_with("/api/domestic/exchange/List")
+
+    def test_economic_upcoming_preserves_repeated_nation_types(self) -> None:
+        args = argparse.Namespace(limit=5, nation_type=["USA", "KOR"])
+
+        with patch.object(marketindex, "request_json", return_value={"contents": []}) as request_json:
+            result = marketindex.fetch_economic_upcoming(args)
+
+        self.assertEqual(result, {"contents": []})
+        request_json.assert_called_once_with(
+            "/api/securityService/economic/indicator/nations/upcoming?limit=5&nationTypeList=USA&nationTypeList=KOR"
+        )
 
 
 class MarketStockTests(unittest.TestCase):
@@ -327,6 +339,36 @@ class DiscussionTests(unittest.TestCase):
         self.assertEqual(result, {"posts": []})
         request_json.assert_called_once_with("/api/community/discussion/posts/popular/hot")
 
+    def test_item_posts_include_required_current_filters(self) -> None:
+        args = argparse.Namespace(
+            item_code="005930",
+            discussion_type="domesticStock",
+            page_size=5,
+            offset=None,
+            is_holder_only=False,
+            excludes_item_news=False,
+            is_item_news_only=False,
+        )
+
+        with patch.object(discussion, "request_json", return_value={"posts": []}) as request_json:
+            result = discussion.fetch_item_posts(args)
+
+        self.assertEqual(result, {"posts": []})
+        request_json.assert_called_once_with(
+            "/api/community/discussion/posts/by-item?itemCode=005930&discussionType=domesticStock&pageSize=5&isHolderOnly=false&excludesItemNews=false&isItemNewsOnly=false"
+        )
+
+    def test_stats_by_items_uses_start_date_and_domestic_codes(self) -> None:
+        args = argparse.Namespace(start_date="2026-07-02", domestic_codes=["005930", "000660"], foreign_codes=None)
+
+        with patch.object(discussion, "request_json", return_value={"stats": []}) as request_json:
+            result = discussion.fetch_stats_by_items(args)
+
+        self.assertEqual(result, {"stats": []})
+        request_json.assert_called_once_with(
+            "/api/community/discussion/stats/by-items?startDate=2026-07-02&domesticCodes=005930%2C000660"
+        )
+
 
 class NewsTests(unittest.TestCase):
     def test_focus_can_match_section_latest_fallback_params(self) -> None:
@@ -399,6 +441,24 @@ class StockDetailPageTests(unittest.TestCase):
 
         request_json.assert_called_once_with("/api/securityService/chart/domestic/item/005930?periodType=day")
 
+    def test_finance_menu_uses_stock_security_finance_endpoint(self) -> None:
+        args = argparse.Namespace(code="A005930")
+
+        with patch.object(stock_detail_pages, "request_json", return_value={"menus": []}) as request_json:
+            result = stock_detail_pages.fetch_finance_menu(args)
+
+        self.assertEqual(result, {"menus": []})
+        request_json.assert_called_once_with("/api/stockSecurity/finances/v1/domestic/005930/menu-info")
+
+    def test_finance_esg_uses_stock_security_finance_endpoint(self) -> None:
+        args = argparse.Namespace(code="005930")
+
+        with patch.object(stock_detail_pages, "request_json", return_value={"grade": "A"}) as request_json:
+            result = stock_detail_pages.fetch_finance_esg(args)
+
+        self.assertEqual(result, {"grade": "A"})
+        request_json.assert_called_once_with("/api/stockSecurity/finances/v1/domestic/005930/esg")
+
 
 class ResearchTests(unittest.TestCase):
     def test_ranking_uses_research_ranking_endpoint(self) -> None:
@@ -440,6 +500,82 @@ class ResearchTests(unittest.TestCase):
 
         request_json.assert_called_once_with("/api/domestic/research/ranking?rankingType=SEARCH_TOP&selectedRank=1")
 
+    def test_v1_category_uses_stock_security_research_endpoint(self) -> None:
+        args = argparse.Namespace(category="company", index=0, size=2, broker_codes=None, item_code=None)
+
+        with patch.object(research, "request_json", return_value={"content": []}) as request_json:
+            result = research.fetch_v1_category(args)
+
+        self.assertEqual(result, {"content": []})
+        request_json.assert_called_once_with("/api/stockSecurity/researches/v1/company?index=0&size=2")
+
+    def test_v1_by_items_repeats_item_codes(self) -> None:
+        args = argparse.Namespace(item_codes=["A005930", "000660"], size=2)
+
+        with patch.object(research, "request_json", return_value={"content": []}) as request_json:
+            result = research.fetch_v1_by_items(args)
+
+        self.assertEqual(result, {"content": []})
+        request_json.assert_called_once_with(
+            "/api/stockSecurity/researches/v1/company/by-items?itemCodes=005930&itemCodes=000660&size=2"
+        )
+
+    def test_v1_latest_research_uses_latest_research_endpoint(self) -> None:
+        args = argparse.Namespace(size=2)
+
+        with patch.object(research, "request_json", return_value={"content": []}) as request_json:
+            result = research.fetch_v1_latest(args)
+
+        self.assertEqual(result, {"content": []})
+        request_json.assert_called_once_with("/api/stockSecurity/researches/v1/latestResearch?size=2")
+
+    def test_v1_brokers_uses_stock_security_brokers_endpoint(self) -> None:
+        args = argparse.Namespace()
+
+        with patch.object(research, "request_json", return_value=[]) as request_json:
+            result = research.fetch_v1_brokers(args)
+
+        self.assertEqual(result, [])
+        request_json.assert_called_once_with("/api/stockSecurity/researches/v1/brokers")
+
+    def test_v1_analysis_focus_uses_stock_security_endpoint(self) -> None:
+        args = argparse.Namespace()
+
+        with patch.object(research, "request_json", return_value={}) as request_json:
+            result = research.fetch_v1_analysis_focus(args)
+
+        self.assertEqual(result, {})
+        request_json.assert_called_once_with("/api/stockSecurity/researches/v1/analysis-focus")
+
+
+class NoticesTests(unittest.TestCase):
+    def test_notices_list_uses_stock_security_notice_endpoint(self) -> None:
+        args = argparse.Namespace(size=2, cursor="abc")
+
+        with patch.object(notices, "request_json", return_value={"content": []}) as request_json:
+            result = notices.fetch_list(args)
+
+        self.assertEqual(result, {"content": []})
+        request_json.assert_called_once_with("/api/stockSecurity/notices/v1?size=2&cursor=abc")
+
+    def test_notices_detail_uses_notice_id_path(self) -> None:
+        args = argparse.Namespace(notice_id="123")
+
+        with patch.object(notices, "request_json", return_value={"noticeId": "123"}) as request_json:
+            result = notices.fetch_detail(args)
+
+        self.assertEqual(result, {"noticeId": "123"})
+        request_json.assert_called_once_with("/api/stockSecurity/notices/v1/123")
+
+    def test_notices_banners_uses_banner_endpoint(self) -> None:
+        args = argparse.Namespace(size=2, banner_type="PC_TOP")
+
+        with patch.object(notices, "request_json", return_value={"banners": []}) as request_json:
+            result = notices.fetch_banners(args)
+
+        self.assertEqual(result, {"banners": []})
+        request_json.assert_called_once_with("/api/stockSecurity/notices/v1/banners?size=2&type=PC_TOP")
+
 
 class CryptoTests(unittest.TestCase):
     def test_global_news_uses_plain_coin_ticker(self) -> None:
@@ -480,6 +616,53 @@ class CryptoTests(unittest.TestCase):
 
         self.assertEqual(result, {"info": {}})
         request_json.assert_called_once_with("/api/coin/profile/BTC")
+
+    def test_categories_ranking_uses_current_category_endpoint(self) -> None:
+        args = argparse.Namespace(exchange_type="UPBIT", page=1, page_size=2)
+
+        with patch.object(crypto, "request_json", return_value={"categories": []}) as request_json:
+            result = crypto.fetch_categories_ranking(args)
+
+        self.assertEqual(result, {"categories": []})
+        request_json.assert_called_once_with("/api/coin/categories/ranking?exchangeType=UPBIT&page=1&pageSize=2")
+
+    def test_prices_repeats_fqnf_tickers(self) -> None:
+        args = argparse.Namespace(fqnf_tickers=["BTC_KRW_UPBIT", "ETH_KRW_UPBIT"])
+
+        with patch.object(crypto, "request_json", return_value={"prices": []}) as request_json:
+            result = crypto.fetch_prices(args)
+
+        self.assertEqual(result, {"prices": []})
+        request_json.assert_called_once_with(
+            "/api/coin/prices?fqnfTickers=BTC_KRW_UPBIT&fqnfTickers=ETH_KRW_UPBIT"
+        )
+
+    def test_global_market_trend_uses_current_endpoint(self) -> None:
+        args = argparse.Namespace()
+
+        with patch.object(crypto, "request_json", return_value={}) as request_json:
+            result = crypto.fetch_global_market_trend(args)
+
+        self.assertEqual(result, {})
+        request_json.assert_called_once_with("/api/coin/globalMarketTrend")
+
+    def test_coinmacro_news_uses_security_fe_endpoint(self) -> None:
+        args = argparse.Namespace()
+
+        with patch.object(crypto, "request_json", return_value={"articles": []}) as request_json:
+            result = crypto.fetch_coinmacro_news(args)
+
+        self.assertEqual(result, {"articles": []})
+        request_json.assert_called_once_with("/api/securityFe/api/news/coinmacro")
+
+    def test_coin_briefing_uses_security_ai_endpoint(self) -> None:
+        args = argparse.Namespace(exchange_type="UPBIT", ticker="btc")
+
+        with patch.object(crypto, "request_json", return_value={}) as request_json:
+            result = crypto.fetch_coin_briefing(args)
+
+        self.assertEqual(result, {})
+        request_json.assert_called_once_with("/api/securityAi/coinBriefing/current?exchangeType=UPBIT&nfTicker=BTC")
 
 
 class DiscussionFeedTests(unittest.TestCase):
