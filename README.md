@@ -58,18 +58,47 @@ stock.naver.com 새 페이지의 read-only API 호출을 점검해줘.
 
 ## 설치
 
+### 경량 설치
+
+스킬로 설치할 때는 저장소 전체가 아니라 실제 skill 패키지에 필요한 파일만 복사하는 것을 권장합니다. 설치 대상 폴더만 바꿔서 사용하세요.
+
+| 환경 | `SKILLS_DIR` 예시 |
+| --- | --- |
+| Antigravity 프로젝트 | `.agents/skills` |
+| Codex 개인 | `${CODEX_SKILLS_DIR:-$HOME/.agents/skills}` |
+| Codex 프로젝트 | `.agents/skills` |
+| Claude Code 개인 | `~/.claude/skills` |
+| Claude Code 프로젝트 | `.claude/skills` |
+
+```bash
+: "${SKILLS_DIR:=.agents/skills}"
+SKILL_NAME="naverstock-web-api"
+TMP_DIR="$(mktemp -d)"
+
+git clone --depth 1 https://github.com/dd3ok/naverstock-api-skill.git "$TMP_DIR/repo"
+mkdir -p "$SKILLS_DIR/$SKILL_NAME"
+cp -R \
+  "$TMP_DIR/repo/SKILL.md" \
+  "$TMP_DIR/repo/LICENSE" \
+  "$TMP_DIR/repo/agents" \
+  "$TMP_DIR/repo/references" \
+  "$TMP_DIR/repo/scripts" \
+  "$SKILLS_DIR/$SKILL_NAME/"
+rm -rf "$TMP_DIR"
+```
+
+이렇게 설치하면 최종 skill 폴더에는 `SKILL.md`, `LICENSE`, `agents/`, `references/`, `scripts/`만 남습니다. `README.md`, `tests/`, `.github/`는 저장소 유지보수용이므로 설치 폴더에 넣지 않아도 됩니다.
+
 ### Google Antigravity
 
 Antigravity는 [Agent Skills](https://antigravity.google/docs/skills) 표준의 `SKILL.md` 패키지를 읽습니다. 프로젝트 범위로 설치하면 현재 workspace에서만 skill이 노출되어 가장 예측 가능합니다.
 
 ```bash
-mkdir -p .agents/skills
-git clone --depth 1 https://github.com/dd3ok/naverstock-api-skill.git .agents/skills/naverstock-web-api
+SKILLS_DIR=".agents/skills"
+# 위 경량 설치 명령을 실행합니다.
 ```
 
 설치 후 Antigravity 또는 Antigravity CLI에서 `/skills`로 노출 여부를 확인하고, 네이버증권, Naver Stock, `stock.naver.com` 관련 요청을 하면 skill 설명과 매칭되어 선택될 수 있습니다.
-
-경량 패키지로 배포할 때는 `SKILL.md`, `scripts/`, `references/`, `agents/openai.yaml`, `LICENSE`만 포함해도 됩니다. `README.md`, `tests/`, `.github/`는 저장소 유지보수용입니다.
 
 ### Codex
 
@@ -79,22 +108,23 @@ Codex에서 공개 GitHub URL로 설치를 요청할 수 있습니다.
 https://github.com/dd3ok/naverstock-api-skill 에서 스킬을 설치해줘.
 ```
 
+이 방식은 간편하지만 설치 환경에 따라 저장소 전체가 들어갈 수 있습니다. 설치 폴더를 스킬 파일만으로 유지하려면 아래 수동 설치처럼 경량 설치 명령을 사용하세요.
+
 수동 설치:
 
 ```bash
-CODEX_SKILLS_DIR="$HOME/.agents/skills"
-mkdir -p "$CODEX_SKILLS_DIR"
-git clone --depth 1 https://github.com/dd3ok/naverstock-api-skill.git "$CODEX_SKILLS_DIR/naverstock-web-api"
+SKILLS_DIR="${CODEX_SKILLS_DIR:-$HOME/.agents/skills}"
+# 위 경량 설치 명령을 실행합니다.
 ```
 
 프로젝트 로컬 설치:
 
 ```bash
-mkdir -p .agents/skills
-git clone --depth 1 https://github.com/dd3ok/naverstock-api-skill.git .agents/skills/naverstock-web-api
+SKILLS_DIR=".agents/skills"
+# 위 경량 설치 명령을 실행합니다.
 ```
 
-이미 clone한 작업 디렉터리를 쓰고 싶다면 symlink로 노출할 수 있습니다.
+이미 clone한 작업 디렉터리를 쓰고 싶다면 symlink로 노출할 수 있습니다. 다만 이 방식은 README, tests, CI 설정까지 함께 보이므로 개발용에 가깝습니다.
 
 ```bash
 CODEX_SKILLS_DIR="$HOME/.agents/skills"
@@ -111,15 +141,15 @@ Claude Code는 개인 skill 폴더와 프로젝트 skill 폴더에서 custom ski
 개인 설치:
 
 ```bash
-mkdir -p ~/.claude/skills
-git clone --depth 1 https://github.com/dd3ok/naverstock-api-skill.git ~/.claude/skills/naverstock-web-api
+SKILLS_DIR="$HOME/.claude/skills"
+# 위 경량 설치 명령을 실행합니다.
 ```
 
 프로젝트 설치:
 
 ```bash
-mkdir -p .claude/skills
-git clone --depth 1 https://github.com/dd3ok/naverstock-api-skill.git .claude/skills/naverstock-web-api
+SKILLS_DIR=".claude/skills"
+# 위 경량 설치 명령을 실행합니다.
 ```
 
 Claude가 네이버증권, Naver Stock, `stock.naver.com` 관련 주식 데이터 요청을 skill 설명과 매칭하면 이 skill을 선택합니다.
