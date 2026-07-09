@@ -3,15 +3,38 @@
 [![NaverStock API Skill CI](https://github.com/dd3ok/naverstock-api-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/dd3ok/naverstock-api-skill/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/dd3ok/naverstock-api-skill?sort=semver)](https://github.com/dd3ok/naverstock-api-skill/releases/latest)
 
-> 30초 요약: `stock.naver.com` 공개 페이지에서 관찰되는 비공식 read-only 웹 API를 agent가 안전하게 다시 조회하도록 돕는 skill입니다.  
-> 공식 네이버증권 API, 증권사 API, 거래 API, 투자 조언 도구가 아닙니다.  
-> 로그인, 계좌, 주문, 관심종목, 쿠키, raw HAR, 접근 제어 우회는 범위 밖입니다.
+`naverstock-web-api`는 Antigravity, Codex, Claude Code 같은 에이전트가 `stock.naver.com` 공개 화면에서 관찰되는 비공식 read-only 웹 API를 안전하게 찾아 호출하도록 돕는 Agent Skill입니다.
 
-`naverstock-web-api`는 네이버증권 API, 네이버 주식 API, Naver Stock API, 국내 주식 시세 API, ETF/ETN, 업종/테마/그룹사 구성 종목, 시장지표, 가상자산, 뉴스, 리서치, 종목토론 데이터를 다루는 Agent Skill입니다.
+설치하면 에이전트에게 이렇게 요청할 수 있습니다.
 
-## 왜 필요한가
+```text
+삼성전자 005930 네이버증권 요약과 현재가를 가져와줘.
+KOSPI/KOSDAQ 주요 지수 데이터를 stock.naver.com 기준으로 확인해줘.
+네이버증권 COMPANY 리서치 최신 목록을 가져와줘.
+네이버증권 가상자산 시장 브리핑을 가져와줘.
+stock.naver.com 새 페이지의 read-only API 호출을 점검해줘.
+```
 
-`stock.naver.com`은 공식 개발자 API가 아니라 공개 웹앱 내부 호출을 사용합니다. 이 저장소는 에이전트가 네이버증권 데이터를 다룰 때 엔드포인트 경로, 쿼리 파라미터, 페이징 방식, 안전 거절 기준을 추측하지 않도록 `SKILL.md`, API 카탈로그, Python CLI 스크립트, contract tests를 함께 제공합니다.
+## 무엇이 가능해지나
+
+- 국내 종목 상세, 현재가 폴링, 호가, 차트 가격, 일별 시세, 체결 시세, 공시, IR, 리서치, 투자자 통계를 조회할 수 있습니다.
+- 업종, 테마, 그룹사, ETF, ETN, IPO, 배당, 투자자 예탁금, 외국인/기관/프로그램 동향을 확인할 수 있습니다.
+- KOSPI, KOSDAQ, KPI200, 원자재, 금리, 환율, 경제지표 같은 시장지표를 가져올 수 있습니다.
+- 업비트/빗썸 가상자산 랭킹, 가격, 뉴스, 프로필, 카테고리 랭킹, AI 브리핑을 조회할 수 있습니다.
+- 네이버증권 뉴스, 서비스 공지, 리서치 리포트, 읽기 전용 종목토론 feed를 다룰 수 있습니다.
+- 새로 바뀐 네이버증권 화면에서 어떤 API가 쓰이는지 점검하고 카탈로그를 갱신할 수 있습니다.
+
+## 왜 유용한가
+
+- 네이버증권 화면을 직접 뒤지지 않아도 종목, 시장, 리서치, 뉴스 데이터를 빠르게 확인할 수 있습니다.
+- 자주 쓰는 조회는 스크립트로 준비되어 있어 같은 요청을 반복해도 결과를 재현하기 쉽습니다.
+- 어떤 API가 현재 동작하는지, 다시 확인이 필요한지, 호출하면 안 되는지 구분해 둬서 불필요한 시행착오를 줄입니다.
+- 로그인이나 주문처럼 위험한 요청은 다루지 않도록 선을 그어, 공개 read-only 데이터 조회에 집중할 수 있습니다.
+- 새 화면이나 탭이 생겨도 네트워크 호출을 점검하고 카탈로그를 갱신하는 절차가 함께 들어 있습니다.
+
+## 한계
+
+이 저장소는 공식 네이버증권 API, 증권사 API, 거래 API, 투자 조언 도구가 아닙니다. `stock.naver.com` 공개 페이지에서 관찰되는 read-only 호출만 다루며, 중요한 사용 전에는 현재 공개 페이지 트래픽으로 다시 확인해야 합니다.
 
 ## 검색어와 별칭
 
