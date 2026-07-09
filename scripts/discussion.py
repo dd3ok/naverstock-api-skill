@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 from typing import Any
 
-from naverstock_api import build_path, emit_output, render_json, request_json
+from naverstock_api import build_path, emit_output, normalize_item_code, render_json, request_json
 
 
 def fetch_hot_home(args: argparse.Namespace) -> Any:
@@ -70,6 +70,38 @@ def fetch_market_feed(args: argparse.Namespace) -> Any:
                 "pageSize": args.page_size,
                 "offset": args.offset,
                 "discussionGroupType": args.discussion_group_type,
+            },
+        )
+    )
+
+
+def fetch_item_posts(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/community/discussion/posts/by-item",
+            {
+                "itemCode": normalize_item_code(args.item_code),
+                "discussionType": args.discussion_type,
+                "pageSize": args.page_size,
+                "offset": args.offset,
+                "isHolderOnly": args.is_holder_only,
+                "excludesItemNews": args.excludes_item_news,
+                "isItemNewsOnly": args.is_item_news_only,
+            },
+        )
+    )
+
+
+def fetch_stats_by_items(args: argparse.Namespace) -> Any:
+    domestic_codes = ",".join(normalize_item_code(code) for code in args.domestic_codes) if args.domestic_codes else None
+    foreign_codes = ",".join(args.foreign_codes) if args.foreign_codes else None
+    return request_json(
+        build_path(
+            "/api/community/discussion/stats/by-items",
+            {
+                "startDate": args.start_date,
+                "domesticCodes": domestic_codes,
+                "foreignCodes": foreign_codes,
             },
         )
     )
@@ -140,6 +172,24 @@ def main() -> None:
     market_feed.add_argument("--discussion-group-type")
     market_feed.add_argument("--output")
     market_feed.set_defaults(func=fetch_market_feed)
+
+    item_posts = sub.add_parser("item-posts", help="Discussion posts for an item")
+    item_posts.add_argument("--item-code", required=True)
+    item_posts.add_argument("--discussion-type", default="domesticStock")
+    item_posts.add_argument("--page-size", type=int, default=20)
+    item_posts.add_argument("--offset")
+    item_posts.add_argument("--is-holder-only", action=argparse.BooleanOptionalAction, default=False)
+    item_posts.add_argument("--excludes-item-news", action=argparse.BooleanOptionalAction, default=False)
+    item_posts.add_argument("--is-item-news-only", action=argparse.BooleanOptionalAction, default=False)
+    item_posts.add_argument("--output")
+    item_posts.set_defaults(func=fetch_item_posts)
+
+    stats = sub.add_parser("stats-by-items", help="Discussion statistics for domestic or foreign item codes")
+    stats.add_argument("--start-date", required=True)
+    stats.add_argument("--domestic-codes", action="append", help="Repeat for each domestic item code")
+    stats.add_argument("--foreign-codes", action="append", help="Repeat for each foreign code")
+    stats.add_argument("--output")
+    stats.set_defaults(func=fetch_stats_by_items)
 
     rankings = sub.add_parser("rankings", help="Discussion item rankings")
     rankings.add_argument("--nation-type", choices=["KOR", "USA"], default="KOR")

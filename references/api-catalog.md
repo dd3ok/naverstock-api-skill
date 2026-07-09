@@ -1,6 +1,6 @@
 # NaverStock Web API 카탈로그
 
-기준 관찰일: 2026-05-05, 부분 재점검: 2026-05-29
+기준 관찰일: 2026-05-05, 부분 재점검: 2026-07-09
 관찰 출처: 로그인하지 않은 공개 `https://stock.naver.com/` 페이지와 Next.js chunk  
 기본 호스트: `https://stock.naver.com`
 
@@ -59,8 +59,9 @@
 | `/market/stock/global/{chn\|hkg\|jpn\|vnm}/top` | 200 | 해외 국가별 상위 목록 |
 | `/market/stock/global/industry/{chn\|hkg\|jpn\|vnm}` | 307 | 현재 첫 industry code로 이동 |
 | `/domestic/stock/{itemCode}` | 307 | `/price`로 이동 |
-| `/domestic/stock/{itemCode}/{price\|news\|notice\|ir\|discussion\|research}` | 200 | 종목 상세 하위 페이지 |
+| `/domestic/stock/{itemCode}/{price\|news\|notice\|ir\|discussion\|research\|shortTrade\|investmentinfo}` | 200 | 종목 상세 하위 페이지 |
 | `/domestic/stock/{itemCode}/info/{company\|overview\|financial\|investment\|consensus\|industry\|sector\|share\|esg}` | 200 | 종목 정보 탭 page route |
+| `/domestic/stock/{itemCode}/info/summary` | 200 | ETF 정보 요약 route |
 | `/news`, `/news/flashnews`, `/news/mainnews`, `/news/ranknews`, `/news/section`, `/news/worldnews`, `/notice` | 200 | 뉴스/뉴스포커스/해외뉴스/공지 페이지 |
 | `/research`, `/research/{daily\|company\|industry\|invest\|economy}` | 200 | 리서치 페이지. `/research/firm`은 404 |
 | `/discussion`, `/discussion/feed/{all\|domesticStock\|market\|my}` | 200 | 토론 페이지. `/discussion/feed`는 `/discussion/feed/all`로 이동 |
@@ -94,8 +95,8 @@
 | 종목 체결 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/siseTick?startIdx=0&pageSize=20` |
 | 종목 투자자 동향 행 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/trend?tradeType=KRX&startIdx=0&pageSize=20` |
 | 종목 증권사 거래 정보 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/traderInfo` |
-| 종목 차트 메타 payload | `script-backed` | GET | `/api/securityFe/api/fchart/domestic/stock/{itemCode}?periodType=day&range={range}` |
-| 종목 차트 가격 행 | `script-backed` | GET | `/api/securityService/chart/domestic/item/{itemCode}?periodType=day&range={range}` |
+| 종목 차트 메타 payload | `script-backed` | GET | `/api/securityFe/api/fchart/domestic/stock/{itemCode}?periodType={day\|week\|month\|year}`. `range=1m`은 2026-07-09 재점검에서 유효하지 않았습니다. |
+| 종목 차트 가격 행 | `script-backed` | GET | `/api/securityService/chart/domestic/item/{itemCode}?periodType={day\|week\|month\|year}`. 기본 호출은 `range`를 생략합니다. |
 | 시장 구분 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/sosok` |
 | 컨센서스 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/consensus` |
 | 업종 관련 종목 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/stock/industry?page=1&pageSize=10&marketType=ALL` |
@@ -105,6 +106,8 @@
 | 종목 IR 상세 | `script-backed` | GET | `/api/domestic/detail/ir/{itemCode}/{articleId}` |
 | 집계 투자자 poll 통계 | `script-backed` | GET | `/api/stockDomestic/invest-info/poll/statistics/{itemCode}` |
 | 집계 투자자 분포 리소스 | `script-backed` | GET | `/api/myasset/resources/invest/{stock-trade\|stock-investor-rank\|stock-invest-rate\|stock-investor-age\|stock-floor}?item_code={itemCode}` |
+| 재무 메뉴 메타데이터 | `script-backed` | GET | `/api/stockSecurity/finances/v1/domestic/{itemCode}/menu-info` |
+| ESG 정보 | `script-backed` | GET | `/api/stockSecurity/finances/v1/domestic/{itemCode}/esg` |
 | 종목 정보 탭 page route | `observed` | PAGE | `/domestic/stock/{itemCode}/info/{company\|overview\|financial\|investment\|consensus\|industry\|sector\|share\|esg}`. 2026-04-27 직접 확인에서 200을 반환했습니다. 하위 JSON API는 아직 script-backed가 아니므로 필요 시 현재 트래픽으로 재확인합니다. |
 | 실시간 폴링 현재가 | `script-backed` | GET | `/api/polling/domestic/stock?itemCodes={codes}` |
 | NXT 폴링 현재가 | `observed` | GET | `/api/polling/domestic/NXT/stock?itemCodes={codes}` |
@@ -139,8 +142,11 @@
 | 국내 ETN 목록 | `script-backed` | GET | `/api/domestic/market/etn?orderType=AMOUNT_ETN&startIdx=0&pageSize=20` |
 | 주목할 ETF | `observed` | GET | `/api/domestic/market/home/notableETF?orderType=up_etf&startIdx=0&pageSize=10` |
 | 홈 브리핑 | `observed` | GET | `/api/securityService/home/v3/briefing` |
-| 홈 공지 목록 | `observed` | GET | `/api/domestic/home/noticeList?page=1&pageSize=5` |
-| 홈 공지 상세 | `observed` | GET | `/api/domestic/home/notice/{noticeId}` |
+| 서비스 공지 목록 | `script-backed` | GET | `/api/stockSecurity/notices/v1?size=20&cursor={cursor}` |
+| 서비스 공지 상세 | `script-backed` | GET | `/api/stockSecurity/notices/v1/{noticeId}` |
+| 서비스 공지 배너 | `script-backed` | GET | `/api/stockSecurity/notices/v1/banners?size=2&type=PC_TOP` |
+| 홈 공지 목록 legacy | `needs-recheck` | GET | `/api/domestic/home/noticeList?page=1&pageSize=5`. 2026-07-09 직접 확인에서 404를 반환했습니다. 서비스 공지는 `stockSecurity/notices/v1`을 우선 사용합니다. |
+| 홈 공지 상세 legacy | `needs-recheck` | GET | `/api/domestic/home/notice/{noticeId}`. 새 경로는 `/api/stockSecurity/notices/v1/{noticeId}`입니다. |
 | 홈 보유자산 랭킹 | `observed` | GET | `/api/domestic/home/ranking/assetAmount/{ageRange}?startIdx=0&pageSize=20`, `ageRange`는 `all`, `20`, `30`, `40`, `50`, `60` |
 | 홈 수익률 랭킹 | `observed` | GET | `/api/domestic/home/ranking/earningRate/{ageRange}?startIdx=0&pageSize=20`, `ageRange`는 `all`, `20`, `30`, `40`, `50`, `60` |
 | 국내 지수 시간대 시세 | `observed` | GET | `/api/domestic/indexSise/time?koreaIndexType=KOSPI&thistime={yyyyMMddHHmmss}&startIdx=0&pageSize=20` |
@@ -152,7 +158,7 @@
 
 관찰된 카테고리 종목 목록 `orderType` 값에는 `quantTop`, `priceTop`, `up`, `down`, `marketSum`, `sales`, `operatingProfit`이 포함됩니다. UI chip alias는 `accQuant -> quantTop`, `accAmount -> priceTop`으로 매핑됩니다.
 
-2026-04-27 직접 확인에서 열렸던 국내 주식 메뉴 route: `/market/stock/kr/stocklist/*`, `/market/stock/kr/etf/*`, `/market/stock/kr/etn/*`, `/market/stock/kr/ipo`, `/market/stock/kr/deposit`, `/market/stock/kr/trend/{foreigner|organization|program|trader}`, 종목 상세 하위 페이지 `/domestic/stock/{itemCode}/{price|news|notice|ir|discussion|research}`, 종목 정보 탭 `/domestic/stock/{itemCode}/info/*`. `/domestic/stock/{itemCode}/financial`, `/total`, `/chart`, `/analysis`, `/investment`는 직접 확인에서 404를 반환했습니다.
+2026-04-27 직접 확인에서 열렸고 2026-07-09 정적 route로 재확인한 국내 주식 메뉴 route: `/market/stock/kr/stocklist/*`, `/market/stock/kr/etf/*`, `/market/stock/kr/etn/*`, `/market/stock/kr/ipo`, `/market/stock/kr/deposit`, `/market/stock/kr/trend/{foreigner|organization|program|trader}`, 종목 상세 하위 페이지 `/domestic/stock/{itemCode}/{price|news|notice|ir|discussion|research|shortTrade|investmentinfo}`, 종목 정보 탭 `/domestic/stock/{itemCode}/info/*`와 ETF `/domestic/stock/{itemCode}/info/summary`. `/domestic/stock/{itemCode}/financial`, `/total`, `/chart`, `/analysis`, `/investment`는 직접 확인에서 404를 반환했습니다.
 
 국내 ETF `listingType` alias는 UI chunk에서 `tradingValueDesc`, `aumDesc`, `changeRateDescUpAll`, `changeRateDescDownAll`, `tradingVolumeDesc`, `tradingVolumeIncreaseRateDesc`, `tradingVolumeIncreaseRateAsc`, `returnRate1mDesc`, `returnRate3mDesc`, `returnRate6mDesc`, `marketCapDesc`, `listedAtDesc`가 관찰되었습니다.
 
@@ -170,7 +176,7 @@
 | 지수 통합 정보 | `observed` | GET | `/api/securityFe/api/index/{reutersCode}/integration` |
 | 지수 가격 이력 | `observed` | GET | `/api/securityFe/api/index/{reutersCode}/price?page=1&pageSize=20` |
 | 국내 지수 폴링 | `script-backed` | GET | `/api/polling/domestic/index?itemCodes=KOSPI,KOSDAQ,KPI200` |
-| 지수 차트 | `script-backed` | GET | `/api/securityService/chart/domestic/index/{code}?periodType=day` |
+| 지수 차트 | `script-backed` | GET | `/api/securityService/chart/domestic/index/{code}?periodType={day\|week\|month\|year}` |
 | 원자재/운임 지표 | `script-backed` | GET | `/api/securityService/marketindex/energy`, `/metals`, `/agricultural`, `/transport` |
 | 국내 금리 | `script-backed` | GET | `/api/securityService/marketindex/domesticInterest` |
 | 기타 지표 카테고리 | `observed` | GET | `/api/securityService/marketindex/exchange`, `/bond`, `/standardInterest` 및 각 카테고리 상세 path |
@@ -178,7 +184,7 @@
 | 지표 가격 이력 | `script-backed` | GET | `/api/securityService/marketindex/{energy\|metals\|agricultural\|exchange}/{reutersCode}/prices?page=1&pageSize=20` |
 | 국가별 채권 | `script-backed` | GET | `/api/securityService/marketindex/bond/nation/{nationType}?sortType={sortType}` |
 | 기준금리 상세 | `script-backed` | GET | `/api/securityService/marketindex/standardInterest/{nationType}` |
-| 예정 경제지표 | `script-backed` | GET | `/api/securityService/economic/indicator/nations/upcoming?limit=10&nationTypeList=USA` |
+| 예정 경제지표 | `script-backed` | GET | `/api/securityService/economic/indicator/nations/upcoming?limit=10&nationTypeList=USA&nationTypeList=KOR`. 2026-07-09 재점검에서 파라미터 생략 또는 반복 `nationTypeList`는 동작했고, 단일 `nationTypeList=USA`는 400을 반환했습니다. |
 | 발표일별 경제지표 | `script-backed` | GET | `/api/securityService/economic/indicator/nations/releaseDate?page=1&pageSize=20&releaseDate={yyyyMMdd}` |
 | 환율 helper | `script-backed` | GET | `/api/stockDomestic/exchangeRates/list?currencies=USD,JPY` |
 | 환율 목록 | `script-backed` | GET | `/api/domestic/exchange/List` |
@@ -201,6 +207,12 @@
 | 글로벌 뉴스 | `script-backed` | GET | `/api/coin/globalNews/{ticker}?pageSize=20&offsetTimestamp={timestamp}` |
 | 시장 업데이트 | `script-backed` | GET | `/api/coin/marketUpdates/{ticker}?pageSize=20&offsetTimestamp={timestamp}` |
 | 코인 프로필 | `script-backed` | GET | `/api/coin/profile/{ticker}` |
+| 카테고리 랭킹 | `script-backed` | GET | `/api/coin/categories/ranking?exchangeType=UPBIT&page=1&pageSize=20` |
+| 여러 코인 가격 | `script-backed` | GET | `/api/coin/prices?fqnfTickers=BTC_KRW_UPBIT&fqnfTickers=ETH_KRW_UPBIT` |
+| 글로벌 시장 동향 | `script-backed` | GET | `/api/coin/globalMarketTrend` |
+| 가격 변동 legacy 후보 | `needs-recheck` | GET | `/api/coin/priceChange/{ticker}?exchangeType=UPBIT`. 정적 chunk 문자열은 관찰됐지만 2026-07-09 직접 요청에서 404를 반환해 스크립트로 노출하지 않습니다. |
+| 코인 매크로 뉴스 | `script-backed` | GET | `/api/securityFe/api/news/coinmacro` |
+| AI 코인 브리핑 | `script-backed` | GET | `/api/securityAi/coinBriefing/current?exchangeType=UPBIT&nfTicker=BTC` |
 
 `UPBIT` 또는 `BITHUMB`을 대문자로 사용합니다. 폴링 엔드포인트는 `BTC_KRW_UPBIT` 같은 `fqnfTicker` 값을 받고, 뉴스/업데이트/프로필 엔드포인트는 `BTC` 같은 plain ticker를 받습니다. 직접 확인에서 일반 `KRW-BTC`는 빈 list를 반환했습니다.
 
@@ -232,11 +244,16 @@
 | 종목 리포트 목록 | `script-backed` | GET | `/api/domestic/research/{itemCode}/research?page=0&size=30` |
 | 종목 리포트 상세 | `observed` | GET | `/api/domestic/research/{itemCode}/research/{researchId}` |
 | 최근 인기 | `script-backed` | GET | `/api/domestic/research/recent-popular` |
-| 리서치 홈 집계 | `script-backed` | POST | `/api/domestic/home/researchaggregate/static`, `researchCategory`, `researchRanking`, `recentPopular` 같은 boolean `sections` 포함 |
+| 리서치 홈 집계 legacy | `needs-recheck` | POST | `/api/domestic/home/researchaggregate/static`. 2026-07-09 직접 확인에서 404를 반환했습니다. 새 리서치 홈은 `stockSecurity/researches/v1` 계열을 우선 사용합니다. |
 | 카테고리 최신 | `script-backed` | GET | `/api/domestic/research/category-lastest`. API path의 `lastest` 오탈자 형태를 그대로 사용합니다. |
 | 산업 리서치 | `script-backed` | GET | `/api/domestic/research/industry-research` |
 | 랭킹 | `script-backed` | GET | `/api/domestic/research/ranking?rankingType={type}&selectedRank={rank}` |
 | 증권사 목록 | `script-backed` | GET | `/api/domestic/research/broker-list` |
+| v1 리서치 카테고리 목록 | `script-backed` | GET | `/api/stockSecurity/researches/v1/{company\|industry\|invest\|economy}?index=0&size=15` |
+| v1 증권사 목록 | `script-backed` | GET | `/api/stockSecurity/researches/v1/brokers` |
+| v1 최신 리서치 블록 | `script-backed` | GET | `/api/stockSecurity/researches/v1/latestResearch?size=5` |
+| v1 종목별 회사 리서치 | `script-backed` | GET | `/api/stockSecurity/researches/v1/company/by-items?itemCodes=005930&itemCodes=000660&size=5` |
+| v1 분석 포커스 | `script-backed` | GET | `/api/stockSecurity/researches/v1/analysis-focus` |
 
 검증 오류와 chunk에서 관찰된 카테고리 enum: `INVEST`, `MARKET`, `INDUSTRY`, `COMPANY`, `ECONOMY`, `DEBENTURE`.
 
@@ -253,13 +270,13 @@
 | 일반 feed | `script-backed` | GET | `/api/community/discussion/posts?pageSize=20&offset={offset}` |
 | 시장 feed | `script-backed` | GET | `/api/community/discussion/posts/market?filterType=marketIndex&offset={offset}&pageSize=20` |
 | 종목 글 | `observed` | GET | `/api/community/discussion/posts?itemCode={itemCode}&pageSize=20` |
-| 종목별 글 | `observed` | GET | `/api/community/discussion/posts/by-item?itemCode={itemCode}&pageSize=20` |
+| 종목별 글 | `script-backed` | GET | `/api/community/discussion/posts/by-item?itemCode={itemCode}&discussionType=domesticStock&pageSize=20&isHolderOnly=false&excludesItemNews=false&isItemNewsOnly=false` |
 | 여러 종목 글 | `observed` | GET | `/api/community/discussion/posts/by-item-codes?filterType=itemCodes&pageSize=20&offset={offset}&domesticCodes={codes}` |
 | 최신 종목 글 | `observed` | GET | `/api/community/discussion/items/posts/latest?domesticCodes={codes}&limit=10` |
 | 댓글 수 | `observed` | GET | `/api/community/discussion/posts/comment-counts?postIds={ids}` |
 | 반응 조회 | `observed` | GET | `/api/community/discussion/posts/reactions?postIds={ids}` |
 | 랭킹 | `script-backed` | GET | `/api/community/discussion/rankings?nationType=KOR&page=1&size=20&postType=HOT` |
-| 종목 통계 | `observed` | GET | `/api/community/discussion/stats/by-items?itemCodes={codes}` |
+| 종목 통계 | `script-backed` | GET | `/api/community/discussion/stats/by-items?startDate={yyyy-MM-dd}&domesticCodes={codes}&foreignCodes={codes}`. 2026-07-09 기준 `startDate`가 필요하고, legacy `itemCodes`만 보내는 호출은 400을 반환했습니다. |
 
 작성, 프로필 편집, 이미지 업로드, 닉네임 검증/추천, 반응 mutation, 인증된 커뮤니티 프로필 워크플로는 피합니다.
 
