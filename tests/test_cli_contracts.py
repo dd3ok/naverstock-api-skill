@@ -100,6 +100,54 @@ class MarketIndexTests(unittest.TestCase):
 
         request_json.assert_called_once_with("/api/domestic/exchange/List")
 
+    def test_exchange_prices_use_currency_specific_endpoint(self) -> None:
+        args = argparse.Namespace(currency="USD", start_idx=0, page_size=20)
+
+        with patch.object(marketindex, "request_json", return_value=[]) as request_json:
+            marketindex.fetch_exchange_prices(args)
+
+        request_json.assert_called_once_with("/api/domestic/exchange/USD/list?startIdx=0&pageSize=20")
+
+    def test_market_polling_uses_observed_marketindex_endpoint(self) -> None:
+        args = argparse.Namespace(category="metals", codes="GCcv1")
+
+        with patch.object(marketindex, "request_json", return_value={}) as request_json:
+            marketindex.fetch_market_polling(args)
+
+        request_json.assert_called_once_with("/api/polling/marketindex/metals/GCcv1")
+
+    def test_foreign_chart_uses_foreign_asset_type(self) -> None:
+        args = argparse.Namespace(asset_type="index", code=".DJI", period_type="day", range=None)
+
+        with patch.object(marketindex, "request_json", return_value={}) as request_json:
+            marketindex.fetch_foreign_chart(args)
+
+        request_json.assert_called_once_with("/api/securityService/chart/foreign/index/.DJI?periodType=day")
+
+    def test_bank_round_chart_uses_stock_security_v2_endpoint(self) -> None:
+        args = argparse.Namespace(currency="USD", bank_type="hana")
+
+        with patch.object(marketindex, "request_json", return_value={}) as request_json:
+            marketindex.fetch_bank_round_chart(args)
+
+        request_json.assert_called_once_with("/api/stockSecurity/exchange-rates/v2/USD/charts/round?bankType=hana")
+
+    def test_krx_gold_uses_domestic_gold_endpoint(self) -> None:
+        with patch.object(marketindex, "request_json", return_value={}) as request_json:
+            marketindex.fetch_krx_gold(argparse.Namespace())
+
+        request_json.assert_called_once_with("/api/stockDomestic/gold/sise/krx")
+
+    def test_standard_interest_calendars_use_nation_and_paging(self) -> None:
+        args = argparse.Namespace(nation_type="USA", page=1, page_size=20)
+
+        with patch.object(marketindex, "request_json", return_value={}) as request_json:
+            marketindex.fetch_standard_interest_calendars(args)
+
+        request_json.assert_called_once_with(
+            "/api/securityService/marketindex/standardInterest/USA/calendars?page=1&pageSize=20"
+        )
+
     def test_economic_upcoming_preserves_repeated_nation_types(self) -> None:
         args = argparse.Namespace(limit=5, nation_type=["USA", "KOR"])
 
@@ -556,7 +604,7 @@ class NoticesTests(unittest.TestCase):
             result = notices.fetch_list(args)
 
         self.assertEqual(result, {"content": []})
-        request_json.assert_called_once_with("/api/stockSecurity/notices/v1?size=2&cursor=abc")
+        request_json.assert_called_once_with("/api/stockSecurity/notices/v2?size=2&cursor=abc")
 
     def test_notices_detail_uses_notice_id_path(self) -> None:
         args = argparse.Namespace(notice_id="123")
@@ -565,7 +613,7 @@ class NoticesTests(unittest.TestCase):
             result = notices.fetch_detail(args)
 
         self.assertEqual(result, {"noticeId": "123"})
-        request_json.assert_called_once_with("/api/stockSecurity/notices/v1/123")
+        request_json.assert_called_once_with("/api/stockSecurity/notices/v2/123")
 
     def test_notices_banners_uses_banner_endpoint(self) -> None:
         args = argparse.Namespace(size=2, banner_type="PC_TOP")
@@ -574,7 +622,23 @@ class NoticesTests(unittest.TestCase):
             result = notices.fetch_banners(args)
 
         self.assertEqual(result, {"banners": []})
-        request_json.assert_called_once_with("/api/stockSecurity/notices/v1/banners?size=2&type=PC_TOP")
+        request_json.assert_called_once_with("/api/stockSecurity/notices/v2/banners?size=2&type=PC_TOP")
+
+    def test_notices_cli_rejects_unsafe_or_unbounded_inputs(self) -> None:
+        argv_sets = (
+            ["notices.py", "detail", "--notice-id", "../personal"],
+            ["notices.py", "list", "--size", "101"],
+            ["notices.py", "list", "--cursor", "unsafe/cursor"],
+            ["notices.py", "banners", "--banner-type", "PC/TOP"],
+        )
+        for argv in argv_sets:
+            with (
+                self.subTest(argv=argv),
+                patch.object(sys, "argv", argv),
+                patch("sys.stderr", new_callable=StringIO),
+                self.assertRaises(SystemExit),
+            ):
+                notices.main()
 
 
 class CryptoTests(unittest.TestCase):
@@ -647,13 +711,13 @@ class CryptoTests(unittest.TestCase):
         request_json.assert_called_once_with("/api/coin/globalMarketTrend")
 
     def test_coinmacro_news_uses_security_fe_endpoint(self) -> None:
-        args = argparse.Namespace()
+        args = argparse.Namespace(page=1, page_size=10)
 
         with patch.object(crypto, "request_json", return_value={"articles": []}) as request_json:
             result = crypto.fetch_coinmacro_news(args)
 
         self.assertEqual(result, {"articles": []})
-        request_json.assert_called_once_with("/api/securityFe/api/news/coinmacro")
+        request_json.assert_called_once_with("/api/securityFe/api/news/coinmacro?page=1&pageSize=10")
 
     def test_coin_briefing_uses_security_ai_endpoint(self) -> None:
         args = argparse.Namespace(exchange_type="UPBIT", ticker="btc")

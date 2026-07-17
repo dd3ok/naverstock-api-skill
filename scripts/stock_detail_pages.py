@@ -28,6 +28,13 @@ ETF_DETAIL_TYPES = {
 }
 
 
+def _numeric_article_id(value: str) -> str:
+    clean = value.strip()
+    if not clean.isascii() or not clean.isdigit() or not 1 <= len(clean) <= 30:
+        raise argparse.ArgumentTypeError("article-id must contain 1-30 digits")
+    return clean
+
+
 def fetch_price(args: argparse.Namespace) -> Any:
     return request_json(f"/api/domestic/detail/{normalize_item_code(args.code)}/price")
 
@@ -239,7 +246,7 @@ def main() -> None:
 
     ir_detail = sub.add_parser("ir-detail", help="Stock IR detail")
     add_code(ir_detail)
-    ir_detail.add_argument("--article-id", required=True)
+    ir_detail.add_argument("--article-id", type=_numeric_article_id, required=True)
     ir_detail.add_argument("--output")
     ir_detail.set_defaults(func=fetch_ir_detail)
 
