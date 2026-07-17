@@ -33,7 +33,7 @@ Use this checklist when changing endpoints, scripts, safety rules, or vendor-fac
     - tests, Ruff, compile, all-script help, diff check, skill validator, and install-layout smoke pass;
     - public GET/read-only POST allowlists and private/personal/mutation denials have focused tests;
     - domestic, foreign, search, home, market-index, crypto, notice, research, and discussion routes are reflected in `SKILL.md`, the catalog, cookbook, README, and metadata;
-    - every `needs-recheck` endpoint stays non-script-backed, and external iframe pages such as KRX short selling are documented rather than disguised as Npay APIs;
+    - every `needs-recheck` endpoint stays non-script-backed, and external iframe pages such as KRX short selling are documented rather than disguised as `stock.naver.com` APIs;
     - a clean PR is reviewed and merged to `main` before creating the tag and release notes.
 
 12. After the gate passes on merged `main`, tag `v1.0.0` and publish concise release notes. Do not raise the public version in advance of the merged, validated commit.

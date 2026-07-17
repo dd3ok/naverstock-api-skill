@@ -77,7 +77,7 @@
 | `/research`, `/research/{daily\|company\|industry\|invest\|economy}` | 200 | 리서치 페이지. `/research/firm`은 404 |
 | `/discussion`, `/discussion/feed/{all\|domesticStock\|market\|my}` | 200 | 토론 페이지. `/discussion/feed`는 `/discussion/feed/all`로 이동 |
 
-`/domestic/stock/{itemCode}/shortTrade`는 Npay 증권 JSON API가 아니라 `https://data.krx.co.kr/comm/srt/srtLoader/index.cmd?screenId=MDCSTAT300&isuCd={itemCode}` iframe을 렌더링합니다. 이 외부 KRX 화면을 `stock.naver.com/api/...` 엔드포인트처럼 취급하지 않습니다.
+`/domestic/stock/{itemCode}/shortTrade`는 `stock.naver.com` JSON API가 아니라 `https://data.krx.co.kr/comm/srt/srtLoader/index.cmd?screenId=MDCSTAT300&isuCd={itemCode}` iframe을 렌더링합니다. 이 외부 KRX 화면을 `stock.naver.com/api/...` 엔드포인트처럼 취급하지 않습니다.
 
 확인했지만 스킬 범위에서 제외하거나 404였던 route:
 

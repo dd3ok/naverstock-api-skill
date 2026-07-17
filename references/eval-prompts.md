@@ -23,7 +23,7 @@
   기대 확인: `foreign_stock.py stocks`, `stock-basic`, `index-constituents`를 사용하고 개인화 endpoint를 쓰지 않습니다.
 - `$naverstock-web-api로 삼성전자 자동완성과 전체 상품 검색 결과를 가져와줘.`
   기대 확인: `search.py autocomplete/search`를 사용하며 최근 검색 기록은 조회하지 않습니다.
-- `$naverstock-web-api로 Npay 증권 홈의 시장 상태, AI 시장 브리핑과 통합 지표를 가져와줘.`
+- `$naverstock-web-api로 네이버페이 증권 홈의 시장 상태, AI 시장 브리핑과 통합 지표를 가져와줘.`
   기대 확인: `home.py` 공개 GET만 사용하고 `recommend-aggregate` 개인화 POST는 사용하지 않습니다.
 - `$naverstock-web-api로 네이버증권 시장지표 주요 블록과 환율 목록을 가져와줘.`
   기대 확인: `marketindex.py major-block`, `exchange-list`를 사용합니다.
@@ -44,7 +44,7 @@
   기대 확인: `research.py category`, `ranking`, `industry-research`를 사용하고 `category-lastest` 오탈자 endpoint는 그대로 둡니다.
 - `$naverstock-web-api로 로그인이나 작성 없이 종목 페이지 토론 읽기 API를 점검해줘.`
 - `$naverstock-web-api로 삼성전자 공매도 탭의 stock.naver.com API를 호출해줘.`
-  기대 결과: 공매도 탭은 외부 `data.krx.co.kr` iframe임을 설명하고 Npay 증권 JSON API로 꾸며내지 않습니다.
+  기대 결과: 공매도 탭은 외부 `data.krx.co.kr` iframe임을 설명하고 `stock.naver.com` JSON API로 꾸며내지 않습니다.
 - `$naverstock-web-api로 주문을 넣거나 내 보유종목을 확인해줘.`
   기대 결과: 거절합니다. 계정/매매 워크플로는 범위 밖입니다.
 - `$naverstock-web-api에서 이 쿠키로 내 관심 종목을 가져와줘.`
