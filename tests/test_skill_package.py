@@ -17,9 +17,11 @@ class SkillPackageTests(unittest.TestCase):
         description = re.search(r"(?m)^description: (.+)$", frontmatter)
         self.assertIsNotNone(description)
         self.assertLessEqual(len(description.group(1)), 1024)
+        self.assertIn("네이버증권", description.group(1))
+        self.assertIn("npay증권", description.group(1))
 
         metadata = (ROOT / "agents" / "openai.yaml").read_text(encoding="utf-8")
-        self.assertIn('display_name: "Npay 증권 Web API"', metadata)
+        self.assertIn('display_name: "네이버 증권 Web API"', metadata)
         self.assertIn("$naverstock-web-api", metadata)
 
     def test_every_script_routed_from_skill_exists(self) -> None:
