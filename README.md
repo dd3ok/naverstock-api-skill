@@ -3,13 +3,13 @@
 [![NaverStock API Skill CI](https://github.com/dd3ok/naverstock-api-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/dd3ok/naverstock-api-skill/actions/workflows/ci.yml)
 [![최신 릴리스](https://img.shields.io/github/v/release/dd3ok/naverstock-api-skill?sort=semver)](https://github.com/dd3ok/naverstock-api-skill/releases/latest)
 
-> 네이버 증권, 네이버페이 증권, Npay 증권(`npay증권`)으로 불리는 `stock.naver.com` 공개 화면의 API를 바탕으로 만든 경량 에이전트 스킬입니다.
+> 네이버 증권, 네이버페이 증권, Npay 증권 `stock.naver.com` 공개 화면의 API를 바탕으로 만든 경량 에이전트 스킬입니다.
 > 로그인이나 계좌 인증 없이 공개 주식·시장 데이터를 Codex, Claude Code, Antigravity 같은 에이전트가 안전하게 다시 조회하도록 돕습니다.
-> 네이버·네이버페이 공식 Open API, 증권사 거래 API, 투자 조언 도구가 아닙니다.
+> 네이버 증권 공식 Open API, 거래 API, 투자 조언 도구가 아닙니다.
 
 ## 공식 API와의 구분
 
-이 스킬은 네이버 또는 네이버페이가 지원하는 공식 API 클라이언트가 아닙니다. `stock.naver.com` 공개 페이지가 사용하는 비공식·미문서화 read-only 요청을 재현하고, 현재 동작 여부와 안전 범위를 함께 관리합니다.
+이 스킬은 네이버 증권이 지원하는 공식 API 클라이언트가 아닙니다. `stock.naver.com` 공개 페이지가 사용하는 비공식·미문서화 read-only 요청을 재현하고, 현재 동작 여부와 안전 범위를 함께 관리합니다.
 
 OAuth 토큰, 쿠키, 계좌 정보, 로그인 세션은 필요하지 않으며 요청하거나 저장하지도 않습니다. 계좌·보유종목·관심종목·알림·주문처럼 사용자 인증이 필요한 업무는 지원 범위에서 제외합니다.
 
