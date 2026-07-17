@@ -1,13 +1,13 @@
 ---
 name: naverstock-web-api
-description: Inspect, catalog, call, or safely refuse unofficial read-only Npay 증권/네이버증권/Naver Stock stock.naver.com web APIs for Korean and foreign stocks, US ETFs, indices, crypto, integrated search, home feeds, news, research, discussions, rankings, IPOs, charts, exchange rates, and market indicators. Use for stock.naver.com API discovery or data requests, including unsafe or non-read-only requests that must be refused or redirected.
+description: Inspect, catalog, call, or safely refuse unofficial read-only 네이버 증권/네이버증권/네이버페이 증권/Npay 증권/Npay증권/npay증권/Naver Stock stock.naver.com web APIs for Korean and foreign stocks, US ETFs, indices, crypto, integrated search, home feeds, news, research, discussions, rankings, IPOs, charts, exchange rates, and market indicators. Use for stock.naver.com API discovery or data requests, including unsafe or non-read-only requests that must be refused or redirected.
 ---
 
 # NaverStock Web API
 
 ## 목적
 
-이 스킬은 공개 `stock.naver.com`의 Npay 증권(네이버증권) 화면에서 확인되는 비공식 읽기 전용 내부 API를 점검하고 호출할 때 사용합니다. 국내·해외 주식, 시세, 지수, 가상자산, 통합 검색, 홈 콘텐츠, 뉴스, 리서치, 랭킹, IPO, ETF, 시장지표, 종목토론 데이터를 다룹니다.
+이 스킬은 네이버 증권, 네이버페이 증권, Npay 증권으로 불리는 공개 `stock.naver.com` 화면에서 확인되는 비공식 읽기 전용 내부 API를 점검하고 호출할 때 사용합니다. 국내·해외 주식, 시세, 지수, 가상자산, 통합 검색, 홈 콘텐츠, 뉴스, 리서치, 랭킹, IPO, ETF, 시장지표, 종목토론 데이터를 다룹니다.
 
 ## 핵심 안전 규칙
 
@@ -48,7 +48,7 @@ description: Inspect, catalog, call, or safely refuse unofficial read-only Npay 
 
 ## 기본 절차
 
-1. 네이버증권 페이지와 상품 식별자를 확인합니다. 국내 주식은 6자리 `itemCode`, 지수는 `KOSPI` 같은 코드를 사용합니다. 가상자산은 폴링에는 `BTC_KRW_UPBIT` 같은 `fqnfTicker`, 뉴스·프로필에는 `BTC` 같은 plain ticker를 사용합니다.
+1. 네이버 증권 페이지와 상품 식별자를 확인합니다. 국내 주식은 6자리 `itemCode`, 지수는 `KOSPI` 같은 코드를 사용합니다. 가상자산은 폴링에는 `BTC_KRW_UPBIT` 같은 `fqnfTicker`, 뉴스·프로필에는 `BTC` 같은 plain ticker를 사용합니다.
 2. 사용자가 직접 데이터를 요청하면 번들 스크립트를 우선 사용합니다.
 3. 공지는 `stockSecurity/notices/v2`, 리서치는 `stockSecurity/researches/v1` 계열을 우선합니다.
 4. 스크립트가 감싸지 않은 엔드포인트 계열은 호출 전 [references/api-catalog.md](references/api-catalog.md)를 읽고 `script-backed`, `observed`, `needs-recheck`, `excluded` 상태를 확인합니다.

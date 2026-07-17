@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Search public Npay Stock products without reading recent or personal history."""
+"""Search public Naver Stock products without reading recent or personal history."""
 
 from __future__ import annotations
 

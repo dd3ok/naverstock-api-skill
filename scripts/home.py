@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch public Npay Stock home-page and cross-market payloads."""
+"""Fetch public Naver Stock home-page and cross-market payloads."""
 
 from __future__ import annotations
 
