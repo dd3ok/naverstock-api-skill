@@ -1,4 +1,4 @@
 interface:
-  display_name: "네이버증권 Web API"
-  short_description: "비공식 stock.naver.com read-only 웹 API 조회"
-  default_prompt: "$naverstock-web-api로 비공식 stock.naver.com read-only 정보 API와 안전한 네트워크 호출 참고사항을 조회해줘."
+  display_name: "Npay 증권 Web API"
+  short_description: "stock.naver.com 공개 read-only 웹 API 조회"
+  default_prompt: "$naverstock-web-api로 Npay 증권의 공개 read-only 정보 API를 안전하게 조회해줘."
