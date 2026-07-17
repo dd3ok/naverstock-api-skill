@@ -1,6 +1,6 @@
 # NaverStock Web API 카탈로그
 
-기준 관찰일: 2026-05-05, 부분 재점검: 2026-07-09
+기준 관찰일: 2026-05-05, 부분 재점검: 2026-07-09, 전범위 재감사: 2026-07-17
 관찰 출처: 로그인하지 않은 공개 `https://stock.naver.com/` 페이지와 Next.js chunk  
 기본 호스트: `https://stock.naver.com`
 
@@ -14,7 +14,10 @@
 - [페이지 점검 메모](#페이지-점검-메모)
 - [식별자 규칙](#식별자-규칙)
 - [국내 주식 API](#국내-주식-api)
+- [해외 주식 API](#해외-주식-api)
+- [홈 및 통합 검색 API](#홈-및-통합-검색-api)
 - [시장 지수와 지표](#시장-지수와-지표)
+- [펀드 API 후보](#펀드-api-후보)
 - [가상자산 API](#가상자산-api)
 - [뉴스 API](#뉴스-api)
 - [리서치 API](#리서치-api)
@@ -38,7 +41,7 @@
 
 | Route | 결과 | 메모 |
 | --- | --- | --- |
-| `/market` | 307 | `/market/stock/kr/`로 이동 |
+| `/market` | 307 | 2026-07-17 무쿠키 직접 요청은 `/market/stock/kr/`로 이동했고, 일부 브라우저 세션에서는 `/market/stock/usa`도 관찰됨. 상태 의존 기본값 대신 목적 route를 직접 지정 |
 | `/market/stock/kr` | 200 | 국내 주식 메인 |
 | `/market/stock/kr/stocklist/{top\|priceTop\|trading}` | 200 | 국내 종목 목록 탭 |
 | `/market/stock/kr/{industry\|theme\|groups}` | 307 | 각각 `/1`로 이동 |
@@ -51,13 +54,21 @@
 | `/market/stock/kr/deposit` | 200 | 예탁금 페이지 |
 | `/market/stock/kr/trend/{foreigner\|organization\|program\|trader}` | 200 | 투자자 동향 페이지 |
 | `/market/crypto` | 200 | 가상자산 페이지. `/crypto`는 404 |
+| `/market/crypto/ranking/top?exchangeType={UPBIT\|BITHUMB}` | 200 | 거래소별 가상자산 랭킹 탭 |
+| `/market/crypto/news/{domesticNews\|expertContent\|marketUpdates}` | 200 | 가상자산 국내뉴스·전문가·시장 업데이트 탭 |
+| `/market/crypto/sector/{UPBIT\|BITHUMB}?id={categoryId}` | 200 | 거래소별 가상자산 섹터 상세. category API와 구성 코인 목록을 사용 |
+| `/crypto/{upbit\|bithumb}/{ticker}/price` | 200 | 코인 상세 가격 화면. 프로필·콘텐츠·기간/분봉 candle API를 사용 |
 | `/market/marketindex` | 307 | `/market/marketindex/major/`로 이동 |
 | `/market/marketindex/{major\|energy\|metals\|agricultural\|transport}` | 200 | 주요 시장지표 탭 |
 | `/market/marketindex/exchangeRate/exchange` | 200 | 환율 탭. `/exchangeRate`는 이 경로로 이동 |
 | `/market/marketindex/bondAndInterest/{bond\|domesticInterest\|standardInterest}` | 200 | 채권/금리 탭 |
 | `/market/stock/global`, `/market/stock/usa` | 200 | 해외 주식 메인 |
+| `/market/stock/usa/stocklist/{top\|priceTop\|up\|down\|marketValue\|dividend}` | 200 | 미국 종목 정렬 탭 |
+| `/market/stock/usa/etf` | 307 | `/market/stock/usa/etf/priceTop`으로 이동 |
+| `/market/stock/usa/industry/{industryCode}` | 200 | 미국 업종 상세와 구성 종목 |
 | `/market/stock/global/{chn\|hkg\|jpn\|vnm}/top` | 200 | 해외 국가별 상위 목록 |
 | `/market/stock/global/industry/{chn\|hkg\|jpn\|vnm}` | 307 | 현재 첫 industry code로 이동 |
+| `/market/stock/global/industry/{chn\|hkg\|jpn\|vnm}/{industryCode}` | 200 | 국가별 업종 상세와 구성 종목 |
 | `/domestic/stock/{itemCode}` | 307 | `/price`로 이동 |
 | `/domestic/stock/{itemCode}/{price\|news\|notice\|ir\|discussion\|research\|shortTrade\|investmentinfo}` | 200 | 종목 상세 하위 페이지 |
 | `/domestic/stock/{itemCode}/info/{company\|overview\|financial\|investment\|consensus\|industry\|sector\|share\|esg}` | 200 | 종목 정보 탭 page route |
@@ -65,6 +76,8 @@
 | `/news`, `/news/flashnews`, `/news/mainnews`, `/news/ranknews`, `/news/section`, `/news/worldnews`, `/notice` | 200 | 뉴스/뉴스포커스/해외뉴스/공지 페이지 |
 | `/research`, `/research/{daily\|company\|industry\|invest\|economy}` | 200 | 리서치 페이지. `/research/firm`은 404 |
 | `/discussion`, `/discussion/feed/{all\|domesticStock\|market\|my}` | 200 | 토론 페이지. `/discussion/feed`는 `/discussion/feed/all`로 이동 |
+
+`/domestic/stock/{itemCode}/shortTrade`는 Npay 증권 JSON API가 아니라 `https://data.krx.co.kr/comm/srt/srtLoader/index.cmd?screenId=MDCSTAT300&isuCd={itemCode}` iframe을 렌더링합니다. 이 외부 KRX 화면을 `stock.naver.com/api/...` 엔드포인트처럼 취급하지 않습니다.
 
 확인했지만 스킬 범위에서 제외하거나 404였던 route:
 
@@ -140,17 +153,21 @@
 | ETF 테마 태그 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFTheme` |
 | ETF 자금 흐름 일/주 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFSumFlowDayList?count=20`, `/ETFSumFlowWeekList?count=20` |
 | 국내 ETN 목록 | `script-backed` | GET | `/api/domestic/market/etn?orderType=AMOUNT_ETN&startIdx=0&pageSize=20` |
-| 주목할 ETF | `observed` | GET | `/api/domestic/market/home/notableETF?orderType=up_etf&startIdx=0&pageSize=10` |
+| 주목할 ETF | `script-backed` | GET | `/api/domestic/market/home/notableETF?orderType=up_etf&startIdx=0&pageSize=10` |
 | 홈 브리핑 | `observed` | GET | `/api/securityService/home/v3/briefing` |
-| 서비스 공지 목록 | `script-backed` | GET | `/api/stockSecurity/notices/v1?size=20&cursor={cursor}` |
-| 서비스 공지 상세 | `script-backed` | GET | `/api/stockSecurity/notices/v1/{noticeId}` |
-| 서비스 공지 배너 | `script-backed` | GET | `/api/stockSecurity/notices/v1/banners?size=2&type=PC_TOP` |
-| 홈 공지 목록 legacy | `needs-recheck` | GET | `/api/domestic/home/noticeList?page=1&pageSize=5`. 2026-07-09 직접 확인에서 404를 반환했습니다. 서비스 공지는 `stockSecurity/notices/v1`을 우선 사용합니다. |
-| 홈 공지 상세 legacy | `needs-recheck` | GET | `/api/domestic/home/notice/{noticeId}`. 새 경로는 `/api/stockSecurity/notices/v1/{noticeId}`입니다. |
-| 홈 보유자산 랭킹 | `observed` | GET | `/api/domestic/home/ranking/assetAmount/{ageRange}?startIdx=0&pageSize=20`, `ageRange`는 `all`, `20`, `30`, `40`, `50`, `60` |
-| 홈 수익률 랭킹 | `observed` | GET | `/api/domestic/home/ranking/earningRate/{ageRange}?startIdx=0&pageSize=20`, `ageRange`는 `all`, `20`, `30`, `40`, `50`, `60` |
+| 서비스 공지 목록 | `script-backed` | GET | `/api/stockSecurity/notices/v2?size=20&cursor={cursor}` |
+| 서비스 공지 상세 | `script-backed` | GET | `/api/stockSecurity/notices/v2/{noticeId}` |
+| 서비스 공지 배너 | `script-backed` | GET | `/api/stockSecurity/notices/v2/banners?size=2&type=PC_TOP` |
+| 홈 공지 목록 legacy | `needs-recheck` | GET | `/api/domestic/home/noticeList?page=1&pageSize=5`. 2026-07-09 직접 확인에서 404를 반환했습니다. 서비스 공지는 `stockSecurity/notices/v2`를 우선 사용합니다. |
+| 홈 공지 상세 legacy | `needs-recheck` | GET | `/api/domestic/home/notice/{noticeId}`. 새 경로는 `/api/stockSecurity/notices/v2/{noticeId}`입니다. |
+| 홈 공개 보유자산 랭킹 | `script-backed` | GET | `/api/domestic/home/ranking/assetAmount/all?startIdx=0&pageSize=20` |
+| 홈 공개 수익률 랭킹 | `script-backed` | GET | `/api/domestic/home/ranking/earningRate/all?startIdx=0&pageSize=20` |
+| 홈 공개 보유종목 랭킹 | `script-backed` | GET | `/api/securityService/home/v3/ranking/more/domestic/holdingStock/all` |
+| 홈 관련 국내 종목 | `script-backed` | GET | `/api/securityService/home/v3/stock/{itemCode}/related` |
 | 국내 지수 시간대 시세 | `observed` | GET | `/api/domestic/indexSise/time?koreaIndexType=KOSPI&thistime={yyyyMMddHHmmss}&startIdx=0&pageSize=20` |
-| AI 현재 시장 브리핑 | `observed` | GET | `/api/securityAi/marketBriefing/current?marketBriefing={KOSPI\|KOSDAQ}` |
+| AI 현재 시장 브리핑 | `script-backed` | GET | `/api/securityAi/marketBriefing/current?marketBriefing=domain` |
+| AI 시장 브리핑 목록 | `script-backed` | GET | `/api/securityAi/marketBriefing?date={yyyy-MM-dd}&size=20&pageToken={token}` |
+| AI 시장 브리핑 상세 | `script-backed` | GET | `/api/securityAi/marketBriefing/{briefingId}` |
 
 관찰된 종목 목록 `orderType` 값에는 `marketSum`, `accAmount`, `searchTop`, `up`, `steady`, `down`, `quantTop`, 그리고 `investmentCaution`, `investmentWarning`, `investmentRisk` 같은 투자 경고 관련 값이 포함됩니다.
 
@@ -166,6 +183,47 @@
 
 `/market/stock/global`, `/market/stock/usa/stocklist`, `/market/stock/global/{chn|hkg|jpn|vnm}` 하위 국가 페이지 같은 해외 주식 route도 접근 가능하며 `/api/foreign/*`, `/api/securityService/stock/*`, `/api/securityService/etf/*`, worldstock polling 계열을 노출합니다. 주식 관련이지만 국내 스크립트와 코드 체계를 섞지 않기 위해 별도로 둡니다.
 
+## 해외 주식 API
+
+| 목적 | 상태 | Method | Path / params |
+| --- | --- | ---: | --- |
+| 국가별 종목 목록 | `script-backed` | GET | `/api/foreign/market/stock/global?nation={usa|chn|hkg|jpn|vnm}&tradeType={type}&orderType={type}&startIdx=0&pageSize=20` |
+| 국가별 업종 | `script-backed` | GET | `/api/foreign/market/{USA|CHN|HKG|JPN|VNM}/upjong/list` |
+| 해외 업종 구성 종목 | `script-backed` | GET | `/api/foreign/market/{nation}/upjong/{industryCode}/list?orderType=marketValue&startIdx=0&pageSize=20` |
+| 미국 ETF 테마 | `script-backed` | GET | `/api/foreign/market/etf/themes` |
+| 미국 ETF 목록 | `script-backed` | GET | `/api/foreign/market/etf/usa?orderType=marketValue&largeCode=all&middleCode=all&startIdx=0&pageSize=20` |
+| 미국 주목 ETF | `script-backed` | GET | `/api/foreign/market/home/notableETF?orderType={priceTop\|up\|return1Month\|dividend}&startIdx=0&pageSize=20` |
+| ETF 테마 종목 | `script-backed` | GET | `/api/foreign/market/usa/etf/themeList?middleCode={code}&count=3` |
+| 해외 주식 기본/컨센서스/개요 | `script-backed` | GET | `/api/securityService/stock/{reutersCode}/{basic|consensus|overview}` |
+| 해외 주식 일별 시세 | `script-backed` | GET | `/api/securityService/stock/{reutersCode}/price?page=1&pageSize=20` |
+| 해외 종목 재무 개요·요약 | `script-backed` | GET | `/api/securityService/stock/overview?reutersCode={code}`, `/api/securityService/stock/finance/summary?reutersCode={code}` |
+| 해외 종목 재무제표 | `script-backed` | GET | `/api/securityService/stock/finance/{annual|quarter}?reutersCode={code}`, `/api/securityService/stock/finance/{ratios|balance|income|cash}/{annual|quarter}?reutersCode={code}` |
+| 해외 종목 글로벌·국내 뉴스 | `script-backed` | GET | `/api/foreign/worldStock/list?reutersCode={code}&page=1&pageSize=20`, `/api/domestic/detail/news?itemCode={code}&page=1&pageSize=20` |
+| 해외 주식·ETF master detail | `script-backed` | GET | `/api/foreign/{reutersCode}/detail?codeType=ETF`. 2026-07-17 현재 일반 주식도 literal `ETF`를 사용합니다. |
+| 해외 ETF 시세·관련 ETF | `script-backed` | GET | `/api/securityService/etf/{reutersCode}/price`, `/api/foreign/v2/market/etf/usa/{reutersCode}` |
+| 해외 지수 기본/시세/구성 | `script-backed` | GET | `/api/securityService/index/{reutersCode}/{basic|price|enrollStocks}` |
+| 해외 종목 폴링 | `script-backed` | GET | `/api/polling/worldstock/{stock|etf|index}?reutersCodes={codes}` |
+| 해외 거래소 운영시간 | `script-backed` | GET | `/api/foreign/operatingTime/exchange/{NASDAQ|NYSE|AMEX}` |
+
+## 홈 및 통합 검색 API
+
+| 목적 | 상태 | Method | Path / params |
+| --- | --- | ---: | --- |
+| KRX/NXT 시장 상태 | `script-backed` | GET | `/api/domestic/market/{KRX|NXT}/info` |
+| 해외 거래소 운영시간 | `script-backed` | GET | `/api/foreign/operatingTime/exchange/{NASDAQ|SHANGHAI|HONG_KONG|TOKYO|HANOI}` |
+| 홈 공개 숏텐츠 | `script-backed` | GET | `/api/shorttents?source=pc.npay_finhome&type=compact&category_first=증권&nscs=0` |
+| 머니스토리 | `script-backed` | GET | `/api/content/moneyStory?mainCategoryIdList={id}&size={size}` |
+| 통합 지표 | `script-backed` | GET | `/api/securityService/integration/indicators?indicatorCodes={codes}` |
+| 국내·해외 주목 ETF | `script-backed` | GET | `/api/{domestic|foreign}/market/home/notableETF?orderType={type}&startIdx=0&pageSize=10`. 현재 UI enum은 국내 `amount_etf`, `up_etf`, `1week_earn_rate`, `dividend_earn_rate`, 해외 `priceTop`, `up`, `return1Month`, `dividend`입니다. 기본값은 각각 `amount_etf`, `up`이며 다른 국가의 enum은 보내지 않습니다. |
+| 중요 경제지표 | `script-backed` | GET | `/api/securityService/economic/indicator/nations/upcoming?gteImportance=3&limit=3&nationTypeList=KOR&nationTypeList=USA` |
+| 공개 전체 이용자 자산·수익률 랭킹 | `script-backed` | GET | `/api/domestic/home/ranking/{assetAmount|earningRate}/all?startIdx=0&pageSize=20` |
+| 공개 전체 보유종목 랭킹 | `script-backed` | GET | `/api/securityService/home/v3/ranking/more/domestic/holdingStock/all` |
+| 관련 국내 종목 | `script-backed` | GET | `/api/securityService/home/v3/stock/{itemCode}/related` |
+| 헤더 자동완성 | `script-backed` | GET | `/api/autocomplete/search/autoComplete?query={text}&target=stock,index,marketindicator,coin,ipo,fund` |
+| 전체 상품 검색 | `script-backed` | GET | `/api/autocomplete/search?q={text}&target=stock,index,marketindicator,coin,ipo,fund&size=30&page=1` |
+
+검색 결과의 최근 기록 endpoint와 `/api/personal/{guest|users}/recent/products`는 개인 상태이므로 호출하지 않습니다.
+
 ## 시장 지수와 지표
 
 | 목적 | 상태 | Method | Path / params |
@@ -177,22 +235,39 @@
 | 지수 가격 이력 | `observed` | GET | `/api/securityFe/api/index/{reutersCode}/price?page=1&pageSize=20` |
 | 국내 지수 폴링 | `script-backed` | GET | `/api/polling/domestic/index?itemCodes=KOSPI,KOSDAQ,KPI200` |
 | 지수 차트 | `script-backed` | GET | `/api/securityService/chart/domestic/index/{code}?periodType={day\|week\|month\|year}` |
+| 해외 지수/선물 차트 | `script-backed` | GET | `/api/securityService/chart/foreign/{index\|futures}/{code}?periodType=day` |
 | 원자재/운임 지표 | `script-backed` | GET | `/api/securityService/marketindex/energy`, `/metals`, `/agricultural`, `/transport` |
 | 국내 금리 | `script-backed` | GET | `/api/securityService/marketindex/domesticInterest` |
 | 기타 지표 카테고리 | `observed` | GET | `/api/securityService/marketindex/exchange`, `/bond`, `/standardInterest` 및 각 카테고리 상세 path |
-| 지표 상세 | `script-backed` | GET | `/api/securityService/marketindex/{energy\|metals\|agricultural\|exchange}/{reutersCode}` |
-| 지표 가격 이력 | `script-backed` | GET | `/api/securityService/marketindex/{energy\|metals\|agricultural\|exchange}/{reutersCode}/prices?page=1&pageSize=20` |
+| 지표 상세 | `script-backed` | GET | `/api/securityService/marketindex/{energy\|metals\|agricultural\|transport\|domesticInterest\|exchange}/{reutersCode}` |
+| 지표 가격 이력 | `script-backed` | GET | `/api/securityService/marketindex/{energy\|metals\|agricultural\|transport\|exchange}/{reutersCode}/prices?page=1&pageSize=20` |
 | 국가별 채권 | `script-backed` | GET | `/api/securityService/marketindex/bond/nation/{nationType}?sortType={sortType}` |
 | 기준금리 상세 | `script-backed` | GET | `/api/securityService/marketindex/standardInterest/{nationType}` |
+| 기준금리 달력 | `script-backed` | GET | `/api/securityService/marketindex/standardInterest/{nationType}/calendars?page=1&pageSize=20` |
 | 예정 경제지표 | `script-backed` | GET | `/api/securityService/economic/indicator/nations/upcoming?limit=10&nationTypeList=USA&nationTypeList=KOR`. 2026-07-09 재점검에서 파라미터 생략 또는 반복 `nationTypeList`는 동작했고, 단일 `nationTypeList=USA`는 400을 반환했습니다. |
 | 발표일별 경제지표 | `script-backed` | GET | `/api/securityService/economic/indicator/nations/releaseDate?page=1&pageSize=20&releaseDate={yyyyMMdd}` |
 | 환율 helper | `script-backed` | GET | `/api/stockDomestic/exchangeRates/list?currencies=USD,JPY` |
 | 환율 목록 | `script-backed` | GET | `/api/domestic/exchange/List` |
-| 시장지표 폴링 | `observed` | GET | `/api/polling/marketindex/{category}/{codes}` |
+| 통화별 환율 시세 | `script-backed` | GET | `/api/domestic/exchange/{currency}/list?startIdx=0&pageSize=20` |
+| 은행 환율 요약 | `script-backed` | GET | `/api/securityService/marketindex/exchange/banksExchanges?bankType=HNB` |
+| 은행 환율 회차 차트 | `script-backed` | GET | `/api/stockSecurity/exchange-rates/v2/{currency}/charts/round?bankType=hana` |
+| KRX 금 시세 | `script-backed` | GET | `/api/stockDomestic/gold/sise/krx` |
+| 시장지표 폴링 | `script-backed` | GET | `/api/polling/marketindex/{energy\|metals\|exchange}/{codes}`. KRX 금은 `metals/M04020000`을 사용합니다. |
 | 통합 지표 | `observed` | GET | `/api/securityService/integration/indicators?stockType=domestic&indicatorCodes=KOSPI&indicatorCodes=KOSDAQ` |
 | 통합 가격 | `observed` | GET | `/api/securityService/integration/price?domesticKrxCodes=005930&foreignCodes=.IXIC&cryptoCodes=BTC_KRW_UPBIT` |
 
 `/api/securityService/marketindex/majors` 같은 오래된 형태의 route는 2026-04-27에 404를 반환했습니다. 주요 지수에는 `/api/securityFe/api/index/majors`를 사용합니다.
+
+## 펀드 API 후보
+
+2026-07-17 현재 `/fund`와 `/domestic/fund` page route는 모두 404입니다. 공통 정적 chunk에는 아래 helper 문자열이 남아 있지만, 로드 가능한 펀드 화면과 실제 UI 요청이 없어 `sort`, `term`, `fundCode`, theme enum을 검증할 수 없습니다. 따라서 요청 helper도 `/api/fund/` family를 broad allowlist하지 않고, 스크립트 명령을 제공하지 않습니다.
+
+| 목적 | 상태 | Method | Path / params |
+| --- | --- | ---: | --- |
+| 펀드 목록·상세 후보 | `needs-recheck` | GET | `/api/fund/funds?sort={sort}&page={page}&size={size}`, `/api/fund/funds/{fundCode}/{left-panel|themes|chart-price-panel|fund-performance|fund-allocation}` |
+| 수익·보수·상세 지표 후보 | `needs-recheck` | GET | `/api/fund/funds/{fundCode}/classes/{returns|fees}`, `/metrics/detail?term={term}` |
+| 가격·차트 후보 | `needs-recheck` | GET | `/prices/daily?date={date}&size={size}`, `/base-price/chart?term={term}`, `/return/chart?term={term}` |
+| 테마·다중 가격 후보 | `needs-recheck` | GET | `/api/fund/funds/themes/{theme}?size={size}`, `/api/fund/funds/prices?fundCodes={codes}` |
 
 ## 가상자산 API
 
@@ -204,15 +279,27 @@
 | 거래소 비교용 코인 가격 | `script-backed` | GET | `/api/coin/price/{ticker}?excludeExchange={market}` |
 | 폴링 가격 | `script-backed` | GET | `/api/polling/coin/price?fqnfTickers=BTC_KRW_UPBIT` |
 | 분봉 캔들 | `script-backed` | GET | `/api/coin/candle/{market}/KRW/{ticker}/minutes/{unit}/marketInfo?from={iso}&to={iso}` |
+| 기간 캔들 | `script-backed` | GET | `/api/coin/candle/{market}/KRW/{ticker}/{year\|weeks\|quarter\|months\|days}?from={iso}&to={iso}` |
+| 상세 분봉 캔들 | `script-backed` | GET | `/api/coin/candle/{market}/KRW/{ticker}/minutes/{unit}?from={iso}&to={iso}` |
+| 국내 지수 비교 차트 | `script-backed` | GET | `/api/securityService/chart/compare/domestic/index/{code}/{day\|week}?startDateTime={yyyyMMddHHmmss}&endDateTime={yyyyMMddHHmmss}` |
+| 해외 지수/선물 비교 차트 | `script-backed` | GET | `/api/securityService/chart/compare/foreign/{index\|futures}/{code}/{day\|week}?startDateTime={yyyyMMddHHmmss}&endDateTime={yyyyMMddHHmmss}` |
+| 해외 지수/선물 분봉 비교 차트 | `script-backed` | GET | `/api/securityService/chart/foreign/{INDEX\|FUTURES}/{NASDAQ\|NYSE\|COMEX\|ICE_US}/{code}/interval/{1\|5}?startDateTime={yyyyMMddHHmmss}&endDateTime={yyyyMMddHHmmss}&utc=true` |
 | 글로벌 뉴스 | `script-backed` | GET | `/api/coin/globalNews/{ticker}?pageSize=20&offsetTimestamp={timestamp}` |
 | 시장 업데이트 | `script-backed` | GET | `/api/coin/marketUpdates/{ticker}?pageSize=20&offsetTimestamp={timestamp}` |
+| 전체 시장 업데이트 | `script-backed` | GET | `/api/coin/marketUpdates?pageSize=9` |
+| 전문가 콘텐츠 | `script-backed` | GET | `/api/coin/expertContents?pageSize=10` |
+| 업데이트·전문가 콘텐츠 상세 | `script-backed` | GET | `/api/coin/marketUpdates/detail/{id}`, `/api/coin/expertContents/{id}` |
+| 종목별 전문가 콘텐츠 | `script-backed` | GET | `/api/coin/{ticker}/expertContents?pageSize=10&offsetTimestamp={cursor}` |
 | 코인 프로필 | `script-backed` | GET | `/api/coin/profile/{ticker}` |
 | 카테고리 랭킹 | `script-backed` | GET | `/api/coin/categories/ranking?exchangeType=UPBIT&page=1&pageSize=20` |
+| 카테고리 상세·종목 카테고리 | `script-backed` | GET | `/api/coin/categories/{categoryId}?exchangeType=UPBIT`, `/api/coin/{ticker}/categories?exchangeType=UPBIT` |
+| 코인 ETF 노출 | `script-backed` | GET | `/api/coin/etf/{ticker}?sortType=holdingWeight&size=20&page=1` 또는 `pageToken` |
 | 여러 코인 가격 | `script-backed` | GET | `/api/coin/prices?fqnfTickers=BTC_KRW_UPBIT&fqnfTickers=ETH_KRW_UPBIT` |
 | 글로벌 시장 동향 | `script-backed` | GET | `/api/coin/globalMarketTrend` |
 | 가격 변동 legacy 후보 | `needs-recheck` | GET | `/api/coin/priceChange/{ticker}?exchangeType=UPBIT`. 정적 chunk 문자열은 관찰됐지만 2026-07-09 직접 요청에서 404를 반환해 스크립트로 노출하지 않습니다. |
-| 코인 매크로 뉴스 | `script-backed` | GET | `/api/securityFe/api/news/coinmacro` |
+| 코인 매크로 뉴스 | `script-backed` | GET | `/api/securityFe/api/news/coinmacro?page=1&pageSize=10` |
 | AI 코인 브리핑 | `script-backed` | GET | `/api/securityAi/coinBriefing/current?exchangeType=UPBIT&nfTicker=BTC` |
+| AI 코인 브리핑 이력·상세 | `script-backed` | GET | `/api/securityAi/coinBriefings?exchangeType=UPBIT&nfTicker=BTC&size=20&date={yyyy-MM-dd}&pageToken={token}`, `/api/securityAi/coinBriefing/{id}` |
 
 `UPBIT` 또는 `BITHUMB`을 대문자로 사용합니다. 폴링 엔드포인트는 `BTC_KRW_UPBIT` 같은 `fqnfTicker` 값을 받고, 뉴스/업데이트/프로필 엔드포인트는 `BTC` 같은 plain ticker를 받습니다. 직접 확인에서 일반 `KRW-BTC`는 빈 list를 반환했습니다.
 
@@ -262,7 +349,7 @@
 | 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
 | 인기 feed | `observed` | GET | `/api/community/discussion/posts/hot?pageSize=20&page=1&discussionType={type}&itemCode={itemCode}` |
-| 홈 인기 feed | `observed` | GET | `/api/community/discussion/posts/hot/home?pageSize=20&page=1` |
+| 홈 인기 feed | `script-backed` | GET | `/api/community/discussion/posts/hot/home?pageSize=20&page=1` |
 | 글 상세 | `script-backed` | GET | `/api/community/discussion/posts/{postId}` |
 | 이전/다음 글 이동 | `script-backed` | GET | `/api/community/discussion/posts/{postId}/adjacent?pageSize=20&itemCode={itemCode}` |
 | 관련 인기 글 | `script-backed` | GET | `/api/community/discussion/posts/related/hot?itemCode={itemCode}&pageSize=20&discussionType=domesticStock` |
@@ -289,5 +376,7 @@
 | `/api/personal/users/favorite/*` | `excluded` | 사용자별 관심종목과 그룹. |
 | `/api/personal/users/notification*` | `excluded` | 사용자 알림 설정/메시지. |
 | `/api/community/profile/users/*` mutation-like routes | `excluded` | 사용자 프로필과 이미지 워크플로. |
+| `/api/domestic/home/recommend-aggregate` | `excluded` | 현재 웹 번들은 credentials 포함 POST와 연령/자산 범위 개인화 필드를 사용합니다. |
+| `/api/autocomplete/search/recent`, `/api/personal/*/recent/products` | `excluded` | 최근 검색·최근 상품 개인 상태. |
 | `https://finance.naver.com/*` | `excluded` | 이 스킬 범위인 `stock.naver.com` 밖의 구버전 HTML 페이지입니다. 해당 범위는 [dd3ok/naverfinance-api-skills](https://github.com/dd3ok/naverfinance-api-skills)를 참고해 주세요. |
 | 텔레메트리, 광고, 정적 chunk, 폰트, 이미지 | `excluded` | 주식 정보 API가 아닙니다. |

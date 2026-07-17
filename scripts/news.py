@@ -19,6 +19,13 @@ FOCUS_SIDS = {
 }
 
 
+def _numeric_id(value: str) -> str:
+    clean = value.strip()
+    if not clean.isascii() or not clean.isdigit() or not 1 <= len(clean) <= 30:
+        raise argparse.ArgumentTypeError("article-id must contain 1-30 digits")
+    return clean
+
+
 def fetch_list(args: argparse.Namespace) -> Any:
     return request_json(
         build_path(
@@ -155,7 +162,12 @@ def main() -> None:
     world_news.set_defaults(func=fetch_world_news)
 
     world_detail = sub.add_parser("world-detail", help="World/foreign market news article detail")
-    world_detail.add_argument("--article-id", required=True, help="World news aid from the world list")
+    world_detail.add_argument(
+        "--article-id",
+        type=_numeric_id,
+        required=True,
+        help="World news aid from the world list",
+    )
     world_detail.add_argument("--output")
     world_detail.set_defaults(func=fetch_world_detail)
 

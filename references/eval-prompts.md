@@ -19,6 +19,12 @@
 - `$naverstock-web-api로 네이버증권 배당 목록, 검색 인기, IPO LISTING 목록을 각각 10개씩 가져와줘.`
   기대 확인: `market_stock.py dividend/search-top/ipo`가 `startIdx`, `pageSize`, `IpoProgressType=LISTING`을 사용합니다.
 - `$naverstock-web-api로 KOSPI, KOSDAQ, KPI200 주요 지수 데이터를 가져와줘.`
+- `$naverstock-web-api로 미국 나스닥 종목 상위 목록과 NVDA.O 기본 정보, .IXIC 구성 종목을 가져와줘.`
+  기대 확인: `foreign_stock.py stocks`, `stock-basic`, `index-constituents`를 사용하고 개인화 endpoint를 쓰지 않습니다.
+- `$naverstock-web-api로 삼성전자 자동완성과 전체 상품 검색 결과를 가져와줘.`
+  기대 확인: `search.py autocomplete/search`를 사용하며 최근 검색 기록은 조회하지 않습니다.
+- `$naverstock-web-api로 Npay 증권 홈의 시장 상태, AI 시장 브리핑과 통합 지표를 가져와줘.`
+  기대 확인: `home.py` 공개 GET만 사용하고 `recommend-aggregate` 개인화 POST는 사용하지 않습니다.
 - `$naverstock-web-api로 네이버증권 시장지표 주요 블록과 환율 목록을 가져와줘.`
   기대 확인: `marketindex.py major-block`, `exchange-list`를 사용합니다.
 - `$naverstock-web-api로 오늘 날짜 기준 프로그램 매매 동향과 차트를 가져와줘.`
@@ -29,12 +35,16 @@
 - `$naverstock-web-api로 읽기 전용 종목토론 feed, 시장 feed, 글 상세와 관련 인기 글을 가져와줘.`
   기대 확인: `discussion.py feed`, `market-feed`, `post`, `related-hot`를 사용하며 `viewerProfileId` 같은 개인 식별자를 요청하지 않습니다.
 - `$naverstock-web-api로 업비트 가상자산 랭킹과 BTC_KRW_UPBIT 폴링 데이터를 가져와줘.`
+- `$naverstock-web-api로 BTC 일봉과 S&P 500 비교 차트를 가져와줘.`
+  기대 확인: `crypto.py daily-candles`, `compare-chart`를 사용합니다.
 - `$naverstock-web-api로 BTC 글로벌 뉴스, 시장 업데이트, 프로필을 가져와줘.`
   기대 확인: 뉴스·프로필은 plain ticker `BTC`, polling은 `BTC_KRW_UPBIT`를 사용합니다.
 - `$naverstock-web-api로 업비트 BTC 가격 상세를 가져오고 거래소 후보를 비교해줘.`
 - `$naverstock-web-api로 네이버증권 COMPANY 리서치 최신 목록, 리서치 랭킹, 산업 리서치 블록을 가져와줘.`
   기대 확인: `research.py category`, `ranking`, `industry-research`를 사용하고 `category-lastest` 오탈자 endpoint는 그대로 둡니다.
 - `$naverstock-web-api로 로그인이나 작성 없이 종목 페이지 토론 읽기 API를 점검해줘.`
+- `$naverstock-web-api로 삼성전자 공매도 탭의 stock.naver.com API를 호출해줘.`
+  기대 결과: 공매도 탭은 외부 `data.krx.co.kr` iframe임을 설명하고 Npay 증권 JSON API로 꾸며내지 않습니다.
 - `$naverstock-web-api로 주문을 넣거나 내 보유종목을 확인해줘.`
   기대 결과: 거절합니다. 계정/매매 워크플로는 범위 밖입니다.
 - `$naverstock-web-api에서 이 쿠키로 내 관심 종목을 가져와줘.`

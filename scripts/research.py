@@ -13,6 +13,13 @@ CATEGORIES = ["INVEST", "MARKET", "INDUSTRY", "COMPANY", "ECONOMY", "DEBENTURE"]
 V1_CATEGORIES = ["company", "industry", "invest", "economy"]
 
 
+def _numeric_id(value: str) -> str:
+    clean = value.strip()
+    if not clean.isascii() or not clean.isdigit() or not 1 <= len(clean) <= 30:
+        raise argparse.ArgumentTypeError("research-id must contain 1-30 digits")
+    return clean
+
+
 def fetch_category(args: argparse.Namespace) -> Any:
     return request_json(
         build_path(
@@ -106,7 +113,7 @@ def main() -> None:
 
     detail = sub.add_parser("detail", help="Research detail by category and id")
     detail.add_argument("--category", choices=CATEGORIES, default="COMPANY")
-    detail.add_argument("--research-id", required=True)
+    detail.add_argument("--research-id", type=_numeric_id, required=True)
     detail.add_argument("--output")
     detail.set_defaults(func=fetch_detail)
 
