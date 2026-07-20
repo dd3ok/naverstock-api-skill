@@ -4,11 +4,13 @@
 from __future__ import annotations
 
 import argparse
+import http.client
 import sys
 import unittest
-from io import StringIO
+from io import BytesIO, StringIO
 from pathlib import Path
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
@@ -16,6 +18,7 @@ sys.path.insert(0, str(SCRIPTS))
 
 import discussion  # noqa: E402
 import crypto  # noqa: E402
+import domestic_etf  # noqa: E402
 import market_stock  # noqa: E402
 import market_trend  # noqa: E402
 import marketindex  # noqa: E402
@@ -58,6 +61,48 @@ class OutputTests(unittest.TestCase):
             naverstock_api.emit_output("ok\n", None)
 
         self.assertEqual(stream.getvalue(), "ok\n")
+
+    def test_request_json_exposes_structured_http_error(self) -> None:
+        error = HTTPError(
+            "https://stock.naver.com/api/domestic/home/marketStatus",
+            404,
+            "Not Found",
+            hdrs=None,
+            fp=BytesIO(b'{"error":"Not Found","statusCode":404}'),
+        )
+
+        with patch.object(naverstock_api.urllib.request, "urlopen", side_effect=error):
+            with self.assertRaises(naverstock_api.NaverStockAPIError) as raised:
+                naverstock_api.request_json("/api/domestic/home/marketStatus")
+
+        self.assertEqual(raised.exception.status_code, 404)
+        self.assertEqual(raised.exception.path, "/api/domestic/home/marketStatus")
+        self.assertIn("Not Found", raised.exception.detail or "")
+
+    def test_api_error_as_dict_nests_json_detail(self) -> None:
+        error = naverstock_api.NaverStockAPIError(
+            "Naver Stock API returned an error payload",
+            path="/api/domestic/home/marketStatus",
+            status_code=404,
+            detail='{"error":"Not Found","statusCode":404}',
+        )
+
+        self.assertEqual(
+            error.as_dict()["detail"],
+            {"error": "Not Found", "statusCode": 404},
+        )
+
+    def test_request_json_wraps_incomplete_transport_response(self) -> None:
+        with patch.object(
+            naverstock_api.urllib.request,
+            "urlopen",
+            side_effect=http.client.IncompleteRead(b"partial"),
+        ):
+            with self.assertRaises(naverstock_api.NaverStockAPIError) as raised:
+                naverstock_api.request_json("/api/domestic/home/marketStatus")
+
+        self.assertEqual(raised.exception.path, "/api/domestic/home/marketStatus")
+        self.assertIn("transport failed", str(raised.exception))
 
 
 class MarketIndexTests(unittest.TestCase):
@@ -457,14 +502,16 @@ class StockDetailPageTests(unittest.TestCase):
         self.assertEqual(result, {"priceInfos": []})
         request_json.assert_called_once_with("/api/securityService/chart/domestic/item/005930?periodType=day")
 
-    def test_stock_research_uses_item_research_endpoint(self) -> None:
+    def test_stock_research_uses_current_company_research_endpoint(self) -> None:
         args = argparse.Namespace(code="005930", page=0, size=10)
 
         with patch.object(stock_detail_pages, "request_json", return_value=[]) as request_json:
             result = stock_detail_pages.fetch_research(args)
 
         self.assertEqual(result, [])
-        request_json.assert_called_once_with("/api/domestic/research/005930/research?page=0&size=10")
+        request_json.assert_called_once_with(
+            "/api/stockSecurity/researches/v2/company?itemCodes=005930&index=0&size=10"
+        )
 
     def test_notice_repeats_cause_code_query_params(self) -> None:
         args = argparse.Namespace(code="005930", start_idx=0, page_size=5, cause_code=["20", "30"])
@@ -509,6 +556,27 @@ class StockDetailPageTests(unittest.TestCase):
 
 
 class ResearchTests(unittest.TestCase):
+    def test_category_uses_v2_research_endpoint_and_zero_based_index(self) -> None:
+        args = argparse.Namespace(
+            category="COMPANY",
+            page=2,
+            page_size=10,
+            search_text="반도체",
+            start_date="20260701",
+            end_date="2026-07-20",
+            broker_code=["60", "55"],
+            industry_type=None,
+            item_code=["A005930"],
+        )
+
+        with patch.object(research, "request_json", return_value={"items": []}) as request_json:
+            result = research.fetch_category(args)
+
+        self.assertEqual(result, {"items": []})
+        request_json.assert_called_once_with(
+            "/api/stockSecurity/researches/v2/company?index=1&size=10&query=%EB%B0%98%EB%8F%84%EC%B2%B4&startDate=2026-07-01&endDate=2026-07-20&brokerCodes=60&brokerCodes=55&itemCodes=005930"
+        )
+
     def test_ranking_uses_research_ranking_endpoint(self) -> None:
         args = argparse.Namespace(ranking_type="SEARCH_TOP", selected_rank=1)
 
@@ -518,23 +586,71 @@ class ResearchTests(unittest.TestCase):
         self.assertEqual(result, {"ranking": []})
         request_json.assert_called_once_with("/api/domestic/research/ranking?rankingType=SEARCH_TOP&selectedRank=1")
 
-    def test_category_latest_keeps_observed_lastest_spelling(self) -> None:
-        args = argparse.Namespace()
+    def test_latest_uses_v2_latest_research_endpoint(self) -> None:
+        args = argparse.Namespace(size=3)
 
         with patch.object(research, "request_json", return_value={}) as request_json:
             result = research.fetch_category_latest(args)
 
         self.assertEqual(result, {})
-        request_json.assert_called_once_with("/api/domestic/research/category-lastest")
+        request_json.assert_called_once_with("/api/stockSecurity/researches/v2/latestResearch?size=3")
 
-    def test_industry_research_uses_industry_research_endpoint(self) -> None:
-        args = argparse.Namespace()
+    def test_industry_research_uses_v2_category_endpoint(self) -> None:
+        args = argparse.Namespace(
+            page=1,
+            size=15,
+            search_text=None,
+            start_date=None,
+            end_date=None,
+            broker_code=None,
+            industry_type=None,
+        )
 
         with patch.object(research, "request_json", return_value={}) as request_json:
             result = research.fetch_industry_research(args)
 
         self.assertEqual(result, {})
-        request_json.assert_called_once_with("/api/domestic/research/industry-research")
+        request_json.assert_called_once_with("/api/stockSecurity/researches/v2/industry?index=0&size=15")
+
+    def test_by_items_repeats_normalized_item_codes(self) -> None:
+        args = argparse.Namespace(item_code=["A005930", "000660"], size=2)
+
+        with patch.object(research, "request_json", return_value={}) as request_json:
+            research.fetch_by_items(args)
+
+        request_json.assert_called_once_with(
+            "/api/stockSecurity/researches/v2/company/by-items?itemCodes=005930&itemCodes=000660&size=2"
+        )
+
+    def test_home_marks_one_failed_section_unavailable_and_keeps_others(self) -> None:
+        args = argparse.Namespace(
+            research_category=True,
+            research_ranking=True,
+            recent_popular=True,
+            latest_size=3,
+            weekly_hot_start_date=None,
+            weekly_hot_size=10,
+            ranking_type="SEARCH_TOP",
+            selected_rank=1,
+        )
+        unavailable = naverstock_api.NaverStockAPIError(
+            "Naver Stock API returned HTTP 404",
+            path="/api/stockSecurity/researches/v2/weekly-hot?size=10",
+            status_code=404,
+        )
+
+        with patch.object(
+            research,
+            "request_json",
+            side_effect=[{"company": []}, {"ranking": []}, unavailable],
+        ):
+            result = research.fetch_home(args)
+
+        self.assertTrue(result["partial"])
+        self.assertEqual(result["sections"]["latestResearch"]["status"], "ok")
+        self.assertEqual(result["sections"]["researchRanking"]["status"], "ok")
+        self.assertEqual(result["sections"]["weeklyHot"]["status"], "unavailable")
+        self.assertEqual(result["sections"]["weeklyHot"]["error"]["statusCode"], 404)
 
     def test_ranking_cli_maps_to_current_endpoint(self) -> None:
         argv = ["research.py", "ranking", "--ranking-type", "SEARCH_TOP", "--selected-rank", "1"]
@@ -639,6 +755,34 @@ class NoticesTests(unittest.TestCase):
                 self.assertRaises(SystemExit),
             ):
                 notices.main()
+
+
+class DomesticETFTests(unittest.TestCase):
+    def test_list_uses_current_v2_endpoint(self) -> None:
+        args = argparse.Namespace(
+            listing_type="priceTop",
+            size=10,
+            index=0,
+            large_category_code=None,
+            middle_category_code=None,
+            leverage_type=None,
+        )
+
+        with patch.object(domestic_etf, "request_json", return_value={"items": []}) as request_json:
+            result = domestic_etf.fetch_list(args)
+
+        self.assertEqual(result, {"items": []})
+        request_json.assert_called_once_with(
+            "/api/stockSecurity/etfs/v2/domestic?listingType=tradingValueDesc&size=10&index=0"
+        )
+
+    def test_themes_uses_current_v2_endpoint(self) -> None:
+        args = argparse.Namespace()
+
+        with patch.object(domestic_etf, "request_json", return_value=[]) as request_json:
+            domestic_etf.fetch_themes(args)
+
+        request_json.assert_called_once_with("/api/stockSecurity/etfs/v2/domestic/themes")
 
 
 class CryptoTests(unittest.TestCase):

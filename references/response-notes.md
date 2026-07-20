@@ -6,9 +6,9 @@
 - 검증 오류는 `detailCode`와 `message`를 반환하는 경우가 많습니다. 스크립트는 HTTP 상태만으로 충분하지 않을 때 이 값을 실패로 처리합니다.
 - 국내 종목 상세 필드는 `itemcode`, `itemname`, `nowPrice`, `prevChangeRate`, `marketSum`처럼 기존 lowercase 키를 사용합니다.
 - 폴링 엔드포인트는 `{ "pollingInterval": ..., "datas": [...] }` 형태를 반환합니다.
-- 리서치 카테고리 응답은 `{ "content": [...], "totalElements": ... }` 형태를 반환합니다.
-- stockSecurity v1 리서치 목록은 `{ "hasNext": ..., "totalCount": ..., "items": [...] }` 형태를 반환합니다.
-- stockSecurity v1 공지 목록은 `{ "hasNext": ..., "items": [...] }` 형태이고, 공지 배너는 list를 바로 반환합니다.
+- 리서치 v2 카테고리 응답은 `{ "hasNext": ..., "totalCount": ..., "items": [...] }` 형태를 반환합니다. `index`는 0부터 증가합니다.
+- `research.py home`은 각 섹션을 `{ "status": "ok", "data": ... }` 또는 `{ "status": "unavailable", "error": ... }`로 감쌉니다. `partial: true`는 일부 API 실패를 뜻하며 자료가 없다는 뜻이 아닙니다.
+- stockSecurity v2 공지 목록은 `{ "hasNext": ..., "items": [...] }` 형태이고, 공지 배너는 list를 바로 반환합니다.
 - 가상자산 랭킹 응답은 `{ "contents": [...] }` 형태이고, 주요 코인 엔드포인트는 list를 반환합니다.
 
 ## 유용한 enum
@@ -42,7 +42,8 @@
 - 가상자산 candle 응답의 `tradeBaseAt` 같은 시간 필드는 UTC 등 응답 기준 시간대일 수 있습니다. 입력한 로컬처럼 보이는 ISO 문자열과 같은 시간대라고 단정하지 않습니다.
 - 네이버증권은 폴링 응답에서 숫자 필드를 comma가 포함된 문자열로, 상세 응답에서 일반 숫자 문자열로 포맷할 수 있습니다.
 - `/api/securityService/economic/indicator/nations/upcoming`은 파라미터를 생략하거나 `nationTypeList`를 반복해서 보내는 형태를 우선 사용합니다. 2026-07-09 직접 확인에서 단일 `nationTypeList=USA`는 400을 반환했습니다.
-- `/api/domestic/home/noticeList`와 `POST /api/domestic/home/researchaggregate/static`은 2026-07-09 직접 확인에서 404를 반환했습니다. 공지는 `/api/stockSecurity/notices/v2`, 리서치는 `/api/stockSecurity/researches/v1` 계열을 우선 사용합니다.
+- `/api/domestic/home/noticeList`와 `POST /api/domestic/home/researchaggregate/static`은 404를 반환합니다. 공지는 `/api/stockSecurity/notices/v2`, 리서치는 `/api/stockSecurity/researches/v2` 계열을 우선 사용합니다.
+- 국내 ETF 목록과 테마는 v2 route를 사용하지만 레버리지 메타데이터는 현재도 v1 route를 사용합니다. 계열 전체에 같은 버전을 가정하지 않습니다.
 
 - 스킬 범위는 `stock.naver.com`으로 유지합니다. 테마나 업종 구성 종목을 추론하기 위해 `finance.naver.com` 그룹 상세 HTML을 사용하지 않습니다. 구버전 네이버 증권 페이지는 [dd3ok/naverfinance-api-skills](https://github.com/dd3ok/naverfinance-api-skills)를 참고해 주세요.
 - `/market/stock/kr/{industry|theme|groups}/{rank}` route의 path 값은 카테고리 ID가 아니라 화면 랭킹 순번입니다. `info` 또는 `stocklist` 호출 전에 `/api/domestic/market/{upjong|theme|group}/list`로 현재 카테고리 `no`를 찾아야 합니다.
