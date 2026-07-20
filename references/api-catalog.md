@@ -1,6 +1,6 @@
 # NaverStock Web API 카탈로그
 
-기준 관찰일: 2026-05-05, 부분 재점검: 2026-07-09, 전범위 재감사: 2026-07-17
+기준 관찰일: 2026-05-05, 부분 재점검: 2026-07-09, 전범위 재감사: 2026-07-17, 전체 정적 재점검 및 변경 경로 실호출: 2026-07-20
 관찰 출처: 로그인하지 않은 공개 `https://stock.naver.com/` 페이지와 Next.js chunk  
 기본 호스트: `https://stock.naver.com`
 
@@ -35,7 +35,7 @@
 
 ## 페이지 점검 메모
 
-2026-04-27 재점검에서는 `https://stock.naver.com/` 루트 HTML과 루트가 로드하는 Next.js chunk 58개에서 route/API 문자열을 추출하고, 후보 route를 작은 직접 요청으로 확인했습니다. `robots.txt`는 `Disallow: /`이고 sitemap은 404라서, 대량 크롤링 대신 루트와 정적 앱 chunk 기반으로만 점검했습니다.
+2026-04-27 재점검에서는 `https://stock.naver.com/` 루트 HTML과 루트가 로드하는 Next.js chunk 58개에서 route/API 문자열을 추출하고, 후보 route를 작은 직접 요청으로 확인했습니다. 2026-07-20에는 국내 종목, 국내 시장, ETF, 투자자 동향, 시장지표, 가상자산, 뉴스, 리서치, 토론의 공개 page route 10개와 중복 제거한 chunk 123개를 정적으로 대조했습니다. 변경이 확인된 리서치와 ETF 경로만 소량 직접 요청했습니다. `robots.txt`는 `Disallow: /`이고 sitemap은 404라서 대량 크롤링은 하지 않습니다.
 
 확인된 주요 페이지 route:
 
@@ -92,7 +92,7 @@
 | --- | --- | --- |
 | `itemCode` | `005930` | 6자리 국내 종목 코드. |
 | `codeType` | `KRX`, `NXT` | 국내 종목 상세 거래 route. |
-| `itemCodes` | `005930,000660` | comma로 구분한 국내 종목/지수 코드 목록. |
+| `itemCodes` | `005930,000660` 또는 반복 query | 국내 종목/지수 코드 목록. 폴링은 comma 구분 문자열을, 리서치 v2는 `itemCodes=005930&itemCodes=000660` 같은 반복 query를 사용합니다. |
 | `reutersCode` | `KOSPI`, `GCcv1` | 시장지표 API에서 쓰는 지수, 선물, 지표 코드. |
 | `fqnfTicker` | `BTC_KRW_UPBIT` | 폴링 엔드포인트에서 쓰는 가상자산 ticker. |
 | `market` | `UPBIT`, `BITHUMB` | 가상자산 거래소 enum. 대문자가 필요합니다. |
@@ -143,8 +143,8 @@
 | 프로그램 매매 동향 차트 | `script-backed` | GET | `/api/domestic/market/trendProgram/chart?tradeType=KRX&krxMarketType=ALL&bizdate={yyyyMMdd}&startDate={yyyyMMdd}&endDate={yyyyMMdd}&periodType=TIME` |
 | 업종 전체 시가총액 | `observed` | GET | `/api/domestic/market/home/upjong/totalMarketSum?type=upjong` |
 | ETF 테마 | `observed` | GET | `/api/domestic/market/etf/themes` |
-| 국내 ETF 목록 | `script-backed` | GET | `/api/stockSecurity/etfs/v1/domestic?listingType=tradingValueDesc&size=20&index=0` |
-| 국내 ETF 카테고리 메타데이터 | `script-backed` | GET | `/api/stockSecurity/etfs/v1/domestic/themes` |
+| 국내 ETF 목록 | `script-backed` | GET | `/api/stockSecurity/etfs/v2/domestic?listingType=tradingValueDesc&size=20&index=0` |
+| 국내 ETF 카테고리 메타데이터 | `script-backed` | GET | `/api/stockSecurity/etfs/v2/domestic/themes` |
 | 국내 ETF 레버리지 메타데이터 | `script-backed` | GET | `/api/stockSecurity/etfs/v1/domestic/leverage-types` |
 | ETF 기본 정보 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFBase` |
 | ETF 배당 요약 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFDividend` |
@@ -178,6 +178,8 @@
 2026-04-27 직접 확인에서 열렸고 2026-07-09 정적 route로 재확인한 국내 주식 메뉴 route: `/market/stock/kr/stocklist/*`, `/market/stock/kr/etf/*`, `/market/stock/kr/etn/*`, `/market/stock/kr/ipo`, `/market/stock/kr/deposit`, `/market/stock/kr/trend/{foreigner|organization|program|trader}`, 종목 상세 하위 페이지 `/domestic/stock/{itemCode}/{price|news|notice|ir|discussion|research|shortTrade|investmentinfo}`, 종목 정보 탭 `/domestic/stock/{itemCode}/info/*`와 ETF `/domestic/stock/{itemCode}/info/summary`. `/domestic/stock/{itemCode}/financial`, `/total`, `/chart`, `/analysis`, `/investment`는 직접 확인에서 404를 반환했습니다.
 
 국내 ETF `listingType` alias는 UI chunk에서 `tradingValueDesc`, `aumDesc`, `changeRateDescUpAll`, `changeRateDescDownAll`, `tradingVolumeDesc`, `tradingVolumeIncreaseRateDesc`, `tradingVolumeIncreaseRateAsc`, `returnRate1mDesc`, `returnRate3mDesc`, `returnRate6mDesc`, `marketCapDesc`, `listedAtDesc`가 관찰되었습니다.
+
+2026-07-20 확인에서 ETF 목록과 테마의 v1 route는 404였고 v2 route가 200을 반환했습니다. 레버리지 메타데이터는 현재 chunk가 계속 `/api/stockSecurity/etfs/v1/domestic/leverage-types`를 사용하므로 이 한 경로만 v1을 유지합니다.
 
 국내 ETN `orderType` 값은 UI chunk에서 `MARKET_SUM_ETN`, `AMOUNT_ETN`, `UP_ETN`, `DOWN_ETN`, `QUANT_ETN`, `QUANT_HIGH_ETN`, `QUANT_LOW_ETN`, `NEW_STOCK_ETN`이 관찰되었습니다.
 
@@ -326,23 +328,26 @@
 
 | 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
-| 리서치 카테고리 목록 | `script-backed` | GET | `/api/domestic/research/category?category=COMPANY&page=1&pageSize=15` |
-| 카테고리 상세 | `script-backed` | GET | `/api/domestic/research/category/{researchId}?category=COMPANY` |
-| 종목 리포트 목록 | `script-backed` | GET | `/api/domestic/research/{itemCode}/research?page=0&size=30` |
-| 종목 리포트 상세 | `observed` | GET | `/api/domestic/research/{itemCode}/research/{researchId}` |
-| 최근 인기 | `script-backed` | GET | `/api/domestic/research/recent-popular` |
-| 리서치 홈 집계 legacy | `needs-recheck` | POST | `/api/domestic/home/researchaggregate/static`. 2026-07-09 직접 확인에서 404를 반환했습니다. 새 리서치 홈은 `stockSecurity/researches/v1` 계열을 우선 사용합니다. |
-| 카테고리 최신 | `script-backed` | GET | `/api/domestic/research/category-lastest`. API path의 `lastest` 오탈자 형태를 그대로 사용합니다. |
-| 산업 리서치 | `script-backed` | GET | `/api/domestic/research/industry-research` |
+| 카테고리 목록 | `script-backed` | GET | `/api/stockSecurity/researches/v2/{market\|company\|industry\|invest\|economy\|debenture}?index=0&size=15`. 선택 query: `query`, `startDate`, `endDate`, 반복 `brokerCodes`, `industryTypes`, `itemCodes` |
+| 카테고리 상세 | `script-backed` | GET | `/api/stockSecurity/researches/v2/{researchType}/{researchId}` |
+| 종목 리포트 목록 | `script-backed` | GET | `/api/stockSecurity/researches/v2/company?itemCodes={itemCode}&index=0&size=30` |
+| 여러 종목별 최근 리포트 | `script-backed` | GET | `/api/stockSecurity/researches/v2/company/by-items?itemCodes={code}&size=3`. `itemCodes`는 반복 query입니다. |
+| 상세 페이지 인접 리포트 | `observed` | GET | `/api/stockSecurity/researches/v2/{researchType}/{researchId}/detail-page?itemCode={itemCode}&size=1` |
+| 주간 인기 | `script-backed` | GET | `/api/stockSecurity/researches/v2/weekly-hot?startDate={yyyy-MM-dd}&size=10` |
+| 카테고리별 최신 | `script-backed` | GET | `/api/stockSecurity/researches/v2/latestResearch?size=3` |
+| 목표주가 변경 | `script-backed` | GET | `/api/stockSecurity/researches/v2/company/goal-price-changed?direction={up\|down}&size=10` |
+| 분석 포커스 | `script-backed` | GET | `/api/stockSecurity/researches/v2/analysis-focus` |
 | 랭킹 | `script-backed` | GET | `/api/domestic/research/ranking?rankingType={type}&selectedRank={rank}` |
-| 증권사 목록 | `script-backed` | GET | `/api/domestic/research/broker-list` |
-| v1 리서치 카테고리 목록 | `script-backed` | GET | `/api/stockSecurity/researches/v1/{company\|industry\|invest\|economy}?index=0&size=15` |
-| v1 증권사 목록 | `script-backed` | GET | `/api/stockSecurity/researches/v1/brokers` |
-| v1 최신 리서치 블록 | `script-backed` | GET | `/api/stockSecurity/researches/v1/latestResearch?size=5` |
-| v1 종목별 회사 리서치 | `script-backed` | GET | `/api/stockSecurity/researches/v1/company/by-items?itemCodes=005930&itemCodes=000660&size=5` |
-| v1 분석 포커스 | `script-backed` | GET | `/api/stockSecurity/researches/v1/analysis-focus` |
+| 증권사 목록 | `script-backed` | GET | `/api/stockSecurity/researches/v2/brokers` |
+| v1 리서치 카테고리 목록(명시적 호환) | `script-backed` | GET | `/api/stockSecurity/researches/v1/{company\|industry\|invest\|economy}?index=0&size=15` |
+| v1 증권사 목록(명시적 호환) | `script-backed` | GET | `/api/stockSecurity/researches/v1/brokers` |
+| v1 최신 리서치 블록(명시적 호환) | `script-backed` | GET | `/api/stockSecurity/researches/v1/latestResearch?size=5` |
+| v1 종목별 회사 리서치(명시적 호환) | `script-backed` | GET | `/api/stockSecurity/researches/v1/company/by-items?itemCodes=005930&itemCodes=000660&size=5` |
+| v1 분석 포커스(명시적 호환) | `script-backed` | GET | `/api/stockSecurity/researches/v1/analysis-focus` |
 
-검증 오류와 chunk에서 관찰된 카테고리 enum: `INVEST`, `MARKET`, `INDUSTRY`, `COMPANY`, `ECONOMY`, `DEBENTURE`.
+CLI 카테고리 enum은 `INVEST`, `MARKET`, `INDUSTRY`, `COMPANY`, `ECONOMY`, `DEBENTURE`이며 API path에서는 소문자 research type으로 변환합니다. 목록 응답은 `{ "hasNext": ..., "totalCount": ..., "items": [...] }` 형태입니다.
+
+2026-07-20 확인에서 기존 `/api/domestic/research/category`, 종목별 `/api/domestic/research/{itemCode}/research`, `recent-popular`, `category-lastest`, `industry-research`, `broker-list`, `/api/domestic/home/researchaggregate/static`은 route 자체가 404였습니다. 이 404는 자료 없음이 아니라 제거된 route이므로 빈 목록으로 해석하지 않습니다. 랭킹 `/api/domestic/research/ranking`은 같은 날 200을 반환해 유지했습니다.
 
 ## 종목토론 API
 
