@@ -103,7 +103,10 @@ def fetch_news(args: argparse.Namespace) -> Any:
 
 def fetch_research(args: argparse.Namespace) -> Any:
     return request_json(
-        build_path(f"/api/domestic/research/{normalize_item_code(args.code)}/research", {"page": args.page, "size": args.size})
+        build_path(
+            "/api/stockSecurity/researches/v2/company",
+            {"itemCodes": normalize_item_code(args.code), "index": args.page, "size": args.size},
+        )
     )
 
 
