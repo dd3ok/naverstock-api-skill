@@ -6,6 +6,8 @@
 
 조회 실패, 404, 빈 응답, 응답 구조 변경, route 변경 의심이 있으면 카탈로그를 믿고 진행하지 않습니다. 현재 공개 웹앱을 다시 확인합니다.
 
+route 자체가 404인 경우 이를 해당 종목이나 카테고리의 "자료 없음"으로 해석하지 않습니다. 빈 결과는 정상 2xx payload의 빈 `items`, `content`, `articles` 등으로만 판단합니다.
+
 우선순위:
 
 1. 사용자가 준 URL/path 또는 현재 공개 페이지의 실제 route.
@@ -22,7 +24,7 @@
 3. 주식, 시장, 뉴스, 리서치, 가상자산, 토론 질문에 직접 답하는 GET 엔드포인트 또는 Method가 POST이지만 설명에 read-only POST라고 명시할 수 있는 공개 조회 엔드포인트만 남깁니다.
 4. 읽기 POST는 로그인/쿠키/세션/개인 식별자 없이 동작하고, 같은 body를 반복 호출해도 주문·관심종목·댓글·반응·프로필·알림·계정 상태를 바꾸지 않는 조회형 호출이어야 합니다. 요청 body에 계좌, 보유종목, 토큰, 개인 데이터가 들어가면 제외합니다.
 5. `auth`, `personal`, `favorite`, `holding`, `notification`, 프로필 mutation, 댓글 작성, 반응 mutation, 쿠키나 인증이 필요한 엔드포인트는 제외합니다.
-6. Next.js chunk를 검사할 때는 `/api/domestic`, `/api/securityService`, `/api/securityFe`, `/api/coin`, `/api/community/discussion`, `/api/domestic/news`, `/api/domestic/research` 문자열을 검색합니다.
+6. Next.js chunk를 검사할 때는 `/api/domestic`, `/api/securityService`, `/api/securityFe`, `/api/stockSecurity`, `/api/stockDomestic`, `/api/coin`, `/api/community/discussion`, `/api/foreign/news` 문자열을 검색합니다. 리서치는 `/api/stockSecurity/researches/v2`, ETF는 `/api/stockSecurity/etfs/v2`를 우선 확인합니다.
 7. `Accept: application/json`과 `Referer: https://stock.naver.com/`를 사용해 1-2회 소량 직접 요청만 검증합니다.
 8. 관찰일과 `script-backed`, `observed`, `needs-recheck`, `excluded` 중 하나의 상태 라벨을 붙여 카탈로그에 추가합니다.
 

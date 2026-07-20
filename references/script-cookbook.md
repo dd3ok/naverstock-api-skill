@@ -16,8 +16,8 @@
 - `scripts/home.py`: 홈 시장 상태, 해외 거래시간, 시장 브리핑, 공개 콘텐츠, 통합 지표와 주목 ETF 조회.
 - `scripts/search.py`: 공개 상품 자동완성과 전체 검색. 최근 검색과 개인 기록은 조회하지 않음.
 - `scripts/news.py`: 시장 뉴스 목록, 뉴스포커스 하위 탭, 키워드 검색, 해외뉴스 목록/상세 조회.
-- `scripts/research.py`: legacy 리서치와 stockSecurity v1 카테고리/최신/종목별 리서치, 증권사 목록, 리포트 상세 조회.
 - `scripts/notices.py`: stockSecurity v2 서비스 공지 목록/상세/배너 조회.
+- `scripts/research.py`: stockSecurity v2 카테고리별 목록, 상세, 종목별 목록, 랭킹, 최신/주간 인기, 목표주가 변경, 증권사 목록, best-effort 홈 섹션과 명시적 v1 호환 조회.
 - `scripts/discussion.py`: 읽기 전용 종목토론 feed, 시장 feed, 인기 목록, 글 상세, 이전/다음 글, 관련 인기 글, 종목 토론 랭킹/종목별 글/통계 조회.
 
 ## 국내 주식
@@ -164,12 +164,17 @@ python3 scripts/notices.py list --size 5
 python3 scripts/notices.py banners --size 2 --banner-type PC_TOP
 python3 scripts/notices.py detail --notice-id 147
 python3 scripts/research.py category --category COMPANY --page-size 10
-python3 scripts/research.py recent-popular
+python3 scripts/research.py category --category COMPANY --item-code 005930 --page-size 10
+python3 scripts/research.py home
+python3 scripts/research.py weekly-hot --size 10
 python3 scripts/research.py ranking --ranking-type SEARCH_TOP --selected-rank 1
-python3 scripts/research.py category-latest
-python3 scripts/research.py industry-research
+python3 scripts/research.py latest --size 3
+python3 scripts/research.py industry-research --size 10
 python3 scripts/research.py broker-list
-python3 scripts/research.py detail --category COMPANY --research-id 91965
+python3 scripts/research.py by-items --item-code 005930 --item-code 000660 --size 3
+python3 scripts/research.py goal-price-changed --direction up --size 10
+python3 scripts/research.py analysis-focus
+python3 scripts/research.py detail --category COMPANY --research-id "{RESEARCH_ID}"
 python3 scripts/research.py v1-category --category company --size 10
 python3 scripts/research.py v1-latest --size 5
 python3 scripts/research.py v1-brokers
@@ -185,3 +190,5 @@ python3 scripts/discussion.py stats-by-items --start-date "{YYYY-MM-DD}" --domes
 python3 scripts/discussion.py rankings --page-size 10
 python3 scripts/discussion.py rankings --nation-type KOR --post-type HOT --page-size 10
 ```
+
+기존 `recent-popular`, `category-latest`, `aggregate-static` 명령은 각각 `weekly-hot`, `latest`, `home`의 호환 alias로 유지됩니다. `home`의 `partial: true`와 `unavailable` 섹션은 API 실패를 뜻하며 빈 자료와 구분합니다.

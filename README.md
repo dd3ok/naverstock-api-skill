@@ -183,9 +183,19 @@ python3 scripts/crypto.py rank --market UPBIT --sort-type marketValue --page-siz
 python3 scripts/crypto.py coin-briefing --ticker BTC --exchange-type UPBIT
 python3 scripts/news.py list --category mainnews --page-size 10
 python3 scripts/notices.py list --size 5
-python3 scripts/research.py v1-category --category company --size 10
-python3 scripts/discussion.py rankings --nation-type KOR --post-type HOT --page-size 10
+python3 scripts/news.py focus --focus global-market --date "{YYYYMMDD}" --enable-fallback --page-size 15
+python3 scripts/news.py world-news --page-size 10
+python3 scripts/news.py world-detail --article-id 2580641
+python3 scripts/research.py category --category COMPANY --page-size 10
+python3 scripts/research.py home
+python3 scripts/research.py weekly-hot --size 10
+python3 scripts/research.py ranking --ranking-type SEARCH_TOP --selected-rank 1
+python3 scripts/discussion.py hot-home --page-size 10
+python3 scripts/discussion.py market-feed --page-size 10
+python3 scripts/discussion.py rankings --page-size 10
 ```
+
+`research.py home`은 최신·랭킹·주간 인기 섹션을 독립적으로 조회합니다. 일부 엔드포인트가 실패하면 `partial: true`와 해당 섹션의 `unavailable` 오류를 출력하고, 정상 섹션 데이터는 유지합니다. HTTP 404를 빈 자료로 바꾸지는 않습니다.
 
 스크립트별 전체 옵션은 `--help`로 확인합니다.
 
@@ -229,6 +239,9 @@ naverstock-api-skill/
 | `agents/openai.yaml` | Codex/OpenAI 계열 도구의 표시 메타데이터 |
 | `references/api-catalog.md` | 관찰된 endpoint, 탭 route와 검증 상태 |
 | `references/capture-workflow.md` | 새 페이지와 하위 탭 네트워크 확인 절차 |
+| `references/eval-prompts.md` | 스킬 변경 후 평가 프롬프트 |
+| `references/maintenance-checklist.md` | endpoint, script, metadata 변경 전후 유지보수 점검 순서 |
+| `references/response-notes.md` | 응답 shape, enum, 페이징 주의사항 |
 | `references/safety-rules.md` | 공개 read-only 범위와 거절 기준 |
 | `references/script-cookbook.md` | 기능별 스크립트 실행 예시 |
 | `scripts/` | 국내·해외 주식, 시장, 검색, 콘텐츠, 가상자산 조회 도구 |

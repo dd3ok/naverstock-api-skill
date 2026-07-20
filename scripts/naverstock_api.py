@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import http.client
 import io
 import json
 from pathlib import Path
@@ -146,6 +147,34 @@ class RequestValidationError(ValueError):
     """Raised when a request falls outside the public read-only boundary."""
 
 
+class NaverStockAPIError(RuntimeError):
+    """Represent a remote Naver Stock API failure with structured context."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        path: str,
+        status_code: int | None = None,
+        detail: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.path = path
+        self.status_code = status_code
+        self.detail = detail
+
+    def as_dict(self) -> dict[str, Any]:
+        error: dict[str, Any] = {"message": str(self), "path": self.path}
+        if self.status_code is not None:
+            error["statusCode"] = self.status_code
+        if self.detail:
+            try:
+                error["detail"] = json.loads(self.detail)
+            except (json.JSONDecodeError, TypeError):
+                error["detail"] = self.detail
+        return error
+
+
 def normalize_item_code(code: str) -> str:
     value = code.strip().upper() if isinstance(code, str) else ""
     if value.startswith("A") and value[1:].isdigit() and len(value) == 7:
@@ -194,25 +223,59 @@ def request_json(
     except urllib.error.HTTPError as exc:
         detail = exc.read(2_048).decode("utf-8", errors="replace")
         if exc.code in {403, 429}:
-            raise RuntimeError(
+            message = (
                 f"Naver Stock API returned HTTP {exc.code}. Stop; do not retry automatically. "
-                "Re-verify that the endpoint is public and wait before trying again. "
-                f"Response: {detail}"
-            ) from exc
-        raise RuntimeError(f"Naver Stock API returned HTTP {exc.code}: {detail}") from exc
+                "Re-verify that the endpoint is public and wait before trying again."
+            )
+        else:
+            message = f"Naver Stock API returned HTTP {exc.code}"
+        raise NaverStockAPIError(
+            message,
+            path=clean_path,
+            status_code=exc.code,
+            detail=detail,
+        ) from exc
     except (TimeoutError, socket.timeout) as exc:
-        raise RuntimeError(f"Naver Stock API request timed out after {timeout} seconds") from exc
+        raise NaverStockAPIError(
+            f"Naver Stock API request timed out after {timeout} seconds",
+            path=clean_path,
+            detail=str(exc),
+        ) from exc
     except urllib.error.URLError as exc:
-        raise RuntimeError(f"Naver Stock API request failed: {exc.reason}") from exc
+        raise NaverStockAPIError(
+            "Naver Stock API request failed",
+            path=clean_path,
+            detail=str(exc.reason),
+        ) from exc
     except UnicodeDecodeError as exc:
-        raise RuntimeError("Naver Stock API returned a non-UTF-8 response") from exc
+        raise NaverStockAPIError(
+            "Naver Stock API returned a non-UTF-8 response",
+            path=clean_path,
+            detail=str(exc),
+        ) from exc
+    except (http.client.HTTPException, OSError) as exc:
+        raise NaverStockAPIError(
+            "Naver Stock API transport failed",
+            path=clean_path,
+            detail=str(exc),
+        ) from exc
     try:
         payload = json.loads(text)
     except json.JSONDecodeError as exc:
         preview = text[:200].replace("\n", " ")
-        raise RuntimeError(f"Naver Stock API returned invalid JSON: {preview!r}") from exc
+        raise NaverStockAPIError(
+            "Naver Stock API returned invalid JSON (a non-JSON response)",
+            path=clean_path,
+            detail=preview,
+        ) from exc
     if isinstance(payload, dict) and ("detailCode" in payload or payload.get("error")):
-        raise RuntimeError(f"Naver Stock API returned error payload: {payload}")
+        status_code = payload.get("statusCode")
+        raise NaverStockAPIError(
+            "Naver Stock API returned an error payload",
+            path=clean_path,
+            status_code=status_code if isinstance(status_code, int) else None,
+            detail=json.dumps(payload, ensure_ascii=False),
+        )
     return payload
 
 

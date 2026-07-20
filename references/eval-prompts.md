@@ -14,7 +14,7 @@
 - `$naverstock-web-api로 stock.naver.com 기준 삼성전자 공시와 IR 항목을 가져와줘.`
 - `$naverstock-web-api로 삼성전자 종목 상세 페이지의 일별 시세, 체결, 호가, 차트 가격을 가져와줘.`
 - `$naverstock-web-api로 삼성전자 종목 리서치 목록을 가져와줘.`
-  기대 확인: `scripts/stock_detail_pages.py research`, `/api/domestic/research/005930/research?page=0&size=...`를 사용합니다.
+  기대 확인: `scripts/stock_detail_pages.py research`, `/api/stockSecurity/researches/v2/company?itemCodes=005930&index=0&size=...`를 사용합니다.
 - `$naverstock-web-api로 네이버증권에서 KRX 시가총액 상위 10개 종목을 가져와줘.`
 - `$naverstock-web-api로 네이버증권 배당 목록, 검색 인기, IPO LISTING 목록을 각각 10개씩 가져와줘.`
   기대 확인: `market_stock.py dividend/search-top/ipo`가 `startIdx`, `pageSize`, `IpoProgressType=LISTING`을 사용합니다.
@@ -41,7 +41,9 @@
   기대 확인: 뉴스·프로필은 plain ticker `BTC`, polling은 `BTC_KRW_UPBIT`를 사용합니다.
 - `$naverstock-web-api로 업비트 BTC 가격 상세를 가져오고 거래소 후보를 비교해줘.`
 - `$naverstock-web-api로 네이버증권 COMPANY 리서치 최신 목록, 리서치 랭킹, 산업 리서치 블록을 가져와줘.`
-  기대 확인: `research.py category`, `ranking`, `industry-research`를 사용하고 `category-lastest` 오탈자 endpoint는 그대로 둡니다.
+  기대 확인: `research.py category`, `ranking`, `industry-research`를 사용합니다. 카테고리와 산업 목록은 `/api/stockSecurity/researches/v2/{type}`, 랭킹은 현재 유지되는 `/api/domestic/research/ranking`을 사용합니다.
+- `$naverstock-web-api로 리서치 홈의 최신·랭킹·주간 인기 섹션을 한 번에 가져와줘.`
+  기대 확인: `research.py home`을 사용합니다. 한 섹션이 실패하면 빈 데이터로 위장하지 않고 `unavailable`로 표시하며 다른 섹션은 계속 조회합니다.
 - `$naverstock-web-api로 로그인이나 작성 없이 종목 페이지 토론 읽기 API를 점검해줘.`
 - `$naverstock-web-api로 삼성전자 공매도 탭의 stock.naver.com API를 호출해줘.`
   기대 결과: 공매도 탭은 외부 `data.krx.co.kr` iframe임을 설명하고 `stock.naver.com` JSON API로 꾸며내지 않습니다.

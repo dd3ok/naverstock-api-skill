@@ -39,7 +39,7 @@ ETN_ORDER_TYPES = {
 def fetch_list(args: argparse.Namespace) -> Any:
     return request_json(
         build_path(
-            "/api/stockSecurity/etfs/v1/domestic",
+            "/api/stockSecurity/etfs/v2/domestic",
             {
                 "listingType": LISTING_TYPES.get(args.listing_type, args.listing_type),
                 "size": args.size,
@@ -53,7 +53,7 @@ def fetch_list(args: argparse.Namespace) -> Any:
 
 
 def fetch_themes(args: argparse.Namespace) -> Any:
-    return request_json("/api/stockSecurity/etfs/v1/domestic/themes")
+    return request_json("/api/stockSecurity/etfs/v2/domestic/themes")
 
 
 def fetch_leverage_types(args: argparse.Namespace) -> Any:
