@@ -206,6 +206,119 @@ class MarketIndexTests(unittest.TestCase):
 
 
 class MarketStockTests(unittest.TestCase):
+    def test_semantic_rankings_do_not_duplicate_dedicated_commands(self) -> None:
+        self.assertNotIn("dividend", market_stock.RANKING_TYPES)
+        self.assertNotIn("search-top", market_stock.RANKING_TYPES)
+
+    def test_semantic_ranking_maps_warning_to_current_alert_pair(self) -> None:
+        args = argparse.Namespace(
+            kind="investment-warning",
+            trade_type="KRX",
+            market_type="ALL",
+            start_idx=0,
+            page_size=10,
+        )
+
+        with patch.object(market_stock, "request_json", return_value=[]) as request_json:
+            result = market_stock.fetch_ranking(args)
+
+        self.assertEqual(result, [])
+        request_json.assert_called_once_with(
+            "/api/domestic/market/stock/default?tradeType=KRX&marketType=ALL&orderType=marketAlertType&startIdx=0&pageSize=10&alertType=02"
+        )
+
+    def test_semantic_ranking_supports_konex(self) -> None:
+        args = argparse.Namespace(
+            kind="volume",
+            trade_type="KRX",
+            market_type="KONEX",
+            start_idx=0,
+            page_size=10,
+        )
+
+        with patch.object(market_stock, "request_json", return_value=[]) as request_json:
+            market_stock.fetch_ranking(args)
+
+        request_json.assert_called_once_with(
+            "/api/domestic/market/stock/default?tradeType=KRX&marketType=KONEX&orderType=quantTop&startIdx=0&pageSize=10"
+        )
+
+    def test_default_rejects_ambiguous_alert_filters(self) -> None:
+        invalid = (
+            argparse.Namespace(
+                trade_type="KRX",
+                market_type="ALL",
+                order_type="marketSum",
+                start_idx=0,
+                page_size=10,
+                alert_type="02",
+            ),
+            argparse.Namespace(
+                trade_type="KRX",
+                market_type="ALL",
+                order_type="marketAlertType",
+                start_idx=0,
+                page_size=10,
+                alert_type=None,
+            ),
+        )
+
+        for args in invalid:
+            with self.subTest(args=args), self.assertRaises(market_stock.MarketStockArgumentError):
+                market_stock.fetch_default(args)
+
+    def test_konex_rejects_nxt_trade_type(self) -> None:
+        args = argparse.Namespace(
+            kind="volume",
+            trade_type="NXT",
+            market_type="KONEX",
+            start_idx=0,
+            page_size=10,
+        )
+
+        with self.assertRaises(market_stock.MarketStockArgumentError):
+            market_stock.fetch_ranking(args)
+
+    def test_konex_rejects_silently_ignored_ranking_types(self) -> None:
+        args = argparse.Namespace(
+            kind="market-cap",
+            trade_type="KRX",
+            market_type="KONEX",
+            start_idx=0,
+            page_size=10,
+        )
+
+        with self.assertRaises(market_stock.MarketStockArgumentError):
+            market_stock.fetch_ranking(args)
+
+    def test_nxt_rejects_ranking_not_exposed_by_current_page(self) -> None:
+        args = argparse.Namespace(
+            kind="investment-warning",
+            trade_type="NXT",
+            market_type="ALL",
+            start_idx=0,
+            page_size=10,
+        )
+
+        with self.assertRaises(market_stock.MarketStockArgumentError):
+            market_stock.fetch_ranking(args)
+
+    def test_nxt_accepts_current_market_cap_ranking(self) -> None:
+        args = argparse.Namespace(
+            kind="market-cap",
+            trade_type="NXT",
+            market_type="ALL",
+            start_idx=0,
+            page_size=10,
+        )
+
+        with patch.object(market_stock, "request_json", return_value=[]) as request_json:
+            market_stock.fetch_ranking(args)
+
+        request_json.assert_called_once_with(
+            "/api/domestic/market/stock/default?tradeType=NXT&marketType=ALL&orderType=marketSum&startIdx=0&pageSize=10"
+        )
+
     def test_search_top_uses_current_home_search_params(self) -> None:
         args = argparse.Namespace(nation_type="KOR", start_idx=0, page_size=10)
 
@@ -556,6 +669,21 @@ class StockDetailPageTests(unittest.TestCase):
 
 
 class ResearchTests(unittest.TestCase):
+    def test_weekly_hot_defaults_to_today_when_start_date_is_omitted(self) -> None:
+        args = argparse.Namespace(start_date=None, size=3)
+
+        with (
+            patch.object(research, "date") as date_class,
+            patch.object(research, "request_json", return_value={}) as request_json,
+        ):
+            date_class.today.return_value.isoformat.return_value = "2026-07-21"
+            result = research.fetch_weekly_hot(args)
+
+        self.assertEqual(result, {})
+        request_json.assert_called_once_with(
+            "/api/stockSecurity/researches/v2/weekly-hot?startDate=2026-07-21&size=3"
+        )
+
     def test_category_uses_v2_research_endpoint_and_zero_based_index(self) -> None:
         args = argparse.Namespace(
             category="COMPANY",
