@@ -1,4 +1,4 @@
 interface:
   display_name: "네이버 증권 Web API"
-  short_description: "비공식 stock.naver.com 공개 read-only 웹 API 조회"
-  default_prompt: "$naverstock-web-api로 네이버 증권의 비공식 공개 read-only 정보 API를 안전하게 조회해줘."
+  short_description: "비공식 네이버증권 공개 API·기업분석·조건검색 조회"
+  default_prompt: "$naverstock-web-api로 네이버 증권 공개 API와 제한된 외부 분석 데이터를 안전하게 조회해줘."

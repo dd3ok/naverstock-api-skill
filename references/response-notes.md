@@ -7,6 +7,7 @@
 - 국내 종목 상세 필드는 `itemcode`, `itemname`, `nowPrice`, `prevChangeRate`, `marketSum`처럼 기존 lowercase 키를 사용합니다.
 - 폴링 엔드포인트는 `{ "pollingInterval": ..., "datas": [...] }` 형태를 반환합니다.
 - 리서치 v2 카테고리 응답은 `{ "hasNext": ..., "totalCount": ..., "items": [...] }` 형태를 반환합니다. `index`는 0부터 증가합니다.
+- 리서치 주간 인기 `/api/stockSecurity/researches/v2/weekly-hot`은 현재 `startDate`가 필수입니다. 생략하면 400이므로 `research.py`는 명시값이 없을 때 오늘 날짜를 넣습니다.
 - `research.py home`은 각 섹션을 `{ "status": "ok", "data": ... }` 또는 `{ "status": "unavailable", "error": ... }`로 감쌉니다. `partial: true`는 일부 API 실패를 뜻하며 자료가 없다는 뜻이 아닙니다.
 - stockSecurity v2 공지 목록은 `{ "hasNext": ..., "items": [...] }` 형태이고, 공지 배너는 list를 바로 반환합니다.
 - 가상자산 랭킹 응답은 `{ "contents": [...] }` 형태이고, 주요 코인 엔드포인트는 list를 반환합니다.
@@ -15,7 +16,9 @@
 
 - 국내 `codeType`: `KRX`, `NXT`.
 - 국내 시장 목록 `tradeType`: `KRX`, `NXT`.
-- 국내 시장 목록 `marketType`: `ALL`, `KOSPI`, `KOSDAQ`.
+- 국내 시장 목록 `marketType`: `ALL`, `KOSPI`, `KOSDAQ`; `KONEX`는 현재 화면이 사용하는 `tradeType=KRX&orderType=quantTop` 조합으로만 노출합니다.
+- NXT 종목 목록은 현재 화면의 `marketSum`, `up`, `down`, `quantTop`, `searchTop`만 허용합니다.
+- 관리·거래정지 목록의 `managementReasonCode`, `tradingHaltReasonCode`는 원격 원문 코드로 유지합니다. 검증된 코드표 없이 사람이 읽는 사유로 추정하지 않습니다.
 - 리서치 카테고리: `INVEST`, `MARKET`, `INDUSTRY`, `COMPANY`, `ECONOMY`, `DEBENTURE`.
 - 가상자산 거래소: `UPBIT`, `BITHUMB`.
 - stockSecurity v1 리서치 카테고리 path: `company`, `industry`, `invest`, `economy`.
@@ -45,7 +48,8 @@
 - `/api/domestic/home/noticeList`와 `POST /api/domestic/home/researchaggregate/static`은 404를 반환합니다. 공지는 `/api/stockSecurity/notices/v2`, 리서치는 `/api/stockSecurity/researches/v2` 계열을 우선 사용합니다.
 - 국내 ETF 목록과 테마는 v2 route를 사용하지만 레버리지 메타데이터는 현재도 v1 route를 사용합니다. 계열 전체에 같은 버전을 가정하지 않습니다.
 
-- 스킬 범위는 `stock.naver.com`으로 유지합니다. 테마나 업종 구성 종목을 추론하기 위해 `finance.naver.com` 그룹 상세 HTML을 사용하지 않습니다. 구버전 네이버 증권 페이지는 [dd3ok/naverfinance-api-skills](https://github.com/dd3ok/naverfinance-api-skills)를 참고해 주세요.
+- 현재 JSON API를 우선하며 테마나 업종 구성 종목을 추론하기 위해 `finance.naver.com` 그룹 상세 HTML을 사용하지 않습니다. 외부 HTML은 [external-sources.md](external-sources.md)의 WiseReport v3와 조건검색 7종만 허용합니다.
+- WiseReport 표는 행 순서를 보존하지만 병합 머리글을 추정하지 않습니다. 레거시 가격 위치 표는 첫 지표를 `저가대비등락률` 또는 `고가대비등락률`로 구분합니다.
 - `/market/stock/kr/{industry|theme|groups}/{rank}` route의 path 값은 카테고리 ID가 아니라 화면 랭킹 순번입니다. `info` 또는 `stocklist` 호출 전에 `/api/domestic/market/{upjong|theme|group}/list`로 현재 카테고리 `no`를 찾아야 합니다.
 - 종목 공시/IR 엔드포인트는 `startIdx`를 사용하고, 종목 뉴스는 `page`를 사용합니다. 상세 하위 페이지 전체에 하나의 페이징 방식을 가정하지 않습니다.
 - 가격 탭 엔드포인트는 페이징 방식이 섞여 있습니다. `siseDay`는 `pageSize`와 선택적 `bizdate`, `siseTick`과 투자자 `trend`는 `startIdx`와 `pageSize`를 사용합니다.

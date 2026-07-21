@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Callable
+from datetime import date
 from typing import Any
 
 from naverstock_api import (
@@ -190,10 +191,14 @@ def _request_latest(size: int) -> Any:
 
 
 def _request_weekly_hot(start_date: str | None, size: int) -> Any:
+    # The current endpoint rejects a request without startDate (HTTP 400).
+    # Keep the CLI/example backward-compatible by defaulting to today's date;
+    # callers can still provide an explicit date for historical lookups.
+    effective_start_date = start_date or date.today().isoformat()
     return request_json(
         build_path(
             f"{RESEARCH_BASE}/weekly-hot",
-            {"startDate": _normalize_date(start_date), "size": size},
+            {"startDate": _normalize_date(effective_start_date), "size": size},
         )
     )
 

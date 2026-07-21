@@ -15,12 +15,12 @@ route 자체가 404인 경우 이를 해당 종목이나 카테고리의 "자료
 3. 페이지가 로드한 Next.js 정적 chunk의 API 문자열과 enum.
 4. 쿠키/인증 없이 1-2회 read-only 직접 요청.
 
-403, 429, 차단/챌린지 페이지, 로그인 리다이렉트, 인증 쿠키 필요, 개인화 응답이면 중단합니다. 부족한 데이터는 `finance.naver.com` HTML로 메우지 않습니다. 구버전 네이버증권은 [dd3ok/naverfinance-api-skills](https://github.com/dd3ok/naverfinance-api-skills)로 안내합니다.
+403, 429, 차단/챌린지 페이지, 로그인 리다이렉트, 인증 쿠키 필요, 개인화 응답이면 중단합니다. 부족한 데이터를 임의의 `finance.naver.com` HTML로 메우지 않습니다. 기존 외부 소스 경계는 [external-sources.md](external-sources.md)를 따릅니다.
 
 ## 새 엔드포인트 캡처
 
 1. 로그인하지 않은 새 브라우저 컨텍스트에서 공개 페이지를 엽니다.
-2. 네트워크 요청을 `stock.naver.com/api/`로 필터링하고 정적 chunk, CSS, 텔레메트리, 광고, 이미지, 레거시 `finance.naver.com` 페이지는 무시합니다. 구버전 네이버 증권 페이지가 필요하면 [dd3ok/naverfinance-api-skills](https://github.com/dd3ok/naverfinance-api-skills)를 참고합니다.
+2. 네트워크 요청을 `stock.naver.com/api/`로 필터링하고 정적 chunk, CSS, 텔레메트리, 광고, 이미지, 레거시 `finance.naver.com` 페이지는 무시합니다. 이 절차로 외부 HTML allowlist를 확장하지 않습니다.
 3. 주식, 시장, 뉴스, 리서치, 가상자산, 토론 질문에 직접 답하는 GET 엔드포인트 또는 Method가 POST이지만 설명에 read-only POST라고 명시할 수 있는 공개 조회 엔드포인트만 남깁니다.
 4. 읽기 POST는 로그인/쿠키/세션/개인 식별자 없이 동작하고, 같은 body를 반복 호출해도 주문·관심종목·댓글·반응·프로필·알림·계정 상태를 바꾸지 않는 조회형 호출이어야 합니다. 요청 body에 계좌, 보유종목, 토큰, 개인 데이터가 들어가면 제외합니다.
 5. `auth`, `personal`, `favorite`, `holding`, `notification`, 프로필 mutation, 댓글 작성, 반응 mutation, 쿠키나 인증이 필요한 엔드포인트는 제외합니다.
