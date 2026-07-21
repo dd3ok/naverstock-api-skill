@@ -1,6 +1,6 @@
 # NaverStock Web API 안전 규칙
 
-로그인 없이 공개 `stock.naver.com` 페이지에서 확인 가능한 읽기 전용 엔드포인트만 사용합니다.
+로그인 없이 공개 `stock.naver.com` 페이지에서 확인 가능한 읽기 전용 엔드포인트를 우선합니다. 외부 HTML은 [external-sources.md](external-sources.md)의 고정 allowlist만 사용합니다.
 
 ## 책임과 면책
 
@@ -17,6 +17,7 @@
 - 쿠키 없이 일반 브라우저 헤더만 사용한 직접 JSON 요청.
 - 구체적인 질문에 답하기 위한 작고 사용자 범위가 명확한 요청.
 - 공통 helper가 승인한 공개 GET family/exact path와 명시적인 read-only POST 한 건. 페이지 크기와 타임아웃 상한을 유지합니다.
+- 현재 종목 페이지가 연결하는 WiseReport v3 기업분석 8종과 신버전에 없는 레거시 조건검색 7종. 반드시 번들 외부 소스 스크립트를 사용합니다.
 
 ## 거절 또는 중단
 
@@ -25,7 +26,8 @@
 - 쿠키, 인증 헤더, 세션 스토리지, 로컬 스토리지, 원본 HAR 저장, 개인 ID, 계좌 식별자.
 - 대량 스크래핑, rate limit 우회, 안티봇 우회, 숨겨진/비공개 데이터 접근 시도.
 - 개인화된 투자 조언, 매수/매도 추천, 포트폴리오 비중 결정.
-- 관련 그룹/테마 데이터가 있더라도 레거시 `finance.naver.com` HTML 스크래핑. 구버전 네이버 증권 페이지가 필요하면 [dd3ok/naverfinance-api-skills](https://github.com/dd3ok/naverfinance-api-skills)를 참고해 주세요.
+- `scripts/legacy_screeners.py`의 정확한 7개 경로 밖에서 `finance.naver.com` HTML로 데이터를 보강하는 작업. 전체 레거시 비교가 필요하면 [dd3ok/naverfinance-api-skill](https://github.com/dd3ok/naverfinance-api-skill)을 참고하되 fallback으로 실행하지 않습니다.
+- `scripts/wisereport.py`가 고정한 v3 기업분석 경로 밖의 WiseReport 페이지와 임의 query.
 
 ## 캡처 처리
 

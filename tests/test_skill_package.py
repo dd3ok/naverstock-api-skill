@@ -19,6 +19,7 @@ class SkillPackageTests(unittest.TestCase):
         self.assertLessEqual(len(description.group(1)), 1024)
         self.assertIn("네이버증권", description.group(1))
         self.assertIn("npay증권", description.group(1))
+        self.assertIn("WiseReport v3", description.group(1))
 
         metadata = (ROOT / "agents" / "openai.yaml").read_text(encoding="utf-8")
         self.assertIn('display_name: "네이버 증권 Web API"', metadata)
@@ -34,6 +35,16 @@ class SkillPackageTests(unittest.TestCase):
     def test_lightweight_install_resources_exist(self) -> None:
         for relative in ["SKILL.md", "LICENSE", "agents", "references", "scripts"]:
             self.assertTrue((ROOT / relative).exists(), relative)
+
+    def test_external_source_docs_and_legacy_link_are_consistent(self) -> None:
+        external = ROOT / "references" / "external-sources.md"
+        self.assertTrue(external.is_file())
+        combined = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in [ROOT / "SKILL.md", ROOT / "README.md", *ROOT.glob("references/*.md")]
+        )
+        self.assertNotIn("dd3ok/naverfinance-api-skills", combined)
+        self.assertIn("dd3ok/naverfinance-api-skill", combined)
 
 
 if __name__ == "__main__":
