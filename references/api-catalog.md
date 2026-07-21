@@ -1,12 +1,12 @@
 # NaverStock Web API 카탈로그
 
-기준 관찰일: 2026-05-05, 부분 재점검: 2026-07-09, 전범위 재감사: 2026-07-17, 전체 정적 재점검 및 변경 경로 실호출: 2026-07-20
+기준 관찰일: 2026-05-05, 부분 재점검: 2026-07-09, 전범위 재감사: 2026-07-17, 전체 정적 재점검 및 변경 경로 실호출: 2026-07-20, 브라우저·탭·페이징 재점검: 2026-07-21
 관찰 출처: 로그인하지 않은 공개 `https://stock.naver.com/` 페이지와 Next.js chunk  
 기본 호스트: `https://stock.naver.com`
 
 네이버증권 내부 API는 미문서화 상태이며 예고 없이 바뀔 수 있습니다. 이 카탈로그는 정답이 아니라 관찰 기록입니다. 운영에 의존하기 전에 현재 공개 페이지 트래픽, Next.js chunk, 소량 read-only 요청으로 다시 확인합니다.
 
-이 카탈로그는 레거시 `finance.naver.com` HTML 페이지를 의도적으로 제외합니다. 구버전 네이버 증권 페이지가 필요하면 [dd3ok/naverfinance-api-skills](https://github.com/dd3ok/naverfinance-api-skills)를 참고해 주세요. 이 카탈로그에는 `stock.naver.com` 페이지 또는 상대 `stock.naver.com/api/...` 호출에서 확인되는 엔드포인트만 추가합니다.
+이 카탈로그에는 `stock.naver.com` 페이지 또는 상대 `stock.naver.com/api/...` 호출에서 확인되는 엔드포인트만 추가합니다. 제한된 WiseReport v3와 레거시 조건검색은 별도 [외부 공개 소스 문서](external-sources.md)에서 관리합니다.
 
 ## 목차
 
@@ -35,21 +35,23 @@
 
 ## 페이지 점검 메모
 
-2026-04-27 재점검에서는 `https://stock.naver.com/` 루트 HTML과 루트가 로드하는 Next.js chunk 58개에서 route/API 문자열을 추출하고, 후보 route를 작은 직접 요청으로 확인했습니다. 2026-07-20에는 국내 종목, 국내 시장, ETF, 투자자 동향, 시장지표, 가상자산, 뉴스, 리서치, 토론의 공개 page route 10개와 중복 제거한 chunk 123개를 정적으로 대조했습니다. 변경이 확인된 리서치와 ETF 경로만 소량 직접 요청했습니다. `robots.txt`는 `Disallow: /`이고 sitemap은 404라서 대량 크롤링은 하지 않습니다.
+2026-04-27 재점검에서는 `https://stock.naver.com/` 루트 HTML과 루트가 로드하는 Next.js chunk 58개에서 route/API 문자열을 추출하고, 후보 route를 작은 직접 요청으로 확인했습니다. 2026-07-20에는 국내 종목, 국내 시장, ETF, 투자자 동향, 시장지표, 가상자산, 뉴스, 리서치, 토론의 공개 page route 10개와 중복 제거한 chunk 123개를 정적으로 대조했습니다. 2026-07-21에는 로그인하지 않은 in-app 브라우저에서 국내 주식 20개·ETF 11개·ETN 8개 목록 탭, 종목 상세 17개 하위 탭, 뉴스포커스 5개 탭, 글로벌 지표 8개 탭과 주요 부모 route를 직접 이동해 hydration 후 화면·redirect·빈 상태를 확인하고, 페이징 API를 `startIdx`/`page` 구간으로 소량 호출했습니다. `robots.txt`는 `Disallow: /`이고 sitemap은 404라서 대량 크롤링은 하지 않습니다.
 
 확인된 주요 페이지 route:
 
 | Route | 결과 | 메모 |
 | --- | --- | --- |
 | `/market` | 307 | 2026-07-17 무쿠키 직접 요청은 `/market/stock/kr/`로 이동했고, 일부 브라우저 세션에서는 `/market/stock/usa`도 관찰됨. 상태 의존 기본값 대신 목적 route를 직접 지정 |
+| `/market/stock` | 307 | `/market/stock/kr`로 이동 |
 | `/market/stock/kr` | 200 | 국내 주식 메인 |
-| `/market/stock/kr/stocklist/{top\|priceTop\|trading}` | 200 | 국내 종목 목록 탭 |
+| `/market/stock/kr/stocklist` | 307 | `/market/stock/kr/stocklist/priceTop`으로 이동 |
+| `/market/stock/kr/stocklist/{capitalization\|priceTop\|top\|upper\|flat\|lower\|trading\|quantHigh\|quantLow\|high52week\|low52week\|dividend\|new\|konex\|foreignHold\|management\|tradingHalt\|investmentAlert\|investmentWarning\|investmentRisk}` | 200 | 현재 국내 주식 UI에서 확인한 20개 목록 탭. 표는 기본 100행을 렌더링하고 `목록의 마지막입니다` sentinel로 끝나며, API는 `startIdx`·`pageSize`를 사용 |
 | `/market/stock/kr/{industry\|theme\|groups}` | 307 | 각각 `/1`로 이동 |
 | `/market/stock/kr/{industry\|theme\|groups}/1` | 200 | path 숫자는 현재 랭킹 순번이며 API category `no`와 다를 수 있음 |
 | `/market/stock/kr/etf` | 307 | `/market/stock/kr/etf/priceTop?etfListEntry=1`로 이동 |
-| `/market/stock/kr/etf/{priceTop\|trading}` | 200 | 국내 ETF 목록 탭 |
+| `/market/stock/kr/etf/{capitalization\|priceTop\|return1m\|return3m\|return6m\|upper\|lower\|trading\|quantHigh\|quantLow\|new}` | 200 | 현재 국내 ETF UI에서 확인한 11개 목록 탭 |
 | `/market/stock/kr/etn` | 307 | `/market/stock/kr/etn/priceTop?etnListEntry=1`로 이동 |
-| `/market/stock/kr/etn/{priceTop\|trading}` | 200 | 국내 ETN 목록 탭 |
+| `/market/stock/kr/etn/{capitalization\|priceTop\|upper\|lower\|trading\|quantHigh\|quantLow\|new}` | 200 | 현재 국내 ETN UI에서 확인한 8개 목록 탭 |
 | `/market/stock/kr/ipo` | 200 | IPO 페이지. `/market/stock/kr/ipo/progress`는 404 |
 | `/market/stock/kr/deposit` | 200 | 예탁금 페이지 |
 | `/market/stock/kr/trend/{foreigner\|organization\|program\|trader}` | 200 | 투자자 동향 페이지 |
@@ -63,6 +65,7 @@
 | `/market/marketindex/exchangeRate/exchange` | 200 | 환율 탭. `/exchangeRate`는 이 경로로 이동 |
 | `/market/marketindex/bondAndInterest/{bond\|domesticInterest\|standardInterest}` | 200 | 채권/금리 탭 |
 | `/market/stock/global`, `/market/stock/usa` | 200 | 해외 주식 메인 |
+| `/market/stock/usa/stocklist` | 307 | `/market/stock/usa/stocklist/priceTop`으로 이동 |
 | `/market/stock/usa/stocklist/{top\|priceTop\|up\|down\|marketValue\|dividend}` | 200 | 미국 종목 정렬 탭 |
 | `/market/stock/usa/etf` | 307 | `/market/stock/usa/etf/priceTop`으로 이동 |
 | `/market/stock/usa/industry/{industryCode}` | 200 | 미국 업종 상세와 구성 종목 |
@@ -71,6 +74,7 @@
 | `/market/stock/global/industry/{chn\|hkg\|jpn\|vnm}/{industryCode}` | 200 | 국가별 업종 상세와 구성 종목 |
 | `/domestic/stock/{itemCode}` | 307 | `/price`로 이동 |
 | `/domestic/stock/{itemCode}/{price\|news\|notice\|ir\|discussion\|research\|shortTrade\|investmentinfo}` | 200 | 종목 상세 하위 페이지 |
+| `/domestic/stock/{itemCode}/info` | 307 | `/info/company`로 이동 |
 | `/domestic/stock/{itemCode}/info/{company\|overview\|financial\|investment\|consensus\|industry\|sector\|share\|esg}` | 200 | 종목 정보 탭 page route |
 | `/domestic/stock/{itemCode}/info/summary` | 200 | ETF 정보 요약 route |
 | `/news`, `/news/flashnews`, `/news/mainnews`, `/news/ranknews`, `/news/section`, `/news/worldnews`, `/notice` | 200 | 뉴스/뉴스포커스/해외뉴스/공지 페이지 |
@@ -125,6 +129,7 @@
 | 실시간 폴링 현재가 | `script-backed` | GET | `/api/polling/domestic/stock?itemCodes={codes}` |
 | NXT 폴링 현재가 | `observed` | GET | `/api/polling/domestic/NXT/stock?itemCodes={codes}` |
 | 국내 시장 기본 종목 목록 | `script-backed` | GET | `/api/domestic/market/stock/default?tradeType=KRX&marketType=ALL&orderType=marketSum&startIdx=0&pageSize=20` |
+| 국내 시장 의미 기반 랭킹 | `script-backed` | GET | 같은 `default` endpoint를 `market_stock.py ranking {kind}`로 호출합니다. 현재 UI chip과 검증된 enum만 노출합니다. |
 | 배당 목록 | `script-backed` | GET | `/api/domestic/market/stock/dividend?tradeType=KRX&marketType=ALL&dividend=dividendRate&startIdx=0&pageSize=20` |
 | 검색 인기 | `script-backed` | GET | `/api/domestic/market/searchTop?nationType=KOR&startIdx=0&pageSize=20` |
 | IPO 진행 | `script-backed` | GET | `/api/domestic/market/ipo/progress?IpoProgressType=LISTING&startIdx=0&pageSize=20` |
@@ -169,13 +174,19 @@
 | AI 시장 브리핑 목록 | `script-backed` | GET | `/api/securityAi/marketBriefing?date={yyyy-MM-dd}&size=20&pageToken={token}` |
 | AI 시장 브리핑 상세 | `script-backed` | GET | `/api/securityAi/marketBriefing/{briefingId}` |
 
-관찰된 종목 목록 `orderType` 값에는 `marketSum`, `accAmount`, `searchTop`, `up`, `steady`, `down`, `quantTop`, 그리고 `investmentCaution`, `investmentWarning`, `investmentRisk` 같은 투자 경고 관련 값이 포함됩니다.
+2026-07-21 현재 종목 목록 UI에서 확인하고 live 요청으로 검증한 의미 매핑은 `market-cap -> marketSum`, `rise -> up`, `flat -> flat`, `fall -> down`, `volume -> quantTop`, `volume-surge -> upperQuantTop`, `volume-drop -> lowerQuantTop`, `trading-value -> priceTop`, `new-stock -> newStock`, `foreign-hold -> frgnRate`, `52-week-high -> high52week`, `52-week-low -> low52week`, `management -> statusTag`, `trading-halt -> tradeStopYn`입니다.
+
+투자주의·경고·위험은 독립 `orderType`이 아닙니다. 반드시 `orderType=marketAlertType`과 `alertType=01`, `02`, `03`을 조합합니다. 문자열 `investmentWarning` 등을 `orderType`이나 `alertType`에 넣으면 400 또는 필터 무시가 발생할 수 있습니다. `market_stock.py ranking`은 이 조합을 대신 구성하고, 저수준 `default` 명령도 모호한 조합을 거절합니다.
+
+KONEX 화면은 `marketType=KONEX&orderType=quantTop&tradeType=KRX` 조합만 사용합니다. 서버가 KONEX와 다른 `orderType` 조합을 오류 없이 받아도 KOSPI 목록을 반환하는 사례가 있으므로 지원으로 간주하지 않습니다.
+
+NXT 화면은 `marketSum`, `up`, `down`, `quantTop`, `searchTop`만 사용합니다. `market_stock.py`는 NXT와 그 밖의 랭킹 조합을 거절해 필터가 무시된 KRX 결과를 NXT 데이터로 오인하지 않게 합니다.
 
 `stock.naver.com/market/stock/kr/{industry|theme|groups}/{rank}` 페이지의 path 값은 현재 카테고리 `no`가 아니라 화면의 랭킹 순번입니다. 먼저 list API에서 현재 카테고리 `no`를 찾은 뒤 `info`와 `stocklist`를 호출합니다. API path는 `industry`에 `upjong`, `theme`에 `theme`, `groups`에 `group`을 사용합니다. `/industry/1`의 `1`은 페이지 rank이며 실제 카테고리 `no`와 다를 수 있습니다.
 
 관찰된 카테고리 종목 목록 `orderType` 값에는 `quantTop`, `priceTop`, `up`, `down`, `marketSum`, `sales`, `operatingProfit`이 포함됩니다. UI chip alias는 `accQuant -> quantTop`, `accAmount -> priceTop`으로 매핑됩니다.
 
-2026-04-27 직접 확인에서 열렸고 2026-07-09 정적 route로 재확인한 국내 주식 메뉴 route: `/market/stock/kr/stocklist/*`, `/market/stock/kr/etf/*`, `/market/stock/kr/etn/*`, `/market/stock/kr/ipo`, `/market/stock/kr/deposit`, `/market/stock/kr/trend/{foreigner|organization|program|trader}`, 종목 상세 하위 페이지 `/domestic/stock/{itemCode}/{price|news|notice|ir|discussion|research|shortTrade|investmentinfo}`, 종목 정보 탭 `/domestic/stock/{itemCode}/info/*`와 ETF `/domestic/stock/{itemCode}/info/summary`. `/domestic/stock/{itemCode}/financial`, `/total`, `/chart`, `/analysis`, `/investment`는 직접 확인에서 404를 반환했습니다.
+2026-07-21 브라우저 직접 확인에서 국내 주식·ETF·ETN의 모든 목록 탭, 종목 상세 하위 탭, 9개 종목분석 탭, ESG, KRX 공매도 iframe이 데이터 또는 정상 외부 화면을 렌더링했습니다. `/domestic/stock/{itemCode}/info`는 `company`로 이동합니다. `/domestic/stock/{itemCode}/financial`, `/total`, `/chart`, `/analysis`, `/investment`는 직접 확인에서 404를 반환했습니다.
 
 국내 ETF `listingType` alias는 UI chunk에서 `tradingValueDesc`, `aumDesc`, `changeRateDescUpAll`, `changeRateDescDownAll`, `tradingVolumeDesc`, `tradingVolumeIncreaseRateDesc`, `tradingVolumeIncreaseRateAsc`, `returnRate1mDesc`, `returnRate3mDesc`, `returnRate6mDesc`, `marketCapDesc`, `listedAtDesc`가 관찰되었습니다.
 
@@ -262,7 +273,7 @@
 
 ## 펀드 API 후보
 
-2026-07-17 현재 `/fund`와 `/domestic/fund` page route는 모두 404입니다. 공통 정적 chunk에는 아래 helper 문자열이 남아 있지만, 로드 가능한 펀드 화면과 실제 UI 요청이 없어 `sort`, `term`, `fundCode`, theme enum을 검증할 수 없습니다. 따라서 요청 helper도 `/api/fund/` family를 broad allowlist하지 않고, 스크립트 명령을 제공하지 않습니다.
+2026-07-21 현재 `/fund`, `/domestic/fund`, `/market/fund` page route는 모두 404입니다. 공통 정적 chunk의 `/api/fund/funds`는 기본 요청에서 200과 `{funds, sort, page, size, totalCount, hasNext}`를 반환하지만, 로드 가능한 펀드 화면이 없어 `sort`, `term`, `fundCode`, theme enum과 상세 endpoint를 검증할 수 없습니다. 따라서 `needs-recheck`를 유지하고 `/api/fund/` family broad allowlist나 스크립트 명령은 제공하지 않습니다.
 
 | 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
@@ -333,7 +344,7 @@
 | 종목 리포트 목록 | `script-backed` | GET | `/api/stockSecurity/researches/v2/company?itemCodes={itemCode}&index=0&size=30` |
 | 여러 종목별 최근 리포트 | `script-backed` | GET | `/api/stockSecurity/researches/v2/company/by-items?itemCodes={code}&size=3`. `itemCodes`는 반복 query입니다. |
 | 상세 페이지 인접 리포트 | `observed` | GET | `/api/stockSecurity/researches/v2/{researchType}/{researchId}/detail-page?itemCode={itemCode}&size=1` |
-| 주간 인기 | `script-backed` | GET | `/api/stockSecurity/researches/v2/weekly-hot?startDate={yyyy-MM-dd}&size=10` |
+| 주간 인기 | `script-backed` | GET | `/api/stockSecurity/researches/v2/weekly-hot?startDate={yyyy-MM-dd}&size=10`. 2026-07-21 직접 확인에서 `startDate` 생략은 400, 날짜 포함은 200이며 `research.py`는 생략 시 오늘 날짜를 넣습니다. |
 | 카테고리별 최신 | `script-backed` | GET | `/api/stockSecurity/researches/v2/latestResearch?size=3` |
 | 목표주가 변경 | `script-backed` | GET | `/api/stockSecurity/researches/v2/company/goal-price-changed?direction={up\|down}&size=10` |
 | 분석 포커스 | `script-backed` | GET | `/api/stockSecurity/researches/v2/analysis-focus` |
@@ -383,5 +394,5 @@ CLI 카테고리 enum은 `INVEST`, `MARKET`, `INDUSTRY`, `COMPANY`, `ECONOMY`, `
 | `/api/community/profile/users/*` mutation-like routes | `excluded` | 사용자 프로필과 이미지 워크플로. |
 | `/api/domestic/home/recommend-aggregate` | `excluded` | 현재 웹 번들은 credentials 포함 POST와 연령/자산 범위 개인화 필드를 사용합니다. |
 | `/api/autocomplete/search/recent`, `/api/personal/*/recent/products` | `excluded` | 최근 검색·최근 상품 개인 상태. |
-| `https://finance.naver.com/*` | `excluded` | 이 스킬 범위인 `stock.naver.com` 밖의 구버전 HTML 페이지입니다. 해당 범위는 [dd3ok/naverfinance-api-skills](https://github.com/dd3ok/naverfinance-api-skills)를 참고해 주세요. |
+| allowlist 밖의 `https://finance.naver.com/*`와 WiseReport URL | `excluded` | 외부 소스는 [external-sources.md](external-sources.md)의 고정 host/path/query만 허용합니다. 전체 레거시 비교는 [dd3ok/naverfinance-api-skill](https://github.com/dd3ok/naverfinance-api-skill)을 참고합니다. |
 | 텔레메트리, 광고, 정적 chunk, 폰트, 이미지 | `excluded` | 주식 정보 API가 아닙니다. |

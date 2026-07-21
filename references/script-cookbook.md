@@ -6,7 +6,9 @@
 
 - `scripts/stock_summary.py`: 국내 종목 상세, 폴링 현재가, 시장 구분, 컨센서스, 선택적 업종 관련 종목 조회.
 - `scripts/stock_detail_pages.py`: 종목 상세의 가격표, 호가, 차트 가격, 뉴스, 공시, IR 목록/상세, 리서치, 투자자 통계, finance v1 메뉴/ESG, ETF 상세 내부 데이터 조회.
-- `scripts/market_stock.py`: 국내 종목 랭킹/목록, 배당 랭킹, 검색 인기, IPO 진행, 업종/테마 랭킹 조회.
+- `scripts/market_stock.py`: 국내 종목 의미 기반 랭킹/목록, KONEX 거래량, 관리·정지·투자경고, 배당, 검색 인기, IPO, 업종/테마 랭킹 조회.
+- `scripts/wisereport.py`: 현재 종목 페이지가 연결하는 WiseReport v3 기업분석 8종의 제한된 표 조회.
+- `scripts/legacy_screeners.py`: 신버전에 없는 레거시 기술적 조건검색 5종과 가격 위치 2종 조회.
 - `scripts/foreign_stock.py`: 해외 국가별 주식/업종, 재무·종목별 뉴스, 미국 ETF, 해외 주식·지수 상세/시세와 worldstock 폴링 조회.
 - `scripts/category_detail.py`: 업종/테마/그룹사 랭킹 목록, 상세 정보, 구성 종목 조회.
 - `scripts/domestic_etf.py`: 국내 ETF 목록, ETF 테마, ETF 레버리지 유형 메타데이터, ETN 목록 조회.
@@ -42,8 +44,13 @@ python3 scripts/stock_detail_pages.py finance-menu --code 005930
 python3 scripts/stock_detail_pages.py finance-esg --code 005930
 python3 scripts/stock_detail_pages.py etf-detail --code 069500 base
 python3 scripts/stock_detail_pages.py etf-detail --code 069500 component --page-size 10
+python3 scripts/market_stock.py ranking market-cap --page-size 10
+python3 scripts/market_stock.py ranking market-cap --market-type KOSPI --page-size 20
+python3 scripts/market_stock.py ranking volume --market-type KONEX --page-size 20
+python3 scripts/market_stock.py ranking management --page-size 10
+python3 scripts/market_stock.py ranking investment-warning --page-size 10
+# 저수준 호환/조사용. 일반 조회에는 위 ranking 명령을 우선 사용합니다.
 python3 scripts/market_stock.py default --order-type marketSum --page-size 10
-python3 scripts/market_stock.py default --order-type marketSum --market-type KOSPI --page-size 20
 python3 scripts/market_stock.py search-top --page-size 10
 python3 scripts/market_stock.py dividend --page-size 10
 python3 scripts/market_stock.py ipo --ipo-progress-type LISTING --page-size 10
@@ -63,6 +70,20 @@ python3 scripts/market_trend.py trend-daily --bizdate "$TODAY" --page-size 10
 python3 scripts/market_trend.py trend-time-chart --bizdate "$TODAY" --start-date "$TODAY" --end-date "$TODAY"
 python3 scripts/market_trend.py trend-program --bizdate "$TODAY" --page-size 10
 python3 scripts/market_trend.py trend-program-chart --bizdate "$TODAY" --start-date "$TODAY" --end-date "$TODAY"
+```
+
+## 외부 기업분석과 레거시 조건검색
+
+현재 JSON API와 중복되는 시세·뉴스·리서치에는 아래 HTML 스크립트를 사용하지 않습니다. 출처와 허용 범위는 [external-sources.md](external-sources.md)를 먼저 확인합니다.
+
+```bash
+python3 scripts/wisereport.py --code 005930 --kind status --max-tables 10 --max-rows 30
+python3 scripts/wisereport.py --code 005930 --kind consensus
+python3 scripts/wisereport.py --code 005930 --kind shareholders
+python3 scripts/legacy_screeners.py technical golden-cross --page 1 --limit 20
+python3 scripts/legacy_screeners.py technical disparity-overheat --page 1 --limit 20
+python3 scripts/legacy_screeners.py price-position low-up --market KOSDAQ --page 1 --limit 20
+python3 scripts/legacy_screeners.py price-position high-down --market KOSPI --page 1 --limit 20
 ```
 
 ## 해외 주식과 미국 ETF
@@ -166,7 +187,7 @@ python3 scripts/notices.py detail --notice-id 147
 python3 scripts/research.py category --category COMPANY --page-size 10
 python3 scripts/research.py category --category COMPANY --item-code 005930 --page-size 10
 python3 scripts/research.py home
-python3 scripts/research.py weekly-hot --size 10
+python3 scripts/research.py weekly-hot --size 10  # startDate 생략 시 오늘 날짜 사용
 python3 scripts/research.py ranking --ranking-type SEARCH_TOP --selected-rank 1
 python3 scripts/research.py latest --size 3
 python3 scripts/research.py industry-research --size 10
