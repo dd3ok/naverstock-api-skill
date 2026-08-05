@@ -115,6 +115,11 @@ def fetch_price(args: argparse.Namespace) -> Any:
     return request_json(build_path(f"/api/coin/price/{args.ticker}", {"excludeExchange": args.exclude_exchange}))
 
 
+def fetch_price_change(args: argparse.Namespace) -> object:
+    """Fetch the detail page's observed period-return rows."""
+    return request_json(f"/api/coin/priceChange/{args.market}/{args.ticker}")
+
+
 def fetch_polling(args: argparse.Namespace) -> Any:
     return request_json(build_path("/api/polling/coin/price", {"fqnfTickers": args.fqnf_tickers}))
 
@@ -343,6 +348,18 @@ def main() -> None:
     price.add_argument("--exclude-exchange", choices=["UPBIT", "BITHUMB"])
     price.add_argument("--output")
     price.set_defaults(func=fetch_price)
+
+    price_change = sub.add_parser(
+        "price-change", help="Crypto returns for periods shown on the detail page",
+    )
+    price_change.add_argument(
+        "--market", choices=["UPBIT", "BITHUMB"], default="UPBIT",
+    )
+    price_change.add_argument(
+        "--ticker", type=_ticker, default="BTC", help="Example: BTC",
+    )
+    price_change.add_argument("--output")
+    price_change.set_defaults(func=fetch_price_change)
 
     polling = sub.add_parser("polling", help="Crypto polling prices")
     polling.add_argument("--fqnf-tickers", type=_fqnf_tickers, required=True, help="Example: BTC_KRW_UPBIT")

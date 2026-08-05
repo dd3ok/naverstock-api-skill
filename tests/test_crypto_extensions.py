@@ -14,6 +14,15 @@ import crypto  # noqa: E402
 
 
 class CryptoExtensionTests(unittest.TestCase):
+    def test_price_change_uses_current_path_order(self) -> None:
+        """The current endpoint places exchange before the plain ticker."""
+        args = argparse.Namespace(market="UPBIT", ticker="BTC")
+
+        with patch.object(crypto, "request_json", return_value=[]) as request_json:
+            crypto.fetch_price_change(args)
+
+        request_json.assert_called_once_with("/api/coin/priceChange/UPBIT/BTC")
+
     def test_daily_candles_use_current_days_endpoint(self) -> None:
         args = argparse.Namespace(
             market="UPBIT",
