@@ -17,6 +17,7 @@ class SkillPackageTests(unittest.TestCase):
         description = re.search(r"(?m)^description: (.+)$", frontmatter)
         self.assertIsNotNone(description)
         self.assertLessEqual(len(description.group(1)), 1024)
+        self.assertTrue(description.group(1).startswith("Inspects, "))
         self.assertIn("네이버증권", description.group(1))
         self.assertIn("npay증권", description.group(1))
         self.assertIn("WiseReport v3", description.group(1))
@@ -24,6 +25,18 @@ class SkillPackageTests(unittest.TestCase):
         metadata = (ROOT / "agents" / "openai.yaml").read_text(encoding="utf-8")
         self.assertIn('display_name: "네이버 증권 Web API"', metadata)
         self.assertIn("$naverstock-web-api", metadata)
+
+    def test_references_are_directly_routed_and_long_docs_have_toc(self) -> None:
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        references = sorted((ROOT / "references").glob("*.md"))
+        self.assertGreaterEqual(len(references), 5)
+
+        for path in references:
+            relative = path.relative_to(ROOT).as_posix()
+            self.assertIn(f"]({relative})", skill, relative)
+            text = path.read_text(encoding="utf-8")
+            if len(text.splitlines()) > 100:
+                self.assertRegex(text, r"(?m)^## (목차|Contents)$", relative)
 
     def test_every_script_routed_from_skill_exists(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
