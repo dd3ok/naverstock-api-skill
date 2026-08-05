@@ -6,6 +6,7 @@
 - 검증 오류는 `detailCode`와 `message`를 반환하는 경우가 많습니다. 스크립트는 HTTP 상태만으로 충분하지 않을 때 이 값을 실패로 처리합니다.
 - 국내 종목 상세 필드는 `itemcode`, `itemname`, `nowPrice`, `prevChangeRate`, `marketSum`처럼 기존 lowercase 키를 사용합니다.
 - 폴링 엔드포인트는 `{ "pollingInterval": ..., "datas": [...] }` 형태를 반환합니다.
+- 공개 가격 갱신은 현재 `/api/polling/*` REST 응답을 사용합니다. 로그인 보유종목 refresh용 Socket.IO는 공개 시세 transport가 아니며, 공개 증권 SSE endpoint도 확인되지 않았습니다.
 - 리서치 v2 카테고리 응답은 `{ "hasNext": ..., "totalCount": ..., "items": [...] }` 형태를 반환합니다. `index`는 0부터 증가합니다.
 - 리서치 주간 인기 `/api/stockSecurity/researches/v2/weekly-hot`은 현재 `startDate`가 필수입니다. 생략하면 400이므로 `research.py`는 명시값이 없을 때 오늘 날짜를 넣습니다.
 - `research.py home`은 각 섹션을 `{ "status": "ok", "data": ... }` 또는 `{ "status": "unavailable", "error": ... }`로 감쌉니다. `partial: true`는 일부 API 실패를 뜻하며 자료가 없다는 뜻이 아닙니다.
@@ -53,6 +54,9 @@
 - `/market/stock/kr/{industry|theme|groups}/{rank}` route의 path 값은 카테고리 ID가 아니라 화면 랭킹 순번입니다. `info` 또는 `stocklist` 호출 전에 `/api/domestic/market/{upjong|theme|group}/list`로 현재 카테고리 `no`를 찾아야 합니다.
 - 종목 공시/IR 엔드포인트는 `startIdx`를 사용하고, 종목 뉴스는 `page`를 사용합니다. 상세 하위 페이지 전체에 하나의 페이징 방식을 가정하지 않습니다.
 - 가격 탭 엔드포인트는 페이징 방식이 섞여 있습니다. `siseDay`는 `pageSize`와 선택적 `bizdate`, `siseTick`과 투자자 `trend`는 `startIdx`와 `pageSize`를 사용합니다.
+- `/api/domestic/market/trend/daily`와 `/api/domestic/market/trendDeposit`은 화면의 1·2페이지가 각각 `startIdx=0`, `startIdx=1`을 사용하므로 여기서 `startIdx`는 row offset이 아니라 0-based page index입니다.
+- 리서치 v2의 `index`는 0-based row offset입니다. `size=15`의 다음 묶음은 `index=15`이며 `index=1`이 아닙니다. 뉴스의 `page`는 1-based입니다. 화면 route의 `?page=`가 내부 API pagination을 항상 바꾸지는 않으므로 네트워크 요청을 기준으로 합니다.
+- 가상자산 기간별 등락률 `/api/coin/priceChange/{market}/{ticker}`는 `1d`, `1w`, `1M`, `3M`, `6M`, `1y`, `3y`, `5y`, `10y` 행을 반환합니다. 각 행의 `baseDate`와 `basePrice`를 함께 보존하고 수익률만 현재가 기준으로 재계산하지 않습니다.
 - `/api/myasset/resources/invest/*` 엔드포인트는 종목 상세 페이지에서 관찰되었고 검사 당시 인증 없이 집계 투자자 분포를 반환했습니다. 다만 `/api/personal/users/*` 아래 계정/보유종목 엔드포인트는 계속 제외합니다.
 - 종목토론 원본 응답에는 사용자 생성 콘텐츠와 작성자 프로필·viewer 식별자, URL, 연락처가 포함될 수 있습니다. `discussion.py`는 번들 출력에서 profile/account/viewer 식별자와 URL·이메일·전화번호를 제거하며, 남은 nickname과 본문도 신뢰할 수 없는 공개 표시 정보로만 취급하고 개인 식별에 사용하지 않습니다.
 - 종목토론 `/posts/by-item`은 `discussionType`, `isHolderOnly`, `excludesItemNews`, `isItemNewsOnly`를 함께 보내야 합니다. `/stats/by-items`는 `startDate`와 `domesticCodes` 또는 `foreignCodes`를 사용하며, legacy `itemCodes`만 보내는 호출은 실패할 수 있습니다.
