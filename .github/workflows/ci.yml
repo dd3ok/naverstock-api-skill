@@ -46,7 +46,7 @@ jobs:
       - name: Run tests
         run: python -m unittest discover -s tests
       - name: Lint scripts and tests
-        run: ruff check scripts tests
+        run: ruff check --isolated --select E4,E7,E9,F scripts tests
       - name: Smoke-test lightweight skill layout
         shell: bash
         run: |

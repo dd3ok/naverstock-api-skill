@@ -50,6 +50,7 @@ OAuth 토큰, 쿠키, 계좌 정보, 로그인 세션은 필요하지 않으며 
 
 - 공개 `stock.naver.com/api/...` 엔드포인트 카탈로그
 - 실제 탭 이동과 네트워크 호출을 다시 확인하는 캡처 절차
+- REST polling, WebSocket, SSE를 구분하고 계정 전용 transport를 제외하는 판별 기준
 - `script-backed`, `observed`, `needs-recheck`, `excluded` 상태 구분
 - 동일 출처 allowlist, 입력 상한, 개인정보 제거, 403/429 즉시 중단 규칙
 
@@ -61,6 +62,7 @@ OAuth 토큰, 쿠키, 계좌 정보, 로그인 세션은 필요하지 않으며 
 - WiseReport와 레거시 조건검색은 별도 공개 HTML 소스입니다. 표 병합 셀을 추정하지 않으며 allowlist 밖의 HTML을 자동 fallback으로 사용하지 않습니다.
 - 국내 종목의 공매도 탭은 `stock.naver.com` JSON API가 아니라 한국거래소 `data.krx.co.kr` iframe입니다. 이 저장소는 해당 화면을 내부 API처럼 감싸지 않습니다.
 - 2026-07-21 기준 `/fund`, `/domestic/fund`, `/market/fund` 화면은 404입니다. `/api/fund/funds` 기본 요청은 200이지만 사용자 화면과 enum이 확인되지 않아 펀드 helper는 `needs-recheck`로만 기록하고 스크립트로 노출하지 않습니다.
+- 2026-08-04 공개 화면의 실시간 시세는 `/api/polling/*` REST 요청으로 갱신됐습니다. 로그인 보유종목 새로고침용 Socket.IO WebSocket은 개인 세션 API이므로 제외하며, 공개 증권 데이터용 SSE는 확인되지 않았습니다.
 - 데이터는 정보 제공용이며 정확성·실시간성·투자 적합성을 보장하지 않습니다. 중요한 사용 전에는 현재 공개 페이지 트래픽으로 다시 확인하세요.
 
 ## 안정성 및 버전 정책
@@ -76,13 +78,20 @@ OAuth 토큰, 쿠키, 계좌 정보, 로그인 세션은 필요하지 않으며 
 
 `v1.0.0` 태그는 [유지보수 체크리스트](references/maintenance-checklist.md)의 테스트·안전·문서·설치 검증을 통과한 변경이 `main`에 병합된 뒤 생성합니다.
 
+## 최근 업데이트
+
+- 2026-08-05: `stock.naver.com` 공개 화면의 route·탭·페이징·네트워크 요청을 다시 점검해 코인 기간별 등락률과 공개 `/api/polling/*` REST 계열을 반영했습니다.
+- 로그인 보유종목 Socket.IO와 공개 URL이 확인되지 않은 SSE는 지원 범위에서 제외하고, REST·WebSocket·SSE 경계를 카탈로그와 안전 규칙에 명시했습니다.
+- WiseReport v3 기업분석과 레거시 전용 조건검색은 신버전에 선별 통합했으며, 별도 레거시 저장소는 호환·비교용으로 구분했습니다.
+- OpenAI Codex, Claude Code, Gemini CLI, Antigravity의 스킬 발견·메타데이터·참조 문서 지침을 다시 대조했습니다.
+
 ## 설치
 
 스킬 디렉터리명은 `SKILL.md`의 `name: naverstock-web-api`와 맞추는 것을 권장합니다.
 
 ### Codex
 
-Codex는 개인 `$HOME/.agents/skills`와 프로젝트 `.agents/skills`에서 스킬을 탐색합니다. 자세한 동작은 [Codex의 Build skills 문서](https://learn.chatgpt.com/docs/build-skills.md)를 참고하세요.
+Codex는 개인 `$HOME/.agents/skills`와 프로젝트 `.agents/skills`에서 스킬을 탐색합니다. 자세한 동작은 [Codex의 Build skills 문서](https://learn.chatgpt.com/docs/build-skills)를 참고하세요.
 
 공개 GitHub URL로 설치를 요청할 수도 있습니다.
 
@@ -121,6 +130,27 @@ git clone --depth 1 https://github.com/dd3ok/naverstock-api-skill.git ~/.claude/
 mkdir -p .claude/skills
 git clone --depth 1 https://github.com/dd3ok/naverstock-api-skill.git .claude/skills/naverstock-web-api
 ```
+
+### Gemini CLI
+
+Gemini CLI는 개인 `~/.gemini/skills` 또는 `~/.agents/skills`, 프로젝트 `.gemini/skills` 또는 `.agents/skills`에서 Agent Skill을 탐색합니다. 설치·우선순위·관리 명령은 [Gemini CLI Agent Skills 문서](https://geminicli.com/docs/cli/using-agent-skills/)를 참고하세요.
+
+GitHub 저장소 설치:
+
+```bash
+gemini skills install https://github.com/dd3ok/naverstock-api-skill.git
+# 현재 프로젝트에만 설치하려면:
+gemini skills install https://github.com/dd3ok/naverstock-api-skill.git --scope workspace
+```
+
+이미 clone한 저장소를 개발 중이라면 저장소 루트에서 연결합니다.
+
+```bash
+gemini skills link .
+```
+
+설치 후 `/skills list`로 발견 여부를 확인하고, 파일을 수정한 뒤에는 `/skills reload`로 다시 불러옵니다.
+프로젝트 경로의 스킬이 보이지 않으면 해당 workspace를 `/trust`로 신뢰한 뒤 세션을 다시 시작합니다.
 
 ### Antigravity CLI
 
@@ -191,6 +221,7 @@ python3 scripts/search.py autocomplete --query 삼성전자
 
 # 가상자산·콘텐츠
 python3 scripts/crypto.py rank --market UPBIT --sort-type marketValue --page-size 10
+python3 scripts/crypto.py price-change --market UPBIT --ticker BTC
 python3 scripts/crypto.py coin-briefing --ticker BTC --exchange-type UPBIT
 python3 scripts/news.py list --category mainnews --page-size 10
 python3 scripts/notices.py list --size 5

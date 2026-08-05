@@ -2,6 +2,17 @@
 
 명령은 스킬 루트에서 실행합니다.
 
+## 목차
+
+- [스크립트 개요](#스크립트-개요)
+- [국내 주식](#국내-주식)
+- [외부 기업분석과 레거시 조건검색](#외부-기업분석과-레거시-조건검색)
+- [해외 주식과 미국 ETF](#해외-주식과-미국-etf)
+- [홈과 통합 검색](#홈과-통합-검색)
+- [시장 지수와 지표](#시장-지수와-지표)
+- [가상자산](#가상자산)
+- [뉴스와 리서치](#뉴스와-리서치)
+
 ## 스크립트 개요
 
 - `scripts/stock_summary.py`: 국내 종목 상세, 폴링 현재가, 시장 구분, 컨센서스, 선택적 업종 관련 종목 조회.
@@ -14,7 +25,7 @@
 - `scripts/domestic_etf.py`: 국내 ETF 목록, ETF 테마, ETF 레버리지 유형 메타데이터, ETN 목록 조회.
 - `scripts/market_trend.py`: 투자자 예탁금 목록/차트, 시장 집계 투자자 동향, 외국인/기관/프로그램 동향 조회.
 - `scripts/marketindex.py`: 주요 지수, 국내·해외 차트, 시장지표, 환율, 은행 환율 차트, KRX 금과 시장지표 폴링 조회.
-- `scripts/crypto.py`: 업비트/빗썸 랭킹, 폴링 가격, 분봉·일봉, 비교 차트, 코인 콘텐츠, 카테고리, AI 브리핑 조회.
+- `scripts/crypto.py`: 업비트/빗썸 랭킹, 기간별 등락률, 폴링 가격, 분봉·일봉, 비교 차트, 코인 콘텐츠, 카테고리, AI 브리핑 조회.
 - `scripts/home.py`: 홈 시장 상태, 해외 거래시간, 시장 브리핑, 공개 콘텐츠, 통합 지표와 주목 ETF 조회.
 - `scripts/search.py`: 공개 상품 자동완성과 전체 검색. 최근 검색과 개인 기록은 조회하지 않음.
 - `scripts/news.py`: 시장 뉴스 목록, 뉴스포커스 하위 탭, 키워드 검색, 해외뉴스 목록/상세 조회.
@@ -148,6 +159,7 @@ python3 scripts/crypto.py rank --market UPBIT --sort-type marketValue --page-siz
 python3 scripts/crypto.py rank --market UPBIT --sort-type marketValue --page-size 20
 python3 scripts/crypto.py majors --market UPBIT
 python3 scripts/crypto.py price --market UPBIT --ticker BTC
+python3 scripts/crypto.py price-change --market UPBIT --ticker BTC
 python3 scripts/crypto.py price --ticker BTC --exclude-exchange BITHUMB
 python3 scripts/crypto.py polling --fqnf-tickers BTC_KRW_UPBIT,ETH_KRW_UPBIT
 python3 scripts/crypto.py candles --market UPBIT --ticker BTC --unit 1 --from-time 2026-04-27T09:00:00 --to-time 2026-04-27T09:40:00
