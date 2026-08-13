@@ -8,7 +8,7 @@ Use this checklist when changing endpoints, scripts, safety rules, or vendor-fac
    For WiseReport or legacy HTML, also verify [external-sources.md](external-sources.md), exact host/path/query allowlists, response-size cap, redirect rejection, and current-API non-duplication.
    For WebSocket/SSE-looking code, distinguish a loaded client library from an observed public data connection. Never connect to or document session-issued personal/holding channels as public market data.
 4. Update focused tests under `tests/`, including [../tests/test_cli_contracts.py](../tests/test_cli_contracts.py), when a CLI command, endpoint path, query string, method, request body, allowlist, or privacy filter changes. Add an HTTP/error-path test when changing failure handling; a mocked success response does not prove a live route still exists.
-5. Run the local checks:
+5. Run the local checks. If Ruff is unavailable, install it first with `python -m pip install ruff`:
 
    ```bash
    python -B -m unittest discover -s tests -v
@@ -30,12 +30,13 @@ Use this checklist when changing endpoints, scripts, safety rules, or vendor-fac
 8. Update README only when user-facing scope, examples, install paths, repository layout, or validation commands change.
 9. Regenerate or verify `agents/openai.yaml`; `default_prompt` must explicitly include `$naverstock-web-api`.
 10. Verify a lightweight installed copy containing only `SKILL.md`, `LICENSE`, `agents/`, `references/`, and `scripts/` can run representative `--help` commands.
-11. Before `1.0.0`, require all of the following:
+11. Before any tagged release, require all of the following:
 
     - tests, Ruff, compile, all-script help, diff check, skill validator, and install-layout smoke pass;
     - public GET/read-only POST allowlists and private/personal/mutation denials have focused tests;
     - each `scripts/*.py` entry point is routed from `SKILL.md`, each script-backed endpoint is documented once in its domain catalog, command examples live in the cookbook, user-facing setup lives in README, and UI metadata matches the skill;
     - every `needs-recheck` endpoint stays non-script-backed, and external iframe pages such as KRX short selling are documented rather than disguised as `stock.naver.com` APIs;
+    - compare the latest release tag with the release candidate; preserve the current major release's public CLI commands, options, accepted enums, defaults, and paging semantics through compatibility paths, or increment the major version and document the break in release notes;
     - a clean PR is reviewed and merged to `main` before creating the tag and release notes.
 
-12. After the gate passes on merged `main`, tag `v1.0.0` and publish concise release notes. Do not raise the public version in advance of the merged, validated commit.
+12. After the gate passes on merged `main`, create the planned semantic-version tag and publish concise release notes. Do not raise the public version in advance of the merged, validated commit.

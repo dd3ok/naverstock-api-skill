@@ -45,7 +45,7 @@ OAuth 토큰, 쿠키, 계좌 정보, 로그인 세션은 필요하지 않으며 
 - AI 시장 브리핑, 공개 숏텐츠·머니스토리, 국내·해외 주목 ETF
 - 종목·지수·시장지표·코인·IPO·펀드 상품 자동완성과 통합 검색
 - 네이버 증권 뉴스, 서비스 공지, 리서치 리포트
-- 개인정보를 제거한 읽기 전용 종목토론·시장 feed와 랭킹
+- 프로필·viewer 식별자와 URL·연락처를 제거한 읽기 전용 국내 종목·코인 Npay 토론, 코인 CMC 미러 feed, 시장 feed와 랭킹
 
 ### API 조사와 유지보수
 
@@ -68,16 +68,16 @@ OAuth 토큰, 쿠키, 계좌 정보, 로그인 세션은 필요하지 않으며 
 
 ## 안정성 및 버전 정책
 
-`v1.0.0`부터 다음 저장소 표면을 안정된 공개 계약으로 취급할 예정입니다.
+`v1.0.0`은 2026-07-17에 공개한 첫 안정 릴리스입니다. 태그가 지정된 v1 릴리스에서는 다음 저장소 표면을 안정된 공개 계약으로 취급합니다.
 
 - 스킬 이름 `naverstock-web-api`와 권장 설치 경로
 - `SKILL.md`, `scripts/`, `references/`, `agents/`를 포함한 경량 설치 레이아웃
-- 문서화된 CLI 명령과 옵션, 공개 read-only 요청만 허용하는 안전 경계
+- 공개 read-only 요청만 허용하는 안전 경계
 - Python 3.10~3.13 CI 호환성과 표준 라이브러리 기반 HTTP 실행
 
-이 정책은 저장소가 제공하는 인터페이스에 적용됩니다. 외부 네이버페이 증권 웹 API 자체는 하위 호환성 계약에 포함되지 않으며, 관찰된 변경은 [API 카탈로그](references/api-catalog.md)의 상태와 릴리스 노트에 반영합니다.
+`main`은 비공식 네이버페이 증권 화면을 재감사해 반영하는 rolling branch입니다. 다음 릴리스 전까지 CLI enum·기본값·페이징 의미가 바뀔 수 있으므로 재현 가능한 설치에는 릴리스 태그를 고정하세요. CLI 명령·옵션을 제거하거나 의미를 바꾸는 변경은 호환 경로를 유지하거나 다음 메이저 버전에 반영하고 릴리스 노트에 기록합니다.
 
-`v1.0.0` 태그는 [유지보수 체크리스트](references/maintenance-checklist.md)의 테스트·안전·문서·설치 검증을 통과한 변경이 `main`에 병합된 뒤 생성합니다.
+이 정책은 저장소가 제공하는 인터페이스에 적용됩니다. 외부 네이버페이 증권 웹 API 자체는 하위 호환성 계약에 포함되지 않으며, 관찰된 변경은 [API 카탈로그](references/api-catalog.md)의 상태와 릴리스 노트에 반영합니다. 후속 태그는 [유지보수 체크리스트](references/maintenance-checklist.md)의 테스트·안전·문서·설치·호환성 검증을 통과한 변경이 `main`에 병합된 뒤 생성합니다.
 
 ## 최근 업데이트
 
@@ -90,6 +90,8 @@ OAuth 토큰, 쿠키, 계좌 정보, 로그인 세션은 필요하지 않으며 
 ## 설치
 
 스킬 디렉터리명은 `SKILL.md`의 `name: naverstock-web-api`와 맞추는 것을 권장합니다.
+
+아래 `git clone` 예시는 최신 `main`을 설치합니다. 재현 가능한 버전이 필요하면 원하는 릴리스 태그를 `--branch <release-tag>`로 고정하세요.
 
 ### Codex
 
@@ -242,6 +244,8 @@ python3 scripts/research.py ranking --ranking-type SEARCH_TOP --selected-rank 1
 python3 scripts/discussion.py hot-home --page-size 10
 python3 scripts/discussion.py market-feed --page-size 10
 python3 scripts/discussion.py rankings --page-size 10
+python3 scripts/discussion.py item-posts --discussion-type cryptoUpbit --item-code BTC
+python3 scripts/discussion.py global-community --ticker BTC
 ```
 
 `research.py home`은 최신·랭킹·주간 인기 섹션을 독립적으로 조회합니다. 주간 인기 API의 `startDate`를 생략하면 현재 화면과 같은 7일 전 날짜를 사용합니다. 일부 엔드포인트가 실패하면 `partial: true`와 해당 섹션의 `unavailable` 오류를 출력하고, 정상 섹션 데이터는 유지합니다. HTTP 404를 빈 자료로 바꾸지는 않습니다.
@@ -299,7 +303,7 @@ naverstock-api-skill/
 | `tests/` | 요청 경로, CLI 계약, 안전·개인정보 경계를 검증하는 테스트 |
 | `.github/workflows/ci.yml` | Python 3.10~3.13 회귀·lint·설치 스모크 CI |
 
-유지보수자는 다음 명령으로 전체 검증을 재현할 수 있습니다.
+유지보수자는 Ruff가 설치된 환경에서 다음 핵심 로컬 검증을 실행할 수 있습니다. skill validator, diff 검사, 경량 설치 smoke를 포함한 전체 릴리스 게이트는 [유지보수 체크리스트](references/maintenance-checklist.md)를 따르세요.
 
 ```bash
 python3 -B -m unittest discover -s tests -v
