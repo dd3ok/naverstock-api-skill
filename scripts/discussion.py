@@ -55,6 +55,18 @@ _PRIVATE_VIEWER_FIELDS = frozenset(
 _URL_PATTERN = re.compile(r"(?i)\b(?:https?://|www\.)\S+")
 _EMAIL_PATTERN = re.compile(r"(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b")
 _PHONE_PATTERN = re.compile(r"(?<!\d)(?:\+?82[- .]?)?0?1[016789][- .]?\d{3,4}[- .]?\d{4}(?!\d)")
+_INTERNATIONAL_PHONE_PATTERN = re.compile(
+    r"(?<!\w)(?:\+|00)[1-9]\d{0,2}(?:[ ().-]*\d){6,14}(?!\w)"
+)
+_CRYPTO_TICKER = re.compile(r"^[A-Z0-9][A-Z0-9._-]{0,31}$")
+DISCUSSION_TYPES = ("domesticStock", "cryptoUpbit", "cryptoBithumb")
+MARKET_DISCUSSION_GROUP_TYPES = (
+    "exchange",
+    "bondInterest",
+    "energy",
+    "metals",
+    "agricultural",
+)
 
 
 def sanitize_community_payload(payload: Any) -> Any:
@@ -86,6 +98,7 @@ def _sanitize_community_value(value: Any, *, depth: int, parent_key: str) -> Any
     if isinstance(value, str):
         text = _URL_PATTERN.sub("[redacted-url]", value)
         text = _EMAIL_PATTERN.sub("[redacted-email]", text)
+        text = _INTERNATIONAL_PHONE_PATTERN.sub("[redacted-phone]", text)
         text = _PHONE_PATTERN.sub("[redacted-phone]", text)
         if len(text) > MAX_COMMUNITY_TEXT_LENGTH:
             return text[:MAX_COMMUNITY_TEXT_LENGTH] + "…[truncated]"
@@ -155,9 +168,33 @@ def _iso_date(value: str) -> str:
         raise argparse.ArgumentTypeError("start-date must be a valid YYYY-MM-DD date") from exc
 
 
+def _crypto_ticker(value: str) -> str:
+    clean = value.strip().upper()
+    if not _CRYPTO_TICKER.fullmatch(clean):
+        raise argparse.ArgumentTypeError(
+            "crypto ticker contains an unsupported character or path separator"
+        )
+    return clean
+
+
+def _discussion_item_code(value: str, discussion_type: str) -> str:
+    if discussion_type == "domesticStock":
+        return normalize_item_code(value)
+    return _crypto_ticker(value)
+
+
 def fetch_hot_home(args: argparse.Namespace) -> Any:
     return request_json(
         build_path("/api/community/discussion/posts/hot/home", {"pageSize": args.page_size, "page": args.page})
+    )
+
+
+def fetch_hot(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/community/discussion/posts/hot",
+            {"pageSize": args.page_size, "page": args.page},
+        )
     )
 
 
@@ -170,8 +207,7 @@ def fetch_adjacent(args: argparse.Namespace) -> Any:
         build_path(
             f"/api/community/discussion/posts/{args.post_id}/adjacent",
             {
-                "itemCode": args.item_code,
-                "pageSize": args.page_size,
+                "isHolderOnly": getattr(args, "is_holder_only", None),
                 "discussionGroupType": args.discussion_group_type,
                 "excludesItemNews": args.excludes_item_news,
                 "isItemNewsOnly": args.is_item_news_only,
@@ -226,13 +262,30 @@ def fetch_item_posts(args: argparse.Namespace) -> Any:
         build_path(
             "/api/community/discussion/posts/by-item",
             {
-                "itemCode": normalize_item_code(args.item_code),
+                "itemCode": _discussion_item_code(args.item_code, args.discussion_type),
                 "discussionType": args.discussion_type,
                 "pageSize": args.page_size,
                 "offset": args.offset,
                 "isHolderOnly": args.is_holder_only,
                 "excludesItemNews": args.excludes_item_news,
                 "isItemNewsOnly": args.is_item_news_only,
+                "isCleanbotPassedOnly": (
+                    getattr(args, "is_cleanbot_passed_only", False)
+                    if args.discussion_type != "domesticStock"
+                    else None
+                ),
+            },
+        )
+    )
+
+
+def fetch_global_community(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            f"/api/coin/globalCommunity/cmc/latest/{args.ticker}",
+            {
+                "pageSize": args.page_size,
+                "offsetPostTime": args.offset_post_time,
             },
         )
     )
@@ -277,6 +330,12 @@ def main() -> None:
     hot.add_argument("--output")
     hot.set_defaults(func=fetch_hot_home)
 
+    hot_feed = sub.add_parser("hot", help="Current public hot discussion feed")
+    hot_feed.add_argument("--page", type=_page, default=1)
+    hot_feed.add_argument("--page-size", type=_page_size, default=50)
+    hot_feed.add_argument("--output")
+    hot_feed.set_defaults(func=fetch_hot)
+
     post = sub.add_parser("post", help="Discussion post detail")
     post.add_argument("--post-id", type=_post_id, required=True)
     post.add_argument("--output")
@@ -284,9 +343,8 @@ def main() -> None:
 
     adjacent = sub.add_parser("adjacent", help="Adjacent posts around a detail post")
     adjacent.add_argument("--post-id", type=_post_id, required=True)
-    adjacent.add_argument("--item-code")
-    adjacent.add_argument("--page-size", type=_page_size, default=20)
     adjacent.add_argument("--discussion-group-type")
+    adjacent.add_argument("--is-holder-only", action=argparse.BooleanOptionalAction, default=None)
     adjacent.add_argument("--excludes-item-news", action=argparse.BooleanOptionalAction, default=None)
     adjacent.add_argument("--is-item-news-only", action=argparse.BooleanOptionalAction, default=None)
     adjacent.add_argument("--excludes-block-post", action=argparse.BooleanOptionalAction, default=None)
@@ -305,30 +363,54 @@ def main() -> None:
     popular.set_defaults(func=fetch_popular_hot)
 
     feed = sub.add_parser("feed", help="General discussion feed")
-    feed.add_argument("--page-size", type=_page_size, default=20)
+    feed.add_argument("--page-size", type=_page_size, default=50)
     feed.add_argument("--offset", type=_cursor)
     feed.add_argument("--discussion-group-type")
     feed.add_argument("--output")
     feed.set_defaults(func=fetch_feed)
 
     market_feed = sub.add_parser("market-feed", help="Market discussion feed")
-    market_feed.add_argument("--filter-type", default="marketIndex")
-    market_feed.add_argument("--page-size", type=_page_size, default=20)
+    market_feed.add_argument(
+        "--filter-type", choices=["marketIndex"], default="marketIndex"
+    )
+    market_feed.add_argument("--page-size", type=_page_size, default=60)
     market_feed.add_argument("--offset", type=_cursor)
-    market_feed.add_argument("--discussion-group-type")
+    market_feed.add_argument(
+        "--discussion-group-type",
+        choices=MARKET_DISCUSSION_GROUP_TYPES,
+    )
     market_feed.add_argument("--output")
     market_feed.set_defaults(func=fetch_market_feed)
 
     item_posts = sub.add_parser("item-posts", help="Discussion posts for an item")
     item_posts.add_argument("--item-code", required=True)
-    item_posts.add_argument("--discussion-type", default="domesticStock")
-    item_posts.add_argument("--page-size", type=_page_size, default=20)
+    item_posts.add_argument(
+        "--discussion-type",
+        choices=DISCUSSION_TYPES,
+        default="domesticStock",
+    )
+    item_posts.add_argument("--page-size", type=_page_size, default=30)
     item_posts.add_argument("--offset", type=_cursor)
     item_posts.add_argument("--is-holder-only", action=argparse.BooleanOptionalAction, default=False)
     item_posts.add_argument("--excludes-item-news", action=argparse.BooleanOptionalAction, default=False)
     item_posts.add_argument("--is-item-news-only", action=argparse.BooleanOptionalAction, default=False)
+    item_posts.add_argument(
+        "--is-cleanbot-passed-only",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
     item_posts.add_argument("--output")
     item_posts.set_defaults(func=fetch_item_posts)
+
+    global_community = sub.add_parser(
+        "global-community",
+        help="CoinMarketCap community feed mirrored on a crypto detail page",
+    )
+    global_community.add_argument("--ticker", type=_crypto_ticker, default="BTC")
+    global_community.add_argument("--page-size", type=_page_size, default=30)
+    global_community.add_argument("--offset-post-time", type=_cursor)
+    global_community.add_argument("--output")
+    global_community.set_defaults(func=fetch_global_community)
 
     stats = sub.add_parser("stats-by-items", help="Discussion statistics for domestic or foreign item codes")
     stats.add_argument("--start-date", type=_iso_date, required=True)

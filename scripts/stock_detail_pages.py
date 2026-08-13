@@ -4,9 +4,17 @@
 from __future__ import annotations
 
 import argparse
+import re
 from typing import Any
 
-from naverstock_api import build_path, emit_output, normalize_item_code, render_json, request_json
+from naverstock_api import (
+    bounded_int,
+    build_path,
+    emit_output,
+    normalize_item_code,
+    render_json,
+    request_json,
+)
 
 
 INVEST_RESOURCES = {
@@ -33,6 +41,25 @@ def _numeric_article_id(value: str) -> str:
     if not clean.isascii() or not clean.isdigit() or not 1 <= len(clean) <= 30:
         raise argparse.ArgumentTypeError("article-id must contain 1-30 digits")
     return clean
+
+
+_IR_ARTICLE_ID = re.compile(r"^(?:(?:BOARD|PLAN)?[0-9]{1,30})$")
+
+
+def _ir_article_id(value: str) -> str:
+    clean = value.strip().upper()
+    if not _IR_ARTICLE_ID.fullmatch(clean):
+        raise argparse.ArgumentTypeError(
+            "article-id must be a numeric ID or an observed BOARD/PLAN ID"
+        )
+    return clean
+
+
+def _one_based_page(value: str) -> int:
+    try:
+        return bounded_int(value, name="page", minimum=1, maximum=10_000)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
 
 
 def fetch_price(args: argparse.Namespace) -> Any:
@@ -105,7 +132,11 @@ def fetch_research(args: argparse.Namespace) -> Any:
     return request_json(
         build_path(
             "/api/stockSecurity/researches/v2/company",
-            {"itemCodes": normalize_item_code(args.code), "index": args.page, "size": args.size},
+            {
+                "itemCodes": normalize_item_code(args.code),
+                "index": args.page - 1,
+                "size": args.size,
+            },
         )
     )
 
@@ -173,11 +204,6 @@ def add_code(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--code", required=True, help="Six-digit domestic stock code, with or without leading A")
 
 
-def add_page(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--page-size", type=int, default=20)
-    parser.add_argument("--output")
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -231,32 +257,40 @@ def main() -> None:
     news = sub.add_parser("news", help="Stock-specific news clusters")
     add_code(news)
     news.add_argument("--page", type=int, default=1)
-    add_page(news)
+    news.add_argument("--page-size", type=int, default=15)
+    news.add_argument("--output")
     news.set_defaults(func=fetch_news)
 
     notice = sub.add_parser("notice", help="Stock disclosures / 공시")
     add_code(notice)
     notice.add_argument("--start-idx", type=int, default=0)
     notice.add_argument("--cause-code", action="append")
-    add_page(notice)
+    notice.add_argument("--page-size", type=int, default=30)
+    notice.add_argument("--output")
     notice.set_defaults(func=fetch_notice)
 
     ir = sub.add_parser("ir", help="Stock IR list")
     add_code(ir)
     ir.add_argument("--start-idx", type=int, default=0)
-    add_page(ir)
+    ir.add_argument("--page-size", type=int, default=60)
+    ir.add_argument("--output")
     ir.set_defaults(func=fetch_ir)
 
     ir_detail = sub.add_parser("ir-detail", help="Stock IR detail")
     add_code(ir_detail)
-    ir_detail.add_argument("--article-id", type=_numeric_article_id, required=True)
+    ir_detail.add_argument("--article-id", type=_ir_article_id, required=True)
     ir_detail.add_argument("--output")
     ir_detail.set_defaults(func=fetch_ir_detail)
 
     research = sub.add_parser("research", help="Stock-specific research reports")
     add_code(research)
-    research.add_argument("--page", type=int, default=0)
-    research.add_argument("--size", type=int, default=30)
+    research.add_argument(
+        "--page",
+        type=_one_based_page,
+        default=1,
+        help="One-based page number",
+    )
+    research.add_argument("--size", type=int, default=16)
     research.add_argument("--output")
     research.set_defaults(func=fetch_research)
 

@@ -28,9 +28,26 @@ class PublicRequestBoundaryTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 naverstock_api.normalize_item_code(value)
 
-    def test_dormant_fund_family_is_not_broadly_allowed(self) -> None:
-        with self.assertRaises(naverstock_api.RequestValidationError):
-            naverstock_api.validate_public_request("/api/fund/funds?page=1&size=20")
+    def test_allows_only_current_public_fund_detail_paths(self) -> None:
+        allowed = (
+            "/api/fund/funds/K55105B00244/left-panel",
+            "/api/fund/funds/K55105B00244/base-price/chart?term=3m",
+            "/api/fund/funds/K55105B00244/prices/daily?date=2026-08-13&size=10",
+        )
+        for path in allowed:
+            with self.subTest(path=path):
+                self.assertEqual(naverstock_api.validate_public_request(path), path)
+
+        denied = (
+            "/api/fund/funds?page=1&size=20",
+            "/api/fund/funds/K55105B00244/arbitrary",
+            "/api/fund/funds/K55105B00244/classes/fees",
+        )
+        for path in denied:
+            with self.subTest(path=path), self.assertRaises(
+                naverstock_api.RequestValidationError
+            ):
+                naverstock_api.validate_public_request(path)
 
     def test_allows_known_public_get(self) -> None:
         self.assertEqual(
@@ -43,6 +60,19 @@ class PublicRequestBoundaryTests(unittest.TestCase):
         self.assertEqual(naverstock_api.validate_public_request(allowed), allowed)
         with self.assertRaises(naverstock_api.RequestValidationError):
             naverstock_api.validate_public_request("/api/myasset/resources/invest/arbitrary")
+
+    def test_allows_only_the_public_aggregate_mystock_ranking_shape(self) -> None:
+        allowed = "/api/securityService/home/v3/mystock/ranking/005930"
+        self.assertEqual(naverstock_api.validate_public_request(allowed), allowed)
+        denied = (
+            "/api/securityService/home/v3/mystock/summary",
+            "/api/securityService/home/v3/mystock/ranking/005930/private",
+        )
+        for path in denied:
+            with self.subTest(path=path), self.assertRaises(
+                naverstock_api.RequestValidationError
+            ):
+                naverstock_api.validate_public_request(path)
 
     def test_allows_home_content_and_exact_shorttents_reads(self) -> None:
         paths = ("/api/content/home", "/api/shorttents")
@@ -85,6 +115,7 @@ class PublicRequestBoundaryTests(unittest.TestCase):
             "/api/domestic/x#fragment",
             "/api/domestic\\personal/x",
             "/api/domestic/../personal/x",
+            "/api/domestic//detail/005930",
             "/api/domestic/%2e%2e/personal/x",
             "/api/domestic/%252fpersonal/x",
         )
@@ -105,6 +136,20 @@ class PublicRequestBoundaryTests(unittest.TestCase):
         )
         for path in paths:
             with self.subTest(path=path), self.assertRaises(naverstock_api.RequestValidationError):
+                naverstock_api.validate_public_request(path)
+
+    def test_rejects_research_view_tracking_get(self) -> None:
+        paths = (
+            "/api/stockSecurity/researches/v2/company/95415/view",
+            "/api/stockSecurity/researches/v2/company/95415/view?recentNid=95301",
+            "/api/stockSecurity/researches/v2/company/95415/view/",
+            "/api/stockSecurity/researches/v2/company/95415//view",
+            "/api/stockSecurity/researches/v2/company/95415/view//",
+        )
+        for path in paths:
+            with self.subTest(path=path), self.assertRaises(
+                naverstock_api.RequestValidationError
+            ):
                 naverstock_api.validate_public_request(path)
 
     def test_rejects_unapproved_methods_and_bodies(self) -> None:
@@ -200,7 +245,10 @@ class CommunityPrivacyTests(unittest.TestCase):
                 "uno": "nested-private-number",
                 "image": "https://example.test/avatar.png",
             },
-            "content": "연락: test@example.com, 010-1234-5678, https://example.test/me",
+            "content": (
+                "연락: test@example.com, 010-1234-5678, +1 415-555-2671, "
+                "https://example.test/me"
+            ),
         }
 
         sanitized = discussion.sanitize_community_payload(payload)
@@ -209,7 +257,10 @@ class CommunityPrivacyTests(unittest.TestCase):
         self.assertEqual(sanitized["author"], {"nickname": "공개별명"})
         self.assertEqual(
             sanitized["content"],
-            "연락: [redacted-email], [redacted-phone], [redacted-url]",
+            (
+                "연락: [redacted-email], [redacted-phone], [redacted-phone], "
+                "[redacted-url]"
+            ),
         )
 
     def test_bounds_lists_depth_and_text(self) -> None:
