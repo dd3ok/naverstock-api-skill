@@ -22,12 +22,13 @@ OAuth 토큰, 쿠키, 계좌 정보, 로그인 세션은 필요하지 않으며 
 ### 국내·해외 주식
 
 - 국내 종목 요약, 현재가 폴링, 호가, 차트 가격, 일별·체결 시세
-- 공시, IR, 리서치, 투자자 통계, ETF 상세와 구성 종목
+- 공시, IR, 리서치, 공개 투자자 인사이트, ETF 상세와 구성 종목
 - 미국·중국·홍콩·일본·베트남 종목, 국가별 업종, 해외 지수
 - 미국 ETF 테마·목록·관련 ETF, 해외 종목 재무·뉴스·worldstock 폴링
 - 업종·테마·그룹사, 시가총액·배당·IPO·ETF·ETN 랭킹
 - KONEX 거래량, 관리·거래정지·투자주의/경고/위험과 현재 종목 목록의 의미 기반 랭킹
 - 투자자 예탁금, 외국인·기관·프로그램 매매 동향
+- 검색에서 연결되는 국내 펀드 상세, 기준가, 성과와 자산 배분
 - WiseReport v3 기업분석 8종과 레거시 기술적 조건검색 5종·가격 위치 2종
 
 ### 시장·환율·가상자산
@@ -61,7 +62,7 @@ OAuth 토큰, 쿠키, 계좌 정보, 로그인 세션은 필요하지 않으며 
 - 엔드포인트는 비공식·미문서화 인터페이스이므로 경로, 응답 필드, 접근 가능 여부가 예고 없이 바뀔 수 있습니다.
 - WiseReport와 레거시 조건검색은 별도 공개 HTML 소스입니다. 표 병합 셀을 추정하지 않으며 allowlist 밖의 HTML을 자동 fallback으로 사용하지 않습니다.
 - 국내 종목의 공매도 탭은 `stock.naver.com` JSON API가 아니라 한국거래소 `data.krx.co.kr` iframe입니다. 이 저장소는 해당 화면을 내부 API처럼 감싸지 않습니다.
-- 2026-07-21 기준 `/fund`, `/domestic/fund`, `/market/fund` 화면은 404입니다. `/api/fund/funds` 기본 요청은 200이지만 사용자 화면과 enum이 확인되지 않아 펀드 helper는 `needs-recheck`로만 기록하고 스크립트로 노출하지 않습니다.
+- 펀드 목록 정렬·테마 API는 아직 화면 enum이 충분히 검증되지 않아 노출하지 않습니다. 검색에서 연결되는 `/domestic/fund/{fundCode}` 상세의 확인된 8개 공개 GET만 좁게 지원합니다.
 - 2026-08-04 공개 화면의 실시간 시세는 `/api/polling/*` REST 요청으로 갱신됐습니다. 로그인 보유종목 새로고침용 Socket.IO WebSocket은 개인 세션 API이므로 제외하며, 공개 증권 데이터용 SSE는 확인되지 않았습니다.
 - 데이터는 정보 제공용이며 정확성·실시간성·투자 적합성을 보장하지 않습니다. 중요한 사용 전에는 현재 공개 페이지 트래픽으로 다시 확인하세요.
 
@@ -80,6 +81,7 @@ OAuth 토큰, 쿠키, 계좌 정보, 로그인 세션은 필요하지 않으며 
 
 ## 최근 업데이트
 
+- 2026-08-13: 메인 동기화 후 모든 주요 링크·탭·상세·페이징을 재감사해 펀드 상세, NXT 폴링, 지수/시장지표 상세, 해외 ETF·섹터, 코인/토론 경로와 확인된 UI 계약을 반영했습니다.
 - 2026-08-05: `stock.naver.com` 공개 화면의 route·탭·페이징·네트워크 요청을 다시 점검해 코인 기간별 등락률과 공개 `/api/polling/*` REST 계열을 반영했습니다.
 - 로그인 보유종목 Socket.IO와 공개 URL이 확인되지 않은 SSE는 지원 범위에서 제외하고, REST·WebSocket·SSE 경계를 카탈로그와 안전 규칙에 명시했습니다.
 - WiseReport v3 기업분석과 레거시 전용 조건검색은 신버전에 선별 통합했으며, 별도 레거시 저장소는 호환·비교용으로 구분했습니다.
@@ -203,17 +205,22 @@ python3 scripts/stock_summary.py --code 005930 --include-industry
 # 국내·해외 주식
 python3 scripts/stock_summary.py --code 005930 --include-industry
 python3 scripts/stock_detail_pages.py chart-prices --code 005930 --period-type day
+python3 scripts/stock_insights.py holder-ranking --asset-type domestic --code 005930
 python3 scripts/market_stock.py ranking investment-warning --page-size 10
+python3 scripts/market_stock.py category-ranking --category themes
 python3 scripts/market_stock.py ranking volume --market-type KONEX --page-size 10
 python3 scripts/wisereport.py --code 005930 --kind consensus
 python3 scripts/legacy_screeners.py technical golden-cross --limit 20
 python3 scripts/foreign_stock.py stocks --nation usa --trade-type NSQ --page-size 10
 python3 scripts/foreign_stock.py finance --code NVDA.O --section income --period quarter
+python3 scripts/foreign_stock.py etf-composition --code VOO
+python3 scripts/fund.py performance --code K55105B00244
 
 # 시장·홈·검색
 python3 scripts/category_detail.py stocks theme --rank 1 --page-size 10
 python3 scripts/market_trend.py trend-foreign-org --market-type ALL --trade-type KRX --page-size 10
 python3 scripts/marketindex.py majors
+python3 scripts/marketindex.py index-prices --code KOSPI --page 1
 python3 scripts/marketindex.py bank-round-chart --currency USD --bank-type hana
 python3 scripts/home.py market-briefing
 python3 scripts/home.py notable-etf --nation foreign --order-type return1Month
@@ -223,7 +230,7 @@ python3 scripts/search.py autocomplete --query 삼성전자
 python3 scripts/crypto.py rank --market UPBIT --sort-type marketValue --page-size 10
 python3 scripts/crypto.py price-change --market UPBIT --ticker BTC
 python3 scripts/crypto.py coin-briefing --ticker BTC --exchange-type UPBIT
-python3 scripts/news.py list --category mainnews --page-size 10
+python3 scripts/news.py list --category MAINNEWS --page-size 10
 python3 scripts/notices.py list --size 5
 python3 scripts/news.py focus --focus global-market --date "{YYYYMMDD}" --enable-fallback --page-size 15
 python3 scripts/news.py world-news --page-size 10
@@ -237,7 +244,7 @@ python3 scripts/discussion.py market-feed --page-size 10
 python3 scripts/discussion.py rankings --page-size 10
 ```
 
-`research.py home`은 최신·랭킹·주간 인기 섹션을 독립적으로 조회합니다. 주간 인기 API의 `startDate`를 생략하면 오늘 날짜를 사용합니다. 일부 엔드포인트가 실패하면 `partial: true`와 해당 섹션의 `unavailable` 오류를 출력하고, 정상 섹션 데이터는 유지합니다. HTTP 404를 빈 자료로 바꾸지는 않습니다.
+`research.py home`은 최신·랭킹·주간 인기 섹션을 독립적으로 조회합니다. 주간 인기 API의 `startDate`를 생략하면 현재 화면과 같은 7일 전 날짜를 사용합니다. 일부 엔드포인트가 실패하면 `partial: true`와 해당 섹션의 `unavailable` 오류를 출력하고, 정상 섹션 데이터는 유지합니다. HTTP 404를 빈 자료로 바꾸지는 않습니다.
 
 스크립트별 전체 옵션은 `--help`로 확인합니다.
 
@@ -279,7 +286,8 @@ naverstock-api-skill/
 | --- | --- |
 | `SKILL.md` | 에이전트 라우팅, 핵심 안전 규칙과 기본 작업 흐름 |
 | `agents/openai.yaml` | Codex/OpenAI 계열 도구의 표시 메타데이터 |
-| `references/api-catalog.md` | 관찰된 endpoint, 탭 route와 검증 상태 |
+| `references/api-catalog.md` | 공통 상태, 탭 route, 전송·식별자·제외 기준과 도메인 API 인덱스 |
+| `references/api-*.md` | 국내·해외·시장·펀드·가상자산·콘텐츠별 endpoint 상세 |
 | `references/capture-workflow.md` | 새 페이지와 하위 탭 네트워크 확인 절차 |
 | `references/eval-prompts.md` | 스킬 변경 후 평가 프롬프트 |
 | `references/external-sources.md` | WiseReport v3와 정확히 7개 레거시 조건검색의 선택·안전 경계 |
@@ -296,7 +304,7 @@ naverstock-api-skill/
 ```bash
 python3 -B -m unittest discover -s tests -v
 python3 -m compileall -q scripts
-ruff check scripts tests
+ruff check --isolated --select E4,E7,E9,F scripts tests
 for file in scripts/*.py; do python3 "$file" --help >/dev/null; done
 ```
 

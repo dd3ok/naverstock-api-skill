@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import date
 import http.client
 import sys
 import unittest
@@ -27,6 +28,8 @@ import news  # noqa: E402
 import notices  # noqa: E402
 import research  # noqa: E402
 import stock_detail_pages  # noqa: E402
+import stock_insights  # noqa: E402
+import stock_summary  # noqa: E402
 
 
 class OutputTests(unittest.TestCase):
@@ -105,7 +108,98 @@ class OutputTests(unittest.TestCase):
         self.assertIn("transport failed", str(raised.exception))
 
 
+class DomesticStockSummaryTests(unittest.TestCase):
+    def test_nxt_summary_uses_nxt_polling_endpoint(self) -> None:
+        args = argparse.Namespace(
+            code="005930",
+            code_type="NXT",
+            include_sosok=False,
+            include_consensus=False,
+            include_polling=True,
+            include_industry=False,
+            industry_page=1,
+            industry_page_size=10,
+            market_type="ALL",
+        )
+
+        with patch.object(stock_summary, "request_json", return_value={}) as request_json:
+            stock_summary.fetch_stock_summary(args)
+
+        self.assertEqual(
+            request_json.call_args_list,
+            [
+                unittest.mock.call("/api/domestic/detail/005930/detail?codeType=NXT"),
+                unittest.mock.call("/api/polling/domestic/NXT/stock?itemCodes=005930"),
+            ],
+        )
+
+
+class StockInsightTests(unittest.TestCase):
+    def test_public_holder_ranking_and_what_if_paths(self) -> None:
+        with patch.object(stock_insights, "request_json", return_value={}) as request_json:
+            stock_insights.fetch_holder_ranking(
+                argparse.Namespace(asset_type="domestic", code="A005930")
+            )
+            stock_insights.fetch_what_if(
+                argparse.Namespace(asset_type="worldstock", code="nvda.o")
+            )
+
+        self.assertEqual(
+            request_json.call_args_list,
+            [
+                unittest.mock.call("/api/securityService/home/v3/mystock/ranking/005930"),
+                unittest.mock.call(
+                    "/api/securityService/home/v3/whatIf/worldstock/NVDA.O?periodType=year&range=5"
+                ),
+            ],
+        )
+
+
 class MarketIndexTests(unittest.TestCase):
+    def test_market_indicator_chart_meta_uses_current_endpoint(self) -> None:
+        args = argparse.Namespace(category="energy", code="CLcv1")
+
+        with patch.object(marketindex, "request_json", return_value={}) as request_json:
+            marketindex.fetch_market_chart_meta(args)
+
+        request_json.assert_called_once_with(
+            "/api/securityFe/api/fchart/marketindex/energy/CLcv1"
+        )
+
+    def test_domestic_index_detail_page_endpoints_and_paging(self) -> None:
+        cases = (
+            (
+                marketindex.fetch_index_basic,
+                argparse.Namespace(code="KOSPI"),
+                "/api/securityFe/api/index/KOSPI/basic",
+            ),
+            (
+                marketindex.fetch_index_integration,
+                argparse.Namespace(code="KOSPI"),
+                "/api/securityFe/api/index/KOSPI/integration",
+            ),
+            (
+                marketindex.fetch_index_chart_meta,
+                argparse.Namespace(code="KOSPI"),
+                "/api/securityFe/api/fchart/domestic/index/KOSPI",
+            ),
+            (
+                marketindex.fetch_index_time,
+                argparse.Namespace(code="KOSPI", date="20260813", start_idx=1, page_size=20),
+                "/api/domestic/indexSise/time?koreaIndexType=KOSPI&thistime=20260813&startIdx=1&pageSize=20",
+            ),
+            (
+                marketindex.fetch_index_prices,
+                argparse.Namespace(code="KOSPI", page=2, page_size=20),
+                "/api/securityFe/api/index/KOSPI/price?page=2&pageSize=20",
+            ),
+        )
+        for fetcher, args, expected_path in cases:
+            with self.subTest(fetcher=fetcher.__name__):
+                with patch.object(marketindex, "request_json", return_value={}) as request_json:
+                    fetcher(args)
+                request_json.assert_called_once_with(expected_path)
+
     def test_transport_category_uses_marketindex_transport_endpoint(self) -> None:
         args = argparse.Namespace(category="transport")
 
@@ -206,6 +300,53 @@ class MarketIndexTests(unittest.TestCase):
 
 
 class MarketStockTests(unittest.TestCase):
+    def test_ipo_tabs_keep_current_and_completed_semantics_distinct(self) -> None:
+        current = argparse.Namespace(start_idx=0, page_size=101)
+        recent = argparse.Namespace(start_idx=0, page_size=100)
+
+        with patch.object(market_stock, "request_json", return_value={}) as request_json:
+            market_stock.fetch_ipo_current(current)
+            market_stock.fetch_ipo_recent(recent)
+
+        self.assertEqual(
+            request_json.call_args_list,
+            [
+                unittest.mock.call(
+                    "/api/domestic/market/ipo/progress?startIdx=0&pageSize=101"
+                ),
+                unittest.mock.call(
+                    "/api/domestic/market/ipo/progress?IpoProgressType=LISTING&startIdx=0&pageSize=100"
+                ),
+            ],
+        )
+
+    def test_current_category_ranking_uses_v2_cursor_contract(self) -> None:
+        args = argparse.Namespace(
+            category="themes",
+            sort_type="changeRate",
+            size=100,
+            cursor="MTY3",
+            exclude_code=["25"],
+            period="weekly",
+        )
+
+        with patch.object(market_stock, "request_json", return_value={}) as request_json:
+            market_stock.fetch_category_ranking(args)
+
+        request_json.assert_called_once_with(
+            "/api/stockSecurity/rankings/v2/domestic/themes?sortType=changeRate&size=100&cursor=MTY3&excludeCodes=25&period=weekly"
+        )
+
+    def test_current_category_total_market_cap_uses_v2_endpoint(self) -> None:
+        args = argparse.Namespace(category="industries")
+
+        with patch.object(market_stock, "request_json", return_value={}) as request_json:
+            market_stock.fetch_category_total_market_cap(args)
+
+        request_json.assert_called_once_with(
+            "/api/stockSecurity/rankings/v2/domestic/industries/total-market-cap"
+        )
+
     def test_semantic_rankings_do_not_duplicate_dedicated_commands(self) -> None:
         self.assertNotIn("dividend", market_stock.RANKING_TYPES)
         self.assertNotIn("search-top", market_stock.RANKING_TYPES)
@@ -577,6 +718,45 @@ class DiscussionTests(unittest.TestCase):
 
 
 class NewsTests(unittest.TestCase):
+    def test_list_cli_uses_current_uppercase_category_contract(self) -> None:
+        cases = (
+            (["news.py", "list"], "MAINNEWS"),
+            (["news.py", "list", "--category", "flashnews"], "FLASHNEWS"),
+        )
+        for argv, category in cases:
+            with (
+                self.subTest(argv=argv),
+                patch.object(sys, "argv", argv),
+                patch.object(news, "request_json", return_value={}) as request_json,
+                patch("sys.stdout", new_callable=StringIO),
+            ):
+                news.main()
+
+            request_json.assert_called_once_with(
+                f"/api/domestic/news/list?category={category}&page=1&pageSize=15"
+            )
+
+    def test_market_notice_defaults_to_current_three_month_window(self) -> None:
+        self.assertEqual(
+            news._notice_date_range(date(2026, 8, 13)),
+            ("20260513", "20260813"),
+        )
+        args = argparse.Namespace(
+            page=1,
+            page_size=15,
+            keyword=None,
+            start_date="20260513",
+            end_date="20260813",
+            type_idx=None,
+        )
+
+        with patch.object(news, "request_json", return_value={}) as request_json:
+            news.fetch_notice(args)
+
+        request_json.assert_called_once_with(
+            "/api/domestic/news/noticeList?page=1&pageSize=15&startDate=20260513&endDate=20260813"
+        )
+
     def test_focus_can_match_section_latest_fallback_params(self) -> None:
         args = argparse.Namespace(
             focus="global-market",
@@ -606,6 +786,16 @@ class NewsTests(unittest.TestCase):
 
 
 class StockDetailPageTests(unittest.TestCase):
+    def test_ir_detail_accepts_current_board_and_plan_identifiers(self) -> None:
+        self.assertEqual(stock_detail_pages._ir_article_id("BOARD75384"), "BOARD75384")
+        self.assertEqual(stock_detail_pages._ir_article_id("plan8570"), "PLAN8570")
+
+        args = argparse.Namespace(code="005930", article_id="BOARD75384")
+        with patch.object(stock_detail_pages, "request_json", return_value={}) as request_json:
+            stock_detail_pages.fetch_ir_detail(args)
+
+        request_json.assert_called_once_with("/api/domestic/detail/ir/005930/BOARD75384")
+
     def test_chart_prices_uses_security_service_item_chart_endpoint(self) -> None:
         args = argparse.Namespace(code="005930", period_type="day", range=None)
 
@@ -616,7 +806,7 @@ class StockDetailPageTests(unittest.TestCase):
         request_json.assert_called_once_with("/api/securityService/chart/domestic/item/005930?periodType=day")
 
     def test_stock_research_uses_current_company_research_endpoint(self) -> None:
-        args = argparse.Namespace(code="005930", page=0, size=10)
+        args = argparse.Namespace(code="005930", page=1, size=10)
 
         with patch.object(stock_detail_pages, "request_json", return_value=[]) as request_json:
             result = stock_detail_pages.fetch_research(args)
@@ -625,6 +815,33 @@ class StockDetailPageTests(unittest.TestCase):
         request_json.assert_called_once_with(
             "/api/stockSecurity/researches/v2/company?itemCodes=005930&index=0&size=10"
         )
+
+    def test_stock_research_cli_uses_one_based_page_like_research_cli(self) -> None:
+        argv = ["stock_detail_pages.py", "research", "--code", "005930", "--page", "2"]
+
+        with (
+            patch.object(sys, "argv", argv),
+            patch.object(stock_detail_pages, "request_json", return_value={}) as request_json,
+            patch("sys.stdout", new_callable=StringIO),
+        ):
+            stock_detail_pages.main()
+
+        request_json.assert_called_once_with(
+            "/api/stockSecurity/researches/v2/company?itemCodes=005930&index=1&size=16"
+        )
+
+    def test_stock_research_cli_rejects_page_zero_before_request(self) -> None:
+        argv = ["stock_detail_pages.py", "research", "--code", "005930", "--page", "0"]
+
+        with (
+            patch.object(sys, "argv", argv),
+            patch.object(stock_detail_pages, "request_json") as request_json,
+            patch("sys.stderr", new_callable=StringIO),
+            self.assertRaises(SystemExit),
+        ):
+            stock_detail_pages.main()
+
+        request_json.assert_not_called()
 
     def test_notice_repeats_cause_code_query_params(self) -> None:
         args = argparse.Namespace(code="005930", start_idx=0, page_size=5, cause_code=["20", "30"])
@@ -669,19 +886,19 @@ class StockDetailPageTests(unittest.TestCase):
 
 
 class ResearchTests(unittest.TestCase):
-    def test_weekly_hot_defaults_to_today_when_start_date_is_omitted(self) -> None:
+    def test_weekly_hot_defaults_to_seven_days_ago_when_start_date_is_omitted(self) -> None:
         args = argparse.Namespace(start_date=None, size=3)
 
         with (
             patch.object(research, "date") as date_class,
             patch.object(research, "request_json", return_value={}) as request_json,
         ):
-            date_class.today.return_value.isoformat.return_value = "2026-07-21"
+            date_class.today.return_value = date(2026, 7, 21)
             result = research.fetch_weekly_hot(args)
 
         self.assertEqual(result, {})
         request_json.assert_called_once_with(
-            "/api/stockSecurity/researches/v2/weekly-hot?startDate=2026-07-21&size=3"
+            "/api/stockSecurity/researches/v2/weekly-hot?startDate=2026-07-14&size=3"
         )
 
     def test_category_uses_v2_research_endpoint_and_zero_based_index(self) -> None:
@@ -914,6 +1131,16 @@ class DomesticETFTests(unittest.TestCase):
 
 
 class CryptoTests(unittest.TestCase):
+    def test_rank_supports_all_current_filters_and_ui_page_size(self) -> None:
+        args = argparse.Namespace(market="UPBIT", sort_type="down", page=2, page_size=100)
+
+        with patch.object(crypto, "request_json", return_value={"contents": []}) as request_json:
+            crypto.fetch_rank(args)
+
+        request_json.assert_called_once_with(
+            "/api/coin/rank/UPBIT?sortType=down&page=2&pageSize=100"
+        )
+
     def test_global_news_uses_plain_coin_ticker(self) -> None:
         args = argparse.Namespace(ticker="BTC", page_size=5, offset_timestamp=None)
 
@@ -1002,6 +1229,33 @@ class CryptoTests(unittest.TestCase):
 
 
 class DiscussionFeedTests(unittest.TestCase):
+    def test_adjacent_uses_only_current_optional_filters(self) -> None:
+        args = argparse.Namespace(
+            post_id="418462889",
+            is_holder_only=False,
+            discussion_group_type="exchange",
+            excludes_item_news=False,
+            is_item_news_only=True,
+            excludes_block_post=True,
+        )
+
+        with patch.object(discussion, "request_json", return_value={}) as request_json:
+            discussion.fetch_adjacent(args)
+
+        request_json.assert_called_once_with(
+            "/api/community/discussion/posts/418462889/adjacent?isHolderOnly=false&discussionGroupType=exchange&excludesItemNews=false&isItemNewsOnly=true&excludesBlockPost=true"
+        )
+
+    def test_hot_feed_uses_current_page_contract(self) -> None:
+        args = argparse.Namespace(page=2, page_size=30)
+
+        with patch.object(discussion, "request_json", return_value={"posts": []}) as request_json:
+            discussion.fetch_hot(args)
+
+        request_json.assert_called_once_with(
+            "/api/community/discussion/posts/hot?pageSize=30&page=2"
+        )
+
     def test_feed_uses_general_discussion_posts_endpoint(self) -> None:
         args = argparse.Namespace(page_size=5, offset=None, discussion_group_type=None)
 
@@ -1032,6 +1286,53 @@ class DiscussionFeedTests(unittest.TestCase):
         ):
             with self.assertRaises(SystemExit):
                 discussion.main()
+
+    def test_crypto_item_and_global_community_paging(self) -> None:
+        item_args = argparse.Namespace(
+            item_code="btc",
+            discussion_type="cryptoUpbit",
+            page_size=30,
+            offset="-427714650",
+            is_holder_only=False,
+            excludes_item_news=False,
+            is_item_news_only=False,
+            is_cleanbot_passed_only=False,
+        )
+        cmc_args = argparse.Namespace(
+            ticker="BTC",
+            page_size=30,
+            offset_post_time="2026-08-13T07:10:23",
+        )
+
+        with patch.object(discussion, "request_json", return_value={}) as request_json:
+            discussion.fetch_item_posts(item_args)
+            discussion.fetch_global_community(cmc_args)
+
+        self.assertEqual(
+            request_json.call_args_list,
+            [
+                unittest.mock.call(
+                    "/api/community/discussion/posts/by-item?itemCode=BTC&discussionType=cryptoUpbit&pageSize=30&offset=-427714650&isHolderOnly=false&excludesItemNews=false&isItemNewsOnly=false&isCleanbotPassedOnly=false"
+                ),
+                unittest.mock.call(
+                    "/api/coin/globalCommunity/cmc/latest/BTC?pageSize=30&offsetPostTime=2026-08-13T07%3A10%3A23"
+                ),
+            ],
+        )
+
+    def test_domestic_item_posts_cli_uses_current_page_size(self) -> None:
+        argv = ["discussion.py", "item-posts", "--item-code", "005930"]
+
+        with (
+            patch.object(sys, "argv", argv),
+            patch.object(discussion, "request_json", return_value={}) as request_json,
+            patch("sys.stdout", new_callable=StringIO),
+        ):
+            discussion.main()
+
+        request_json.assert_called_once_with(
+            "/api/community/discussion/posts/by-item?itemCode=005930&discussionType=domesticStock&pageSize=30&isHolderOnly=false&excludesItemNews=false&isItemNewsOnly=false"
+        )
 
 
 if __name__ == "__main__":

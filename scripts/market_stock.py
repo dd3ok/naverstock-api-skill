@@ -4,14 +4,18 @@
 from __future__ import annotations
 
 import argparse
-from typing import Any
+import re
+from typing import Any, Callable
 
-from naverstock_api import build_path, emit_output, render_json, request_json
+from naverstock_api import bounded_int, build_path, emit_output, render_json, request_json
 
 
 MARKET_TYPES = ("ALL", "KOSPI", "KOSDAQ", "KONEX")
 ALERT_TYPES = ("01", "02", "03")
 NXT_ORDER_TYPES = frozenset({"down", "marketSum", "quantTop", "searchTop", "up"})
+DOMESTIC_CATEGORY_TYPES = ("groups", "industries", "themes")
+_CURSOR = re.compile(r"^[A-Za-z0-9_-]{1,256}$")
+_CATEGORY_CODE = re.compile(r"^[0-9]{1,8}$")
 
 # User-facing names follow the current stock-list chips. Dividend and popular
 # search keep their dedicated commands to avoid duplicate meanings. Keep the
@@ -50,6 +54,30 @@ RAW_ORDER_TYPES = tuple(
 
 class MarketStockArgumentError(ValueError):
     """Raised for an invalid market-list filter combination."""
+
+
+def _bounded_integer(name: str, minimum: int, maximum: int) -> Callable[[str], int]:
+    def parse(value: str) -> int:
+        try:
+            return bounded_int(value, name=name, minimum=minimum, maximum=maximum)
+        except ValueError as exc:
+            raise argparse.ArgumentTypeError(str(exc)) from exc
+
+    return parse
+
+
+def _cursor(value: str) -> str:
+    clean = value.strip()
+    if not _CURSOR.fullmatch(clean):
+        raise argparse.ArgumentTypeError("cursor must be a bounded URL-safe token")
+    return clean
+
+
+def _category_code(value: str) -> str:
+    clean = value.strip()
+    if not _CATEGORY_CODE.fullmatch(clean):
+        raise argparse.ArgumentTypeError("category code must contain 1-8 digits")
+    return clean
 
 
 def _validate_default_filters(
@@ -172,6 +200,49 @@ def fetch_upjong_theme(args: argparse.Namespace) -> Any:
     )
 
 
+def fetch_ipo_current(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/domestic/market/ipo/progress",
+            {"startIdx": args.start_idx, "pageSize": args.page_size},
+        )
+    )
+
+
+def fetch_ipo_recent(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/domestic/market/ipo/progress",
+            {
+                "IpoProgressType": "LISTING",
+                "startIdx": args.start_idx,
+                "pageSize": args.page_size,
+            },
+        )
+    )
+
+
+def fetch_category_ranking(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            f"/api/stockSecurity/rankings/v2/domestic/{args.category}",
+            {
+                "sortType": args.sort_type,
+                "size": args.size,
+                "cursor": args.cursor,
+                "excludeCodes": ",".join(args.exclude_code) if args.exclude_code else None,
+                "period": args.period,
+            },
+        )
+    )
+
+
+def fetch_category_total_market_cap(args: argparse.Namespace) -> Any:
+    return request_json(
+        f"/api/stockSecurity/rankings/v2/domestic/{args.category}/total-market-cap"
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -211,17 +282,73 @@ def main() -> None:
     search.add_argument("--output")
     search.set_defaults(func=fetch_search_top)
 
-    ipo = sub.add_parser("ipo", help="IPO progress list")
-    ipo.add_argument("--ipo-progress-type", help="Observed value: LISTING")
+    ipo = sub.add_parser(
+        "ipo",
+        help="Low-level IPO list; LISTING means recently completed listings",
+    )
+    ipo.add_argument(
+        "--ipo-progress-type",
+        choices=["LISTING"],
+        help="LISTING selects the recently completed tab; omit for in-progress IPOs",
+    )
     ipo.add_argument("--start-idx", type=int, default=0)
     ipo.add_argument("--page-size", type=int, default=20)
     ipo.add_argument("--output")
     ipo.set_defaults(func=fetch_ipo)
 
-    upjong = sub.add_parser("upjong-theme", help="Sector/theme ranking")
+    ipo_current = sub.add_parser("ipo-current", help="Currently in-progress IPOs")
+    ipo_current.add_argument(
+        "--start-idx", type=_bounded_integer("start-idx", 0, 100_000), default=0
+    )
+    ipo_current.add_argument(
+        "--page-size", type=_bounded_integer("page-size", 1, 500), default=101
+    )
+    ipo_current.add_argument("--output")
+    ipo_current.set_defaults(func=fetch_ipo_current)
+
+    ipo_recent = sub.add_parser("ipo-recent", help="Recently completed listings")
+    ipo_recent.add_argument(
+        "--start-idx", type=_bounded_integer("start-idx", 0, 100_000), default=0
+    )
+    ipo_recent.add_argument(
+        "--page-size", type=_bounded_integer("page-size", 1, 500), default=100
+    )
+    ipo_recent.add_argument("--output")
+    ipo_recent.set_defaults(func=fetch_ipo_recent)
+
+    upjong = sub.add_parser("upjong-theme", help="Legacy compact sector/theme home ranking")
     upjong.add_argument("--sort-type", default="changeRate")
     upjong.add_argument("--output")
     upjong.set_defaults(func=fetch_upjong_theme)
+
+    category_ranking = sub.add_parser(
+        "category-ranking",
+        help="Current domestic industry, theme, or group ranking",
+    )
+    category_ranking.add_argument("--category", choices=DOMESTIC_CATEGORY_TYPES, required=True)
+    category_ranking.add_argument(
+        "--sort-type",
+        choices=["changeRate", "marketCap"],
+        default="changeRate",
+    )
+    category_ranking.add_argument(
+        "--period",
+        choices=["daily", "weekly", "monthly"],
+        default="daily",
+    )
+    category_ranking.add_argument("--size", type=_bounded_integer("size", 1, 100), default=100)
+    category_ranking.add_argument("--cursor", type=_cursor)
+    category_ranking.add_argument("--exclude-code", type=_category_code, action="append")
+    category_ranking.add_argument("--output")
+    category_ranking.set_defaults(func=fetch_category_ranking)
+
+    category_total = sub.add_parser(
+        "category-total-market-cap",
+        help="Current total market cap for domestic industries or themes",
+    )
+    category_total.add_argument("--category", choices=["industries", "themes"], required=True)
+    category_total.add_argument("--output")
+    category_total.set_defaults(func=fetch_category_total_market_cap)
 
     args = parser.parse_args()
     try:

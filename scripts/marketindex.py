@@ -74,7 +74,7 @@ def _iso_date(value: str) -> str:
     try:
         return dt.date.fromisoformat(value).strftime("%Y%m%d")
     except (TypeError, ValueError) as exc:
-        raise argparse.ArgumentTypeError("release-date must be a valid YYYY-MM-DD date") from exc
+        raise argparse.ArgumentTypeError("date must be a valid YYYY-MM-DD date") from exc
 
 
 def fetch_majors(args: argparse.Namespace) -> Any:
@@ -87,6 +87,41 @@ def fetch_major_block(args: argparse.Namespace) -> Any:
 
 def fetch_polling(args: argparse.Namespace) -> Any:
     return request_json(build_path("/api/polling/domestic/index", {"itemCodes": args.codes}))
+
+
+def fetch_index_basic(args: argparse.Namespace) -> Any:
+    return request_json(f"/api/securityFe/api/index/{args.code}/basic")
+
+
+def fetch_index_integration(args: argparse.Namespace) -> Any:
+    return request_json(f"/api/securityFe/api/index/{args.code}/integration")
+
+
+def fetch_index_chart_meta(args: argparse.Namespace) -> Any:
+    return request_json(f"/api/securityFe/api/fchart/domestic/index/{args.code}")
+
+
+def fetch_index_time(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/domestic/indexSise/time",
+            {
+                "koreaIndexType": args.code,
+                "thistime": args.date,
+                "startIdx": args.start_idx,
+                "pageSize": args.page_size,
+            },
+        )
+    )
+
+
+def fetch_index_prices(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            f"/api/securityFe/api/index/{args.code}/price",
+            {"page": args.page, "pageSize": args.page_size},
+        )
+    )
 
 
 def fetch_chart(args: argparse.Namespace) -> Any:
@@ -109,6 +144,12 @@ def fetch_foreign_chart(args: argparse.Namespace) -> Any:
 
 def fetch_market_polling(args: argparse.Namespace) -> Any:
     return request_json(f"/api/polling/marketindex/{args.category}/{args.codes}")
+
+
+def fetch_market_chart_meta(args: argparse.Namespace) -> Any:
+    return request_json(
+        f"/api/securityFe/api/fchart/marketindex/{args.category}/{args.code}"
+    )
 
 
 def fetch_category(args: argparse.Namespace) -> Any:
@@ -207,7 +248,14 @@ def main() -> None:
     major_block = sub.add_parser("major-block", help="Market-index major block by type")
     major_block.add_argument(
         "--block-type",
-        choices=["exchange", "exchangeWorld", "domesticInterest", "bond", "rpc"],
+        choices=[
+            "exchange",
+            "exchangeWorld",
+            "domesticInterest",
+            "standardInterest",
+            "bond",
+            "rpc",
+        ],
         default="exchange",
     )
     major_block.add_argument("--output")
@@ -217,6 +265,47 @@ def main() -> None:
     polling.add_argument("--codes", type=_market_codes, default="KOSPI,KOSDAQ,KPI200")
     polling.add_argument("--output")
     polling.set_defaults(func=fetch_polling)
+
+    index_basic = sub.add_parser("index-basic", help="Domestic index basic/current summary")
+    index_basic.add_argument("--code", type=_market_code, default="KOSPI")
+    index_basic.add_argument("--output")
+    index_basic.set_defaults(func=fetch_index_basic)
+
+    index_integration = sub.add_parser(
+        "index-integration",
+        help="Domestic index integrated market summary",
+    )
+    index_integration.add_argument("--code", type=_market_code, default="KOSPI")
+    index_integration.add_argument("--output")
+    index_integration.set_defaults(func=fetch_index_integration)
+
+    index_chart_meta = sub.add_parser(
+        "index-chart-meta",
+        help="Domestic index chart metadata used by the current detail page",
+    )
+    index_chart_meta.add_argument("--code", type=_market_code, default="KOSPI")
+    index_chart_meta.add_argument("--output")
+    index_chart_meta.set_defaults(func=fetch_index_chart_meta)
+
+    index_time = sub.add_parser("index-time", help="Domestic index intraday rows")
+    index_time.add_argument("--code", type=_market_code, default="KOSPI")
+    index_time.add_argument(
+        "--date",
+        type=_iso_date,
+        default=dt.date.today().isoformat(),
+        help="Trading date as YYYY-MM-DD; defaults to today",
+    )
+    index_time.add_argument("--start-idx", type=_bounded_integer("start-idx", 0, 10_000), default=0)
+    index_time.add_argument("--page-size", type=_bounded_integer("page-size", 1, 100), default=20)
+    index_time.add_argument("--output")
+    index_time.set_defaults(func=fetch_index_time)
+
+    index_prices = sub.add_parser("index-prices", help="Domestic index daily price rows")
+    index_prices.add_argument("--code", type=_market_code, default="KOSPI")
+    index_prices.add_argument("--page", type=_bounded_integer("page", 1, 10_000), default=1)
+    index_prices.add_argument("--page-size", type=_bounded_integer("page-size", 1, 100), default=20)
+    index_prices.add_argument("--output")
+    index_prices.set_defaults(func=fetch_index_prices)
 
     chart = sub.add_parser("chart", help="Index chart")
     chart.add_argument("--code", type=_market_code, default="KOSPI")
@@ -244,10 +333,23 @@ def main() -> None:
     market_polling.add_argument("--output")
     market_polling.set_defaults(func=fetch_market_polling)
 
+    market_chart_meta = sub.add_parser(
+        "market-chart-meta",
+        help="Market-indicator chart metadata used by a detail page",
+    )
+    market_chart_meta.add_argument(
+        "--category",
+        choices=["energy", "metals", "agricultural", "transport", "exchange"],
+        required=True,
+    )
+    market_chart_meta.add_argument("--code", type=_market_code, required=True)
+    market_chart_meta.add_argument("--output")
+    market_chart_meta.set_defaults(func=fetch_market_chart_meta)
+
     category = sub.add_parser("category", help="Market indicator category")
     category.add_argument(
         "--category",
-        choices=["energy", "metals", "agricultural", "transport", "domesticInterest", "exchange", "bond", "standardInterest"],
+        choices=["energy", "metals", "agricultural", "transport", "domesticInterest", "exchange", "exchangeWorld", "bond", "standardInterest"],
         required=True,
     )
     category.add_argument("--output")

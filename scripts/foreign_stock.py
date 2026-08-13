@@ -16,7 +16,7 @@ TRADE_TYPES = ("ALL", "NSQ", "NYS", "AMX", "SHH", "SHZ", "HKG", "TYO", "HSX", "H
 STOCK_ORDER_TYPES = ("quantTop", "priceTop", "up", "down", "marketValue", "dividend")
 ETF_ORDER_TYPES = ("quantTop", "priceTop", "up", "down", "marketValue", "dividend")
 NOTABLE_ETF_ORDER_TYPES = ("priceTop", "up", "return1Month", "dividend")
-POLL_TYPES = ("stock", "etf", "index")
+POLL_TYPES = ("stock", "etf", "index", "futures")
 EXCHANGES = ("NASDAQ", "NYSE", "AMEX")
 
 _REUTERS_CODE = re.compile(r"^(?:[A-Z0-9][A-Z0-9._-]{0,31}|\.[A-Z0-9][A-Z0-9._-]{0,30})$")
@@ -48,6 +48,26 @@ def reuters_code(value: str) -> str:
             "Reuters code must contain only letters, digits, dot, underscore, or hyphen"
         )
     return result
+
+
+def poll_code(value: str) -> str:
+    """Validate a polling code while preserving futures Reuters suffix casing."""
+
+    result = value.strip()
+    if not _REUTERS_CODE.fullmatch(result.upper()):
+        raise argparse.ArgumentTypeError(
+            "Reuters code must contain only letters, digits, dot, underscore, or hyphen"
+        )
+    return result
+
+
+def _canonical_poll_code(value: str, security_type: str) -> str:
+    if security_type != "futures":
+        return value.upper()
+    continuous = re.fullmatch(r"(.+?)cv([0-9]+)", value, flags=re.IGNORECASE)
+    if continuous:
+        return f"{continuous.group(1).upper()}cv{continuous.group(2)}"
+    return value.upper()
 
 
 def industry_code(value: str) -> str:
@@ -89,6 +109,12 @@ def fetch_sector_stocks(args: argparse.Namespace) -> Any:
             f"/api/foreign/market/{NATION_API_NAMES[args.nation]}/upjong/{args.industry_code}/list",
             {"orderType": args.order_type, "startIdx": args.start_idx, "pageSize": args.page_size},
         )
+    )
+
+
+def fetch_sector_detail(args: argparse.Namespace) -> Any:
+    return request_json(
+        f"/api/stockSecurity/sectors/v2/foreign/{NATION_API_NAMES[args.nation]}/{args.industry_code}"
     )
 
 
@@ -192,6 +218,18 @@ def fetch_etf_related(args: argparse.Namespace) -> Any:
     )
 
 
+def fetch_etf_composition(args: argparse.Namespace) -> Any:
+    return request_json(
+        f"/api/stockSecurity/etfs/v2/foreign/{args.code}/composition"
+    )
+
+
+def fetch_chart_meta(args: argparse.Namespace) -> Any:
+    return request_json(
+        f"/api/securityFe/api/fchart/foreign/{args.asset_type}/{args.code}"
+    )
+
+
 def fetch_index_basic(args: argparse.Namespace) -> Any:
     return request_json(f"/api/securityService/index/{args.code}/basic")
 
@@ -215,7 +253,9 @@ def fetch_index_constituents(args: argparse.Namespace) -> Any:
 
 
 def fetch_poll(args: argparse.Namespace) -> Any:
-    codes = ",".join(args.code)
+    codes = ",".join(
+        _canonical_poll_code(code, args.security_type) for code in args.code
+    )
     return request_json(build_path(f"/api/polling/worldstock/{args.security_type}", {"reutersCodes": codes}))
 
 
@@ -282,6 +322,15 @@ def main() -> None:
     add_bounded_paging(sector_stocks)
     sector_stocks.set_defaults(func=fetch_sector_stocks)
 
+    sector_detail = sub.add_parser(
+        "sector-detail",
+        help="Current v2 summary for a foreign industry/sector",
+    )
+    sector_detail.add_argument("--nation", choices=NATIONS, default="usa")
+    sector_detail.add_argument("--industry-code", required=True, type=industry_code)
+    add_output(sector_detail)
+    sector_detail.set_defaults(func=fetch_sector_detail)
+
     etf_themes = sub.add_parser("etf-themes", help="US ETF large/middle theme filters")
     add_output(etf_themes)
     etf_themes.set_defaults(func=fetch_etf_themes)
@@ -344,13 +393,30 @@ def main() -> None:
     add_bounded_paging(related)
     related.set_defaults(func=fetch_etf_related)
 
+    composition = sub.add_parser(
+        "etf-composition",
+        help="Foreign ETF exposure and holdings composition",
+    )
+    composition.add_argument("--code", required=True, type=reuters_code)
+    add_output(composition)
+    composition.set_defaults(func=fetch_etf_composition)
+
+    chart_meta = sub.add_parser(
+        "chart-meta",
+        help="Foreign stock, ETF, or index chart metadata",
+    )
+    chart_meta.add_argument("--asset-type", choices=["stock", "index"], required=True)
+    chart_meta.add_argument("--code", required=True, type=reuters_code)
+    add_output(chart_meta)
+    chart_meta.set_defaults(func=fetch_chart_meta)
+
     poll = sub.add_parser("poll", help="Public current price polling for foreign securities")
     poll.add_argument("security_type", choices=POLL_TYPES)
     poll.add_argument(
         "--code",
         required=True,
         action="append",
-        type=reuters_code,
+        type=poll_code,
         help="Reuters code; repeat for up to 20 codes",
     )
     add_output(poll)

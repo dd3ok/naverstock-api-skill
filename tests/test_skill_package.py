@@ -17,14 +17,24 @@ class SkillPackageTests(unittest.TestCase):
         description = re.search(r"(?m)^description: (.+)$", frontmatter)
         self.assertIsNotNone(description)
         self.assertLessEqual(len(description.group(1)), 1024)
-        self.assertTrue(description.group(1).startswith("Inspects, "))
+        self.assertTrue(description.group(1).startswith("Safely queries and audits "))
         self.assertIn("네이버증권", description.group(1))
-        self.assertIn("npay증권", description.group(1))
+        self.assertIn("Npay", description.group(1))
         self.assertIn("WiseReport v3", description.group(1))
+        self.assertIn("funds", description.group(1))
+        self.assertIn("mutation", description.group(1))
 
         metadata = (ROOT / "agents" / "openai.yaml").read_text(encoding="utf-8")
         self.assertIn('display_name: "네이버 증권 Web API"', metadata)
         self.assertIn("$naverstock-web-api", metadata)
+        short_description = re.search(
+            r'(?m)^  short_description: "(.+)"$', metadata
+        )
+        self.assertIsNotNone(short_description)
+        self.assertGreaterEqual(len(short_description.group(1)), 25)
+        self.assertLessEqual(len(short_description.group(1)), 64)
+        for key in ("display_name", "short_description", "default_prompt"):
+            self.assertRegex(metadata, rf'(?m)^  {key}: ".*"$')
 
     def test_references_are_directly_routed_and_long_docs_have_toc(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
@@ -37,6 +47,19 @@ class SkillPackageTests(unittest.TestCase):
             text = path.read_text(encoding="utf-8")
             if len(text.splitlines()) > 100:
                 self.assertRegex(text, r"(?m)^## (목차|Contents)$", relative)
+
+    def test_domain_catalogs_are_directly_routed_and_keep_index_small(self) -> None:
+        skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        index = (ROOT / "references" / "api-catalog.md").read_text(encoding="utf-8")
+        domain_catalogs = sorted((ROOT / "references").glob("api-*.md"))
+        domain_catalogs = [path for path in domain_catalogs if path.name != "api-catalog.md"]
+
+        self.assertGreaterEqual(len(domain_catalogs), 5)
+        self.assertLessEqual(len(index.splitlines()), 200)
+        for path in domain_catalogs:
+            relative = path.relative_to(ROOT).as_posix()
+            self.assertIn(f"]({relative})", skill, relative)
+            self.assertIn(f"]({path.name})", index, path.name)
 
     def test_every_script_routed_from_skill_exists(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")

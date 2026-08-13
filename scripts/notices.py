@@ -62,7 +62,7 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
 
     list_cmd = sub.add_parser("list", help="Service notice list")
-    list_cmd.add_argument("--size", type=_bounded_size, default=20)
+    list_cmd.add_argument("--size", type=_bounded_size, default=10)
     list_cmd.add_argument("--cursor", type=_cursor)
     list_cmd.add_argument("--output")
     list_cmd.set_defaults(func=fetch_list)

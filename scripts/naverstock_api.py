@@ -51,6 +51,17 @@ PUBLIC_READ_EXACT_PATHS = frozenset(
     }
 )
 _COIN_PROFILE_PATH = re.compile(r"^/api/coin/profile/[a-z0-9][a-z0-9_-]{0,31}$")
+_PUBLIC_MYSTOCK_RANKING_PATH = re.compile(
+    r"^/api/securityservice/home/v3/mystock/ranking/[a-z0-9][a-z0-9._=-]{0,31}$"
+)
+_PUBLIC_FUND_DETAIL_PATH = re.compile(
+    r"^/api/fund/funds/[a-z0-9][a-z0-9_-]{0,31}/"
+    r"(?:left-panel|base-price/chart|chart-price-panel|fund-performance|"
+    r"metrics/detail|prices/daily|classes/returns|fund-allocation)$"
+)
+_RESEARCH_VIEW_SIDE_EFFECT_PATH = re.compile(
+    r"^/api/stocksecurity/researches/v2/[^/]+/[^/]+/view/?$"
+)
 READ_ONLY_POST_PATHS = frozenset(
     {
         "/api/domestic/home/marketaggregate/aggregateinvestor",
@@ -313,6 +324,8 @@ def validate_public_request(
         decoded_path = next_path
     if "\\" in decoded_path or any(ord(char) < 32 or ord(char) == 127 for char in decoded_path):
         raise RequestValidationError("Decoded API path contains an unsafe character")
+    if "//" in decoded_path:
+        raise RequestValidationError("Empty path segments are not allowed in API paths")
     segments = decoded_path.split("/")
     if any(segment in {".", ".."} for segment in segments):
         raise RequestValidationError("Dot segments are not allowed in API paths")
@@ -321,16 +334,34 @@ def validate_public_request(
     normalized_segments = {segment.casefold() for segment in segments if segment}
     is_public_resource = normalized_path in PUBLIC_READ_EXACT_PATHS
     is_public_coin_profile = _COIN_PROFILE_PATH.fullmatch(normalized_path) is not None
-    if any(normalized_path.startswith(prefix) for prefix in _DENIED_PATH_PREFIXES):
+    is_public_mystock_ranking = (
+        _PUBLIC_MYSTOCK_RANKING_PATH.fullmatch(normalized_path) is not None
+    )
+    is_public_fund_detail = _PUBLIC_FUND_DETAIL_PATH.fullmatch(normalized_path) is not None
+    if _RESEARCH_VIEW_SIDE_EFFECT_PATH.fullmatch(normalized_path):
+        raise RequestValidationError(
+            "API path may record a research view and is outside the read-only boundary"
+        )
+    if any(normalized_path.startswith(prefix) for prefix in _DENIED_PATH_PREFIXES) and not (
+        is_public_mystock_ranking
+    ):
         raise RequestValidationError("API path crosses a private or mutating boundary")
     denied_segments = normalized_segments & _DENIED_PATH_SEGMENTS
-    if denied_segments and not is_public_resource and not is_public_coin_profile:
+    if (
+        denied_segments
+        and not is_public_resource
+        and not is_public_coin_profile
+        and not is_public_mystock_ranking
+        and not is_public_fund_detail
+    ):
         denied = ", ".join(sorted(denied_segments))
         raise RequestValidationError(f"API path crosses a private or mutating boundary: {denied}")
 
     is_public_read = (
         any(normalized_path.startswith(prefix) for prefix in PUBLIC_READ_PREFIXES)
         or is_public_resource
+        or is_public_mystock_ranking
+        or is_public_fund_detail
     )
     if not is_public_read:
         raise RequestValidationError("API path is outside the approved public-read families")
