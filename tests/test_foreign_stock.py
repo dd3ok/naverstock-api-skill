@@ -52,6 +52,16 @@ class ForeignMarketRequestTests(unittest.TestCase):
             "/api/foreign/market/USA/upjong/55501040/list?orderType=quantTop&startIdx=10&pageSize=5"
         )
 
+    def test_v2_sector_detail_uses_actual_industry_identifier(self) -> None:
+        args = argparse.Namespace(nation="usa", industry_code="52407020")
+
+        with patch.object(foreign_stock, "request_json", return_value={}) as request_json:
+            foreign_stock.fetch_sector_detail(args)
+
+        request_json.assert_called_once_with(
+            "/api/stockSecurity/sectors/v2/foreign/USA/52407020"
+        )
+
 
 class ForeignEtfRequestTests(unittest.TestCase):
     def test_etf_theme_filters_use_public_theme_endpoint(self) -> None:
@@ -108,6 +118,16 @@ class ForeignEtfRequestTests(unittest.TestCase):
                 unittest.mock.call("/api/securityService/etf/VOO/price?page=1&pageSize=2"),
                 unittest.mock.call("/api/foreign/v2/market/etf/usa/VOO?startIdx=0&pageSize=2"),
             ],
+        )
+
+    def test_etf_composition_uses_current_v2_endpoint(self) -> None:
+        args = argparse.Namespace(code="VOO")
+
+        with patch.object(foreign_stock, "request_json", return_value={}) as request_json:
+            foreign_stock.fetch_etf_composition(args)
+
+        request_json.assert_called_once_with(
+            "/api/stockSecurity/etfs/v2/foreign/VOO/composition"
         )
 
 
@@ -219,6 +239,24 @@ class ForeignSecurityRequestTests(unittest.TestCase):
 
         request_json.assert_called_once_with(
             "/api/polling/worldstock/stock?reutersCodes=NVDA.O%2CTSLA.O"
+        )
+
+    def test_chart_metadata_and_futures_polling_use_current_families(self) -> None:
+        chart_args = argparse.Namespace(asset_type="index", code=".IXIC")
+        poll_args = argparse.Namespace(security_type="futures", code=["escv1", "NQCV1"])
+
+        with patch.object(foreign_stock, "request_json", return_value={}) as request_json:
+            foreign_stock.fetch_chart_meta(chart_args)
+            foreign_stock.fetch_poll(poll_args)
+
+        self.assertEqual(
+            request_json.call_args_list,
+            [
+                unittest.mock.call("/api/securityFe/api/fchart/foreign/index/.IXIC"),
+                unittest.mock.call(
+                    "/api/polling/worldstock/futures?reutersCodes=EScv1%2CNQcv1"
+                ),
+            ],
         )
 
     def test_exchange_time_uses_named_public_exchange(self) -> None:

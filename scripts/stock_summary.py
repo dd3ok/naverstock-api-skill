@@ -21,8 +21,13 @@ def fetch_stock_summary(args: argparse.Namespace) -> dict[str, Any]:
     if args.include_consensus:
         payload["consensus"] = request_json(f"/api/domestic/detail/{code}/consensus")
     if args.include_polling:
+        polling_path = (
+            "/api/polling/domestic/NXT/stock"
+            if args.code_type == "NXT"
+            else "/api/polling/domestic/stock"
+        )
         payload["polling"] = request_json(
-            build_path("/api/polling/domestic/stock", {"itemCodes": code})
+            build_path(polling_path, {"itemCodes": code})
         )
     if args.include_industry:
         payload["industry"] = request_json(

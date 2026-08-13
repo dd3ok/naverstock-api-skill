@@ -331,9 +331,13 @@ def main() -> None:
 
     rank = sub.add_parser("rank", help="Crypto ranking list")
     rank.add_argument("--market", choices=["UPBIT", "BITHUMB"], default="UPBIT")
-    rank.add_argument("--sort-type", choices=["top", "marketValue"], default="marketValue")
+    rank.add_argument(
+        "--sort-type",
+        choices=["top", "up", "down", "marketValue"],
+        default="top",
+    )
     rank.add_argument("--page", type=_bounded_integer("page", 1, 1_000), default=1)
-    rank.add_argument("--page-size", type=_bounded_integer("page-size", 1, 100), default=20)
+    rank.add_argument("--page-size", type=_bounded_integer("page-size", 1, 100), default=100)
     rank.add_argument("--output")
     rank.set_defaults(func=fetch_rank)
 
@@ -475,7 +479,7 @@ def main() -> None:
     categories = sub.add_parser("categories-ranking", help="Crypto category ranking")
     categories.add_argument("--exchange-type", choices=["UPBIT", "BITHUMB"], default="UPBIT")
     categories.add_argument("--page", type=_bounded_integer("page", 1, 1_000), default=1)
-    categories.add_argument("--page-size", type=_bounded_integer("page-size", 1, 100), default=20)
+    categories.add_argument("--page-size", type=_bounded_integer("page-size", 1, 100), default=50)
     categories.add_argument("--output")
     categories.set_defaults(func=fetch_categories_ranking)
 
