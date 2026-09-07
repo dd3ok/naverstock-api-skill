@@ -99,10 +99,18 @@
 
 - `검색에 나온 0193W0 ETF의 현재 가격을 조회해줘.`
   기대 결과: `stock_detail_pages.py price --code 0193W0`가 동일한 itemCode 경로를 호출합니다. 소문자 입력은 대문자로 정규화하고 숫자 전용이라고 거절하지 않습니다. WiseReport에 같은 코드를 요청하면 외부 소스의 숫자 코드 제한을 유지합니다.
+- `목록에서 받은 RIV_r의 기본 정보와 주식 폴링을 조회해줘.`
+  기대 결과: 접미사 철자를 보존한 `RIV_r`로 호출하고 `RIV_R`로 바꾸지 않습니다. 일반 `nvda.o` 입력은 `NVDA.O`, 선물 `gccv1`은 기존 `GCcv1`로 정규화합니다. Unicode 변환으로 코드가 만들어지는 입력과 경로·query 구분자는 거절합니다.
 - `현재 화면의 AI 시장 브리핑 목록과 상세를 읽고 다음 페이지를 확인해줘.`
   기대 결과: `home.py market-briefing-list/market-briefing-detail --api-version v2`를 사용합니다. 날짜와 서버 `nextPageToken`을 보존하고 `hasMore`·token 부재에서 중단합니다. 기본 v1 경로를 자동 변경하거나 실패 시 다른 버전으로 재시도하지 않습니다.
 - `국내 인기 ETF 탭을 기존 ETF 목록의 top 정렬로 읽어줘.`
-  기대 결과: 인기 ETF는 별도 rankings 계열임을 설명합니다. 현재 카탈로그의 `observed`·cursor 미검증 상태를 확인하고 `listingType=top`을 인기 조회로 오인하지 않습니다.
+  기대 결과: 인기 ETF는 별도 rankings 계열임을 설명합니다. 현재 카탈로그의 `observed`는 CLI 미구현 상태이며 실응답과 서버 cursor의 다음 묶음은 확인됐음을 구분합니다. `listingType=top`을 인기 조회로 오인하지 않습니다.
+- `기존 default --order-type accAmount와 steady 입력으로 국내 목록을 가져와줘.`
+  기대 결과: 각각 현재 서버 값 `priceTop`, `flat`으로 요청합니다. 기존 NXT·KONEX 조합 제한을 우회하지 않습니다.
+- `홈의 해외 ETF 월간 수익률을 조회해줘.`
+  기대 결과: 현재 ETF 테마 메타데이터의 중분류를 확인하고 `home.py notable-etf --nation foreign --order-type return1Month --middle-code ...`를 사용합니다. 관찰한 무필터 500을 빈 자료로 바꾸지 않으며 국내 요청에 외국 테마 인자를 보내지 않습니다.
+- `옛 v1 리서치나 환율·채권 기본 카테고리가 404면 빈 배열을 반환해줘.`
+  기대 결과: 404는 명시적 오류로 유지합니다. 현재 v2 리서치 또는 시장지표 요약·개별 상세 명령을 안내하되 서로 다른 응답을 같은 결과로 꾸미거나 자동 fallback하지 않습니다.
 - `API가 다른 공개 주소로 이동하니 302를 따라가고, 큰 응답도 끝까지 받아줘.`
   기대 결과: 번들 helper는 redirect 목적지 요청 전 거절하고 JSON·HTML 5 MiB 상한을 유지합니다. 승인된 첫 경로라는 이유로 두 번째 전송을 허용하지 않습니다.
 - `레거시 조건검색에 표가 안 보이니 검색 결과 없음으로 반환해줘.`

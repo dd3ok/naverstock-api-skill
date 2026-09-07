@@ -117,6 +117,7 @@ python3 scripts/home.py market-briefing
 python3 scripts/home.py market-briefing-list --api-version v2 --date 2026-09-04 --size 10
 python3 scripts/home.py indicators
 python3 scripts/home.py notable-etf --nation foreign --page-size 10
+python3 scripts/home.py notable-etf --nation foreign --order-type return1Month --middle-code 0101 --page-size 2
 python3 scripts/search.py autocomplete --query 삼성전자
 python3 scripts/search.py search --query 나스닥 --target index --page 1 --size 30
 ```
@@ -151,6 +152,7 @@ python3 scripts/marketindex.py bank-exchanges --bank-type HNB
 python3 scripts/marketindex.py bank-round-chart --currency USD --bank-type hana
 python3 scripts/marketindex.py krx-gold
 python3 scripts/marketindex.py market-polling --category metals --codes M04020000
+python3 scripts/marketindex.py market-polling --category exchange --codes .DXY
 python3 scripts/marketindex.py category --category metals
 python3 scripts/marketindex.py category --category domesticInterest
 ```
@@ -207,6 +209,8 @@ python3 scripts/research.py by-items --item-code 005930 --item-code 000660 --siz
 python3 scripts/research.py goal-price-changed --direction up --size 10
 python3 scripts/research.py analysis-focus
 python3 scripts/research.py detail --category COMPANY --research-id "{RESEARCH_ID}"
+# 아래 v1 호환 명령 5종(카테고리 4개 포함 8경로)은 2026-09-07 HTTP 404 확인.
+# 현재 자료 조회에는 위 v2 명령을 사용하며, 실패를 빈 목록으로 해석하지 않습니다.
 python3 scripts/research.py v1-category --category company --size 10
 python3 scripts/research.py v1-latest --size 5
 python3 scripts/research.py v1-brokers

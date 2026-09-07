@@ -204,6 +204,19 @@ def normalize_item_code(code: str) -> str:
     return value
 
 
+def normalize_reuters_code_case(code: str) -> str:
+    """Normalize a validated code's base/exchange, preserving an underscore suffix.
+
+    Callers must first apply their own ASCII character and length restrictions.
+    The suffix between an underscore and the exchange dot is case-sensitive:
+    RIV_r must stay RIV_r, while ordinary nvda.o still becomes NVDA.O.
+    """
+
+    base, separator, suffix = code.partition("_")
+    suffix, exchange_separator, exchange = suffix.partition(".")
+    return f"{base.upper()}{separator}{suffix}{exchange_separator}{exchange.upper()}"
+
+
 def build_path(path: str, params: dict[str, Any] | None = None) -> str:
     if not params:
         return path
