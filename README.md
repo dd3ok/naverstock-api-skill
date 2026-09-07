@@ -17,6 +17,8 @@
 
 세부 기능과 확인 상태는 [API 카탈로그](references/api-catalog.md), 외부 HTML 범위는 [외부 공개 소스](references/external-sources.md)에서 확인할 수 있습니다.
 
+업데이트 내용과 호환성 변경, 검증 범위는 [변경 이력](CHANGELOG.md)을 참고하세요.
+
 ## 설치
 
 스킬 폴더명은 `naverstock-web-api`를 권장합니다.
