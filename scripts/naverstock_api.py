@@ -266,6 +266,66 @@ def read_http_error_detail(error: urllib.error.HTTPError) -> str:
         error.close()
 
 
+def _observed_failure_hint(path: str, status: int) -> str:
+    """Explain narrowly observed failures without retrying or changing the query."""
+    parsed = urllib.parse.urlsplit(path)
+    endpoint = parsed.path
+    query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
+    if status == 404:
+        research_base = "/api/stockSecurity/researches/v1/"
+        if endpoint.startswith(research_base):
+            replacement = {
+                "company": "category --category COMPANY",
+                "industry": "category --category INDUSTRY",
+                "invest": "category --category INVEST",
+                "economy": "category --category ECONOMY",
+                "brokers": "broker-list",
+                "latestResearch": "latest",
+                "company/by-items": "by-items --item-code CODE",
+                "analysis-focus": "analysis-focus",
+            }.get(endpoint[len(research_base):])
+            if replacement:
+                return (
+                    f"This v1 route returned 404 in the 2026-09-07 audit. Use research.py {replacement} "
+                    "for v2; review its filters and response shape. For lists, v1 index=0 corresponds "
+                    "to v2 CLI --page 1. No automatic fallback was performed."
+                )
+        return {
+            "/api/securityService/marketindex/exchange": (
+                "Use marketindex.py exchange-list for the currency list, or major-block --block-type "
+                "exchange for a summary. These are different response contracts."
+            ),
+            "/api/securityService/marketindex/bond": (
+                "Use marketindex.py major-block --block-type bond for a summary, or "
+                "detail --category bond --code USA for US bonds; neither is a full category replacement."
+            ),
+            "/api/polling/marketindex/exchange/FX_USDKRW": (
+                "Use marketindex.py detail --category exchange --code FX_USDKRW for a snapshot. "
+                "It is not the same polling contract; .DXY is a different indicator."
+            ),
+        }.get(endpoint, "")
+    if status == 500:
+        if (
+            re.fullmatch(r"/api/domestic/market/(?:upjong|theme|group)/[0-9]+/stocklist", endpoint)
+            and query.get("orderType") in (["sales"], ["operatingProfit"])
+        ):
+            return (
+                "This financial sort returned 500 in the 2026-09-07 audit. Current UI sorts are "
+                "marketSum, accAmount, up, down and accQuant. The requested sort was not changed."
+            )
+        if (
+            endpoint == "/api/foreign/market/home/notableETF"
+            and query.get("orderType") == ["return1Month"]
+            and not any(query.get(key, [""]) != [""] for key in ("largeCode", "middleCode"))
+        ):
+            return (
+                "The unthemed monthly request returned 500 in the 2026-09-07 audit; an observed "
+                "--middle-code from foreign_stock.py etf-themes succeeded. Select the intended "
+                "theme explicitly; no theme was inserted and no automatic retry was performed."
+            )
+    return ""
+
+
 def request_json(
     path: str,
     *,
@@ -309,6 +369,9 @@ def request_json(
             )
         else:
             message = f"Naver Stock API returned HTTP {exc.code}"
+            hint = _observed_failure_hint(clean_path, exc.code)
+            if hint:
+                message += ". " + hint
         raise NaverStockAPIError(
             message,
             path=clean_path,
@@ -454,6 +517,13 @@ def validate_public_request(
         raise RequestValidationError("API query key or value is too long")
     _reject_sensitive_keys(key for key, _ in query_pairs)
     _validate_pagination(query_pairs)
+    if normalized_path.rstrip("/") == "/api/community/discussion/posts" and any(
+        key.casefold() == "itemcode" for key, _ in query_pairs
+    ):
+        raise RequestValidationError(
+            "The general discussion feed ignores itemCode. Use discussion.py item-posts "
+            "--item-code CODE (the /posts/by-item endpoint) for a stock-specific feed."
+        )
     if body is not None:
         _validate_body_keys(body)
     return path

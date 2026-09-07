@@ -231,3 +231,5 @@ python3 scripts/discussion.py rankings --nation-type KOR --post-type HOT --page-
 ```
 
 기존 `recent-popular`, `category-latest`, `aggregate-static` 명령은 각각 `weekly-hot`, `latest`, `home`의 호환 alias로 유지됩니다. `home`의 `partial: true`와 `unavailable` 섹션은 API 실패를 뜻하며 빈 자료와 구분합니다.
+
+`discussion.py feed`는 전체 피드입니다. 종목별 조회에는 위 `item-posts`를 사용하고, 직접 `/posts?itemCode=...`를 호출하면 필터 무시 방지를 위해 요청 전에 거부됩니다. 알려진 404·500의 대안과 검증된 조건은 [제한 문서](known-limitations.md)를 확인하세요.

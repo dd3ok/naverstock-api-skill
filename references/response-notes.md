@@ -45,6 +45,8 @@
 
 ## 주의사항
 
+- 일반 토론 `/posts`의 `itemCode`는 서버가 무시하는 것으로 재현되어 공통 helper가 요청 전에 거부합니다. 종목별 조회는 `discussion.py item-posts`를 사용합니다. 알려진 404·500에는 조건별 대안 안내가 붙으며 상태·예외·원격 오류 detail은 유지합니다. [실패 조건과 검증 범위](known-limitations.md)를 확인하세요.
+
 - 사용자에게 답변할 때 데이터가 비공식 `stock.naver.com/api` 호출에서 왔음을 밝히고, 공식 지원·정확성 보장·투자 적합성을 암시하지 않습니다.
 - 2026-04-27 확인 기준 `/api/securityService/marketindex/majors`는 404를 반환했고 `/api/securityFe/api/index/majors`는 동작했습니다.
 - 가상자산 폴링에는 `KRW-BTC`가 아니라 `BTC_KRW_UPBIT` 같은 `fqnfTicker`가 필요합니다.
