@@ -3,12 +3,76 @@ from __future__ import annotations
 import re
 import unittest
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def markdown_prose(text: str) -> str:
+    """Ignore fenced examples when inspecting this repo's inline links and ATX headings."""
+    lines = []
+    fence = None
+    for line in text.splitlines():
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        if fence is not None:
+            if marker and marker[1][0] == fence[0] and len(marker[1]) >= len(fence):
+                if not marker[2].strip():
+                    fence = None
+            continue
+        if marker:
+            fence = marker[1]
+        else:
+            lines.append(line)
+    return "\n".join(lines)
+
+
+def markdown_anchors(prose: str) -> set[str]:
+    anchors: set[str] = set()
+    for title in re.findall(r"^ {0,3}#{1,6}\s+(.+?)\s*$", prose, re.MULTILINE):
+        title = re.sub(r"\s+#+\s*$", "", title)
+        slug = re.sub(r"\s+", "-", re.sub(r"[^\w\- ]", "", title.strip().lower()))
+        anchor = slug
+        suffix = 0
+        while anchor in anchors:
+            suffix += 1
+            anchor = f"{slug}-{suffix}"
+        anchors.add(anchor)
+    return anchors
+
+
 class SkillPackageTests(unittest.TestCase):
+    def test_local_markdown_links_and_anchors_exist(self) -> None:
+        sources = [ROOT / "README.md", ROOT / "SKILL.md", *sorted(ROOT.glob("references/*.md"))]
+        for source in sources:
+            prose = markdown_prose(source.read_text(encoding="utf-8"))
+            links = re.findall(
+                r'!?\[[^\]\n]*\]\((?:<([^>\n]+)>|([^\s)]+))(?:\s+"[^\"]*")?\)', prose
+            )
+            for bracketed, plain in links:
+                target = bracketed or plain
+                parsed = urlsplit(target)
+                if parsed.scheme or parsed.netloc:
+                    continue
+                linked = source.parent / unquote(parsed.path) if parsed.path else source
+                with self.subTest(source=source.relative_to(ROOT), target=target):
+                    self.assertTrue(linked.exists(), "Missing local link target")
+                    if parsed.fragment:
+                        self.assertTrue(linked.is_file())
+                        self.assertEqual(linked.suffix.lower(), ".md")
+                        self.assertIn(
+                            unquote(parsed.fragment),
+                            markdown_anchors(markdown_prose(linked.read_text(encoding="utf-8"))),
+                            "Missing Markdown section anchor",
+                        )
+
+    def test_markdown_examples_do_not_hide_real_duplicate_or_korean_headings(self) -> None:
+        prose = markdown_prose(
+            "## 한글 제목\n```md\n## 숨김\n~~~\n```\n"
+            "## 한글 제목\n~~~~\n## 숨김2\n~~~\n~~~~\n## Visible ###\n"
+        )
+        self.assertEqual(markdown_anchors(prose), {"한글-제목", "한글-제목-1", "visible"})
+
     def test_skill_frontmatter_and_openai_metadata(self) -> None:
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         self.assertTrue(skill.startswith("---\n"))

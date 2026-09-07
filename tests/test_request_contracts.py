@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import http.client
 import json
 from pathlib import Path
 import sys
@@ -16,6 +17,43 @@ import naverstock_api as api  # noqa: E402
 
 
 class RequestContractTests(unittest.TestCase):
+    def test_request_failures_have_stable_kinds_without_changing_legacy_error_dict(self) -> None:
+        cases = [
+            ("timeout", TimeoutError("remote detail")),
+            ("timeout", urllib.error.URLError(TimeoutError("remote detail"))),
+            ("network", urllib.error.URLError("remote detail")),
+            ("transport", http.client.IncompleteRead(b"partial")),
+            ("http", urllib.error.HTTPError("https://stock.naver.com/api/domestic/test", 429,
+                                          "remote detail", {}, io.BytesIO(b"remote body"))),
+        ]
+        for kind, cause in cases:
+            with self.subTest(kind=kind, cause=type(cause).__name__), patch.object(
+                api, "open_public_url", side_effect=cause
+            ) as open_url:
+                with self.assertRaises(api.NaverStockAPIError) as caught:
+                    api.request_json("/api/domestic/test")
+                self.assertEqual(caught.exception.kind, kind)
+                self.assertNotIn("kind", caught.exception.as_dict())
+                self.assertIs(caught.exception.__cause__, cause)
+                open_url.assert_called_once()
+
+    def test_response_failure_kinds_and_normal_empty_json(self) -> None:
+        for kind, body in [
+            ("invalid_json", b"<html>challenge</html>"),
+            ("encoding", b"\xff"),
+            ("response_too_large", b" " * 65),
+            ("api", b'{"error":true,"statusCode":403}'),
+        ]:
+            with self.subTest(kind=kind), patch.object(api, "MAX_RESPONSE_BYTES", 64), patch.object(
+                api, "open_public_url", return_value=io.BytesIO(body)
+            ):
+                with self.assertRaises(api.NaverStockAPIError) as caught:
+                    api.request_json("/api/domestic/test")
+                self.assertEqual(caught.exception.kind, kind)
+        for body, expected in [(b"[]", []), (b"{}", {})]:
+            with patch.object(api, "open_public_url", return_value=io.BytesIO(body)):
+                self.assertEqual(api.request_json("/api/domestic/test"), expected)
+
     def test_general_feed_rejects_ignored_item_filter_before_network(self) -> None:
         for suffix in ("?itemCode=005930", "?item%43ode=005930", "/?itemCode=005930", "?itemCode="):
             with self.subTest(suffix=suffix), patch.object(

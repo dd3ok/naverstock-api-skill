@@ -6,11 +6,25 @@ from __future__ import annotations
 import argparse
 from typing import Any
 
-from naverstock_api import build_path, emit_output, normalize_item_code, render_json, request_json
+from naverstock_api import (
+    bounded_int, build_path, emit_output, normalize_item_code, render_json,
+    request_json, validate_public_request,
+)
 
 
 def fetch_stock_summary(args: argparse.Namespace) -> dict[str, Any]:
     code = normalize_item_code(args.code)
+    industry_path = None
+    if args.include_industry:
+        industry_path = build_path(
+            f"/api/domestic/detail/{code}/stock/industry",
+            {
+                "page": bounded_int(args.industry_page, name="industry-page", minimum=1, maximum=10_000),
+                "pageSize": bounded_int(args.industry_page_size, name="industry-page-size", minimum=1, maximum=500),
+                "marketType": args.market_type,
+            },
+        )
+        validate_public_request(industry_path)
     payload: dict[str, Any] = {
         "itemCode": code,
         "codeType": args.code_type,
@@ -29,13 +43,8 @@ def fetch_stock_summary(args: argparse.Namespace) -> dict[str, Any]:
         payload["polling"] = request_json(
             build_path(polling_path, {"itemCodes": code})
         )
-    if args.include_industry:
-        payload["industry"] = request_json(
-            build_path(
-                f"/api/domestic/detail/{code}/stock/industry",
-                {"page": args.industry_page, "pageSize": args.industry_page_size, "marketType": args.market_type},
-            )
-        )
+    if industry_path:
+        payload["industry"] = request_json(industry_path)
     return payload
 
 
@@ -52,7 +61,11 @@ def main() -> None:
     parser.add_argument("--industry-page-size", type=int, default=10)
     parser.add_argument("--output")
     args = parser.parse_args()
-    emit_output(render_json(fetch_stock_summary(args)), args.output)
+    try:
+        payload = fetch_stock_summary(args)
+    except ValueError as exc:
+        parser.error(str(exc))
+    emit_output(render_json(payload), args.output)
 
 
 if __name__ == "__main__":

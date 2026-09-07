@@ -170,11 +170,13 @@ class NaverStockAPIError(RuntimeError):
         path: str,
         status_code: int | None = None,
         detail: str | None = None,
+        kind: str = "unknown",
     ) -> None:
         super().__init__(message)
         self.path = path
         self.status_code = status_code
         self.detail = detail
+        self.kind = kind
 
     def as_dict(self) -> dict[str, Any]:
         error: dict[str, Any] = {"message": str(self), "path": self.path}
@@ -356,6 +358,7 @@ def request_json(
             raise NaverStockAPIError(
                 f"Naver Stock API exceeded {MAX_RESPONSE_BYTES} response bytes",
                 path=clean_path,
+                kind="response_too_large",
             )
         text = raw.decode("utf-8")
     except urllib.error.HTTPError as exc:
@@ -377,30 +380,35 @@ def request_json(
             path=clean_path,
             status_code=exc.code,
             detail=detail,
+            kind="http",
         ) from exc
     except (TimeoutError, socket.timeout) as exc:
         raise NaverStockAPIError(
             f"Naver Stock API request timed out after {timeout} seconds",
             path=clean_path,
             detail=str(exc),
+            kind="timeout",
         ) from exc
     except urllib.error.URLError as exc:
         raise NaverStockAPIError(
             "Naver Stock API request failed",
             path=clean_path,
             detail=str(exc.reason),
+            kind="timeout" if isinstance(exc.reason, TimeoutError) else "network",
         ) from exc
     except UnicodeDecodeError as exc:
         raise NaverStockAPIError(
             "Naver Stock API returned a non-UTF-8 response",
             path=clean_path,
             detail=str(exc),
+            kind="encoding",
         ) from exc
     except (http.client.HTTPException, OSError) as exc:
         raise NaverStockAPIError(
             "Naver Stock API transport failed",
             path=clean_path,
             detail=str(exc),
+            kind="transport",
         ) from exc
     try:
         payload = json.loads(text)
@@ -410,6 +418,7 @@ def request_json(
             "Naver Stock API returned invalid JSON (a non-JSON response)",
             path=clean_path,
             detail=preview,
+            kind="invalid_json",
         ) from exc
     if isinstance(payload, dict) and ("detailCode" in payload or payload.get("error")):
         status_code = payload.get("statusCode")
@@ -418,6 +427,7 @@ def request_json(
             path=clean_path,
             status_code=status_code if isinstance(status_code, int) else None,
             detail=raw[:MAX_ERROR_BYTES].decode("utf-8", errors="replace"),
+            kind="api",
         )
     return payload
 
