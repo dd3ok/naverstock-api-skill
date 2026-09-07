@@ -362,7 +362,10 @@ def main() -> None:
     popular.add_argument("--output")
     popular.set_defaults(func=fetch_popular_hot)
 
-    feed = sub.add_parser("feed", help="General discussion feed")
+    feed = sub.add_parser(
+        "feed", help="General feed; use item-posts --item-code CODE for one stock",
+        description="General discussion feed. For a stock-specific feed use item-posts --item-code CODE.",
+    )
     feed.add_argument("--page-size", type=_page_size, default=50)
     feed.add_argument("--offset", type=_cursor)
     feed.add_argument("--discussion-group-type")

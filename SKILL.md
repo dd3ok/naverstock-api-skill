@@ -24,6 +24,8 @@ description: Safely queries and audits unofficial read-only Naver Stock (네이�
 
 404, redirect, 응답 크기 초과와 레거시 필수 표·헤더 누락을 "자료 없음"이나 빈 목록으로 바꾸지 마세요. redirect는 목적지 요청 전에 중단하세요. 단일 조회는 명시적 오류로 실패시키고, 여러 독립 섹션을 모으는 `research.py home`만 실패 섹션을 `unavailable`로 표시한 뒤 나머지 조회를 계속하세요.
 
+404·500의 대안, 무시되는 종목 필터, 200의 빈 항목을 판단할 때는 [references/known-limitations.md](references/known-limitations.md)를 확인하세요. 검증 상태는 정확한 요청 조건별로 적용하고 미검증 조합까지 성공으로 확대하지 마세요.
+
 ## 작업 라우팅
 
 | 사용자 의도 | 우선 사용 | 참고 |

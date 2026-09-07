@@ -67,7 +67,7 @@ v2 첫 요청은 `pageToken`을 생략할 수 있습니다. 다음 요청은 같
 | 은행 환율 회차 차트 | `script-backed` | GET | `/api/stockSecurity/exchange-rates/v2/{currency}/charts/round?bankType=hana` |
 | KRX 금 시세 | `script-backed` | GET | `/api/stockDomestic/gold/sise/krx` |
 | 시장지표 폴링 | `script-backed` | GET | `/api/polling/marketindex/{energy\|metals\|exchange}/{codes}`. KRX 금은 `metals/M04020000`을 사용합니다. |
-| 통합 가격 | `observed` | GET | `/api/securityService/integration/price?domesticKrxCodes=005930&foreignCodes=.IXIC&cryptoCodes=BTC_KRW_UPBIT`. 2026-09-07 200이지만 이 표본의 `foreign={}`; 국내·코인 데이터만 채워짐 |
+| 통합 가격 | `observed` | GET | `/api/securityService/integration/price?domesticKrxCodes=005930&foreignCodes=NVDA.O&cryptoCodes=BTC_KRW_UPBIT`. 2026-09-07 해외 주식 NVDA.O는 채워짐. 지수 .IXIC는 `foreign={}`여서 별도 지수 basic API 사용 |
 | 국내 지수 시간대 시세 | `script-backed` | GET | `/api/domestic/indexSise/time?koreaIndexType=KOSPI&thistime={yyyyMMdd}&startIdx=0&pageSize=20` |
 
 `/api/securityService/marketindex/majors` 같은 오래된 형태의 route는 2026-04-27에 404를 반환했습니다. 주요 지수에는 `/api/securityFe/api/index/majors`를 사용합니다.
@@ -90,3 +90,5 @@ v2 첫 요청은 `pageToken`을 생략할 수 있습니다. 다음 요청은 같
 | 펀드 목록·테마 후보 | `needs-recheck` | GET | `/api/fund/funds?sort={sort}&page={page}&size={size}`, `/api/fund/funds/themes/{theme}?size={size}`. UI enum 미확정으로 스크립트 미노출 |
 
 실제 펀드 일별 가격의 첫 두 거래일 `2026-09-04`, `2026-09-03`에서 현재 [펀드 화면 코드](https://ssl.pstatic.net/imgstock/fn/real/pc/_next/static/chunks/app/domestic/fund/%5Bcode%5D/total/page-3048e128e644bdc4.js)대로 마지막 `tradeDate`에서 달력 하루를 빼 `date=2026-09-02&size=2`를 요청했습니다. 응답은 200이며 `09-02`, `09-01`로 전진했습니다. 다른 API의 포함·제외 날짜 경계에 이 계산을 그대로 적용하지 않습니다.
+
+같은 날 후속 검색 결과의 `K55301B35070`은 `classes/returns`에서 7개 클래스를 반환했습니다. [성과분석 화면](https://stock.naver.com/domestic/fund/K55301B35070/performance)의 ‘다른 클래스 보기’ 7개 옵션과 표의 코드 링크도 확인했습니다. `K55105B00244`, `K55105B24954`는 정상 200의 빈 classes였으므로 이제 빈/비어 있지 않은 분기를 모두 관찰했습니다. 모든 펀드의 수익률이나 목록·테마 후보의 enum이 검증된 것은 아닙니다. [현재 제한과 처리](known-limitations.md)를 함께 확인하세요.

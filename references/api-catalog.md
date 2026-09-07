@@ -26,6 +26,8 @@
 | `needs-recheck` | route, enum, 인증 민감도, 페이징 형태를 새로 검증해야 합니다. |
 | `excluded` | 읽기 전용 주식/시장 정보 범위 밖입니다. 호출하지 않습니다. |
 
+이 라벨과 별도로 현재 성공·실패·미검증 조건과 대체 사용법은 [알려진 제한과 검증 범위](known-limitations.md)에 기록합니다. `script-backed`를 정상 동작 판정으로 사용하지 않습니다.
+
 ## 페이지 점검 메모
 
 2026-04-27 재점검에서는 `https://stock.naver.com/` 루트 HTML과 루트가 로드하는 Next.js chunk 58개에서 route/API 문자열을 추출하고, 후보 route를 작은 직접 요청으로 확인했습니다. 2026-07-20에는 국내 종목, 국내 시장, ETF, 투자자 동향, 시장지표, 가상자산, 뉴스, 리서치, 토론의 공개 page route 10개와 중복 제거한 chunk 123개를 정적으로 대조했습니다. 2026-07-21에는 로그인하지 않은 in-app 브라우저에서 국내 주식 20개·ETF 11개·ETN 8개 목록 탭, 종목 상세 17개 하위 탭, 뉴스포커스 5개 탭, 글로벌 지표 8개 탭과 주요 부모 route를 직접 이동해 hydration 후 화면·redirect·빈 상태를 확인하고, 페이징 API를 `startIdx`/`page` 구간으로 소량 호출했습니다. `robots.txt`는 `Disallow: /`이고 sitemap은 404라서 대량 크롤링은 하지 않습니다.
