@@ -74,7 +74,7 @@ git clone --depth 1 https://github.com/dd3ok/naverstock-api-skill.git .agents/sk
 Npay 증권 가상자산 시장에서 BTC 브리핑과 관련 뉴스를 조회해줘.
 ```
 
-CI에서 검증한 Python 3.10~3.13과 표준 라이브러리만으로 번들 스크립트를 직접 실행할 수도 있습니다.
+Python 3.14의 최신 패치 버전과 표준 라이브러리만으로 번들 스크립트를 직접 실행할 수도 있습니다. 지원·CI 검증 대상은 Python 3.14로 통일하며, 이전 Python 버전의 호환성은 유지하지 않습니다.
 
 ```bash
 git clone https://github.com/dd3ok/naverstock-api-skill.git
