@@ -62,7 +62,7 @@
 - `themeList?middleCode=0101&count=2`는 HTTP 200과 **3개** 배열을 반환했습니다. 요청한 count와 실제 배열 길이를 따로 기록합니다. 관련 ETF `/foreign/v2/market/etf/usa/VOO`는 최상위 배열이 아니라 `largeThemaCode`, `middleThemaCode`, `list`를 가진 객체였습니다.
 - `popular-etf?nationType=USA&size=2`는 `hasNext`, `items`, `cursor`를 가진 객체였습니다. 받은 cursor를 그대로 전달한 다음 응답의 종목 코드와 순번이 바뀌어 페이지 진행을 확인했습니다. 두 응답 모두 `hasNext=true`여서 마지막 페이지 종료까지 검증한 것은 아닙니다.
 - `foreignPopularEtf?size=2`는 2개 배열, `foreignPopularStock?size=2`는 `hasNext`, `cursor`, `items`와 항목별 `price`를 가진 객체를 반환했습니다. 두 집계와 `popular-etf` 랭킹은 별도 계약입니다.
-- 미국 섹터 v2 랭킹은 `period=daily`, `size=2`의 `changeRate`·`marketCap` 정렬에서 `hasNext`, `items`, `cursor` 객체를 반환했습니다. 전체 시가총액은 `totalMarketCap`, `sectorCount`, `totalRisingCount`, `totalUnchangedCount`, `totalFallingCount`, `updatedAt` 필드를 가진 객체였습니다. 응답 구조와 표본 종목 코드는 확인했지만 합계 수치, 정렬 정확성, 다음 cursor까지 검증한 것은 아닙니다.
+- 미국 섹터 v2 랭킹은 `period=daily`, `size=2`의 `changeRate`·`marketCap` 정렬에서 `hasNext`, `items`, `cursor` 객체를 반환했습니다. 전체 시가총액은 `totalMarketCap`, `sectorCount`, `totalRisingCount`, `totalUnchangedCount`, `totalFallingCount`, `updatedAt` 필드를 가진 객체였습니다. 후속 검증에서 두 정렬의 다음 cursor와 섹터 코드 비중복을 확인했습니다. 합계 수치, 정렬 정확성, 마지막 페이지는 미검증입니다.
 
 홈 `foreignStock`의 현재 호출자는 `nationType=USA`, `size=10`을 사용합니다. listing은 `index=0`, `includeOverMarket=true`와 아래 정렬값을 보내며, popular 첫 요청은 `type=popular`만 추가합니다. 초기 호출은 `exchangeType`, `filterType`, `ageGroup`, `cursor`를 보내지 않습니다. 이 값들은 빌더에 선택 인자가 있다는 이유만으로 임의 지정하지 않습니다.
 
