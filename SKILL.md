@@ -5,6 +5,8 @@ description: Safely queries and audits unofficial read-only Naver Stock (네이�
 
 # NaverStock Web API
 
+실행 환경은 Python 3.14의 최신 패치 버전을 사용하세요. 이전 Python 버전은 지원·검증 대상이 아닙니다.
+
 ## 핵심 안전 규칙
 
 - 공개 `stock.naver.com/api/...`에서 관찰되는 비공식·미문서화 read-only 엔드포인트를 우선하세요. 지원되는 공식 API가 아니라 관찰된 내부 인터페이스라고 밝히세요.
