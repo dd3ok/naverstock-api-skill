@@ -232,6 +232,17 @@ def open_public_url(request: urllib.request.Request, *, timeout: int) -> Any:
     return urllib.request.build_opener(_RejectRedirects()).open(request, timeout=timeout)
 
 
+def read_public_response(response: Any, *, limit: int) -> bytes:
+    """Read at most limit + 1 bytes without accepting a premature HTTP EOF."""
+    raw = response.read(limit + 1)
+    # HTTPResponse.read(amt) does not raise for an unsatisfied Content-Length.
+    # Its remaining length is None for chunked or close-delimited responses.
+    remaining = getattr(response, "length", None)
+    if len(raw) <= limit and isinstance(remaining, int) and remaining > 0:
+        raise http.client.IncompleteRead(raw, remaining)
+    return raw
+
+
 def read_http_error_detail(error: urllib.error.HTTPError) -> str:
     """Read a small diagnostic and release the response even if reading fails."""
     try:
@@ -267,7 +278,7 @@ def request_json(
     )
     try:
         with open_public_url(req, timeout=timeout) as resp:
-            raw = resp.read(MAX_RESPONSE_BYTES + 1)
+            raw = read_public_response(resp, limit=MAX_RESPONSE_BYTES)
         if len(raw) > MAX_RESPONSE_BYTES:
             raise NaverStockAPIError(
                 f"Naver Stock API exceeded {MAX_RESPONSE_BYTES} response bytes",
