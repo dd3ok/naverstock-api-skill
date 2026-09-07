@@ -21,6 +21,8 @@ import urllib.request
 BASE_URL = "https://stock.naver.com"
 DEFAULT_TIMEOUT = 30
 MAX_TIMEOUT = 120
+MAX_RESPONSE_BYTES = 5 * 1024 * 1024
+MAX_ERROR_BYTES = 2_048
 
 # These are deliberately API-family allowlists, not a blanket ``/api`` pass.
 # Every caller is still restricted to GET unless its exact path appears in the
@@ -187,12 +189,32 @@ class NaverStockAPIError(RuntimeError):
 
 
 def normalize_item_code(code: str) -> str:
-    value = code.strip().upper() if isinstance(code, str) else ""
+    message = (
+        "item code must be exactly six ASCII letters or digits; "
+        "six-digit codes may also be prefixed with A"
+    )
+    # Check before upper() can turn non-ASCII characters such as ß into ASCII.
+    if not isinstance(code, str) or not code.isascii():
+        raise ValueError(message)
+    value = code.strip().upper()
     if value.startswith("A") and value[1:].isdigit() and len(value) == 7:
         value = value[1:]
-    if not (len(value) == 6 and value.isascii() and value.isdigit()):
-        raise ValueError("item code must be exactly six digits, optionally prefixed with A")
+    if not (len(value) == 6 and value.isalnum()):
+        raise ValueError(message)
     return value
+
+
+def normalize_reuters_code_case(code: str) -> str:
+    """Normalize a validated code's base/exchange, preserving an underscore suffix.
+
+    Callers must first apply their own ASCII character and length restrictions.
+    The suffix between an underscore and the exchange dot is case-sensitive:
+    RIV_r must stay RIV_r, while ordinary nvda.o still becomes NVDA.O.
+    """
+
+    base, separator, suffix = code.partition("_")
+    suffix, exchange_separator, exchange = suffix.partition(".")
+    return f"{base.upper()}{separator}{suffix}{exchange_separator}{exchange.upper()}"
 
 
 def build_path(path: str, params: dict[str, Any] | None = None) -> str:
@@ -203,6 +225,105 @@ def build_path(path: str, params: dict[str, Any] | None = None) -> str:
         doseq=True,
     )
     return f"{path}?{query}" if query else path
+
+
+class _RejectRedirects(urllib.request.HTTPRedirectHandler):
+    def http_error_302(self, req, fp, code, msg, headers):
+        # Reject before urllib constructs or sends a request to the destination.
+        raise urllib.error.HTTPError(
+            req.full_url, code, "Redirects are not allowed", headers, fp
+        )
+
+    http_error_301 = http_error_302
+    http_error_303 = http_error_302
+    http_error_307 = http_error_302
+    http_error_308 = http_error_302
+
+
+def open_public_url(request: urllib.request.Request, *, timeout: int) -> Any:
+    """Open an already validated request without following redirects."""
+    return urllib.request.build_opener(_RejectRedirects()).open(request, timeout=timeout)
+
+
+def read_public_response(response: Any, *, limit: int) -> bytes:
+    """Read at most limit + 1 bytes without accepting a premature HTTP EOF."""
+    raw = response.read(limit + 1)
+    # HTTPResponse.read(amt) does not raise for an unsatisfied Content-Length.
+    # Its remaining length is None for chunked or close-delimited responses.
+    remaining = getattr(response, "length", None)
+    if len(raw) <= limit and isinstance(remaining, int) and remaining > 0:
+        raise http.client.IncompleteRead(raw, remaining)
+    return raw
+
+
+def read_http_error_detail(error: urllib.error.HTTPError) -> str:
+    """Read a small diagnostic and release the response even if reading fails."""
+    try:
+        return error.read(MAX_ERROR_BYTES).decode("utf-8", errors="replace")
+    except (http.client.HTTPException, OSError, ValueError):
+        return "Unable to read the HTTP error response"
+    finally:
+        error.close()
+
+
+def _observed_failure_hint(path: str, status: int) -> str:
+    """Explain narrowly observed failures without retrying or changing the query."""
+    parsed = urllib.parse.urlsplit(path)
+    endpoint = parsed.path
+    query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
+    if status == 404:
+        research_base = "/api/stockSecurity/researches/v1/"
+        if endpoint.startswith(research_base):
+            replacement = {
+                "company": "category --category COMPANY",
+                "industry": "category --category INDUSTRY",
+                "invest": "category --category INVEST",
+                "economy": "category --category ECONOMY",
+                "brokers": "broker-list",
+                "latestResearch": "latest",
+                "company/by-items": "by-items --item-code CODE",
+                "analysis-focus": "analysis-focus",
+            }.get(endpoint[len(research_base):])
+            if replacement:
+                return (
+                    f"This v1 route returned 404 in the 2026-09-07 audit. Use research.py {replacement} "
+                    "for v2; review its filters and response shape. For lists, v1 index=0 corresponds "
+                    "to v2 CLI --page 1. No automatic fallback was performed."
+                )
+        return {
+            "/api/securityService/marketindex/exchange": (
+                "Use marketindex.py exchange-list for the currency list, or major-block --block-type "
+                "exchange for a summary. These are different response contracts."
+            ),
+            "/api/securityService/marketindex/bond": (
+                "Use marketindex.py major-block --block-type bond for a summary, or "
+                "detail --category bond --code USA for US bonds; neither is a full category replacement."
+            ),
+            "/api/polling/marketindex/exchange/FX_USDKRW": (
+                "Use marketindex.py detail --category exchange --code FX_USDKRW for a snapshot. "
+                "It is not the same polling contract; .DXY is a different indicator."
+            ),
+        }.get(endpoint, "")
+    if status == 500:
+        if (
+            re.fullmatch(r"/api/domestic/market/(?:upjong|theme|group)/[0-9]+/stocklist", endpoint)
+            and query.get("orderType") in (["sales"], ["operatingProfit"])
+        ):
+            return (
+                "This financial sort returned 500 in the 2026-09-07 audit. Current UI sorts are "
+                "marketSum, accAmount, up, down and accQuant. The requested sort was not changed."
+            )
+        if (
+            endpoint == "/api/foreign/market/home/notableETF"
+            and query.get("orderType") == ["return1Month"]
+            and not any(query.get(key, [""]) != [""] for key in ("largeCode", "middleCode"))
+        ):
+            return (
+                "The unthemed monthly request returned 500 in the 2026-09-07 audit; an observed "
+                "--middle-code from foreign_stock.py etf-themes succeeded. Select the intended "
+                "theme explicitly; no theme was inserted and no automatic retry was performed."
+            )
+    return ""
 
 
 def request_json(
@@ -229,17 +350,28 @@ def request_json(
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            text = resp.read().decode("utf-8")
+        with open_public_url(req, timeout=timeout) as resp:
+            raw = read_public_response(resp, limit=MAX_RESPONSE_BYTES)
+        if len(raw) > MAX_RESPONSE_BYTES:
+            raise NaverStockAPIError(
+                f"Naver Stock API exceeded {MAX_RESPONSE_BYTES} response bytes",
+                path=clean_path,
+            )
+        text = raw.decode("utf-8")
     except urllib.error.HTTPError as exc:
-        detail = exc.read(2_048).decode("utf-8", errors="replace")
-        if exc.code in {403, 429}:
+        detail = read_http_error_detail(exc)
+        if 300 <= exc.code < 400:
+            message = "Naver Stock API returned a redirect. Stop; do not follow it."
+        elif exc.code in {403, 429}:
             message = (
                 f"Naver Stock API returned HTTP {exc.code}. Stop; do not retry automatically. "
                 "Re-verify that the endpoint is public and wait before trying again."
             )
         else:
             message = f"Naver Stock API returned HTTP {exc.code}"
+            hint = _observed_failure_hint(clean_path, exc.code)
+            if hint:
+                message += ". " + hint
         raise NaverStockAPIError(
             message,
             path=clean_path,
@@ -285,7 +417,7 @@ def request_json(
             "Naver Stock API returned an error payload",
             path=clean_path,
             status_code=status_code if isinstance(status_code, int) else None,
-            detail=json.dumps(payload, ensure_ascii=False),
+            detail=raw[:MAX_ERROR_BYTES].decode("utf-8", errors="replace"),
         )
     return payload
 
@@ -385,6 +517,13 @@ def validate_public_request(
         raise RequestValidationError("API query key or value is too long")
     _reject_sensitive_keys(key for key, _ in query_pairs)
     _validate_pagination(query_pairs)
+    if normalized_path.rstrip("/") == "/api/community/discussion/posts" and any(
+        key.casefold() == "itemcode" for key, _ in query_pairs
+    ):
+        raise RequestValidationError(
+            "The general discussion feed ignores itemCode. Use discussion.py item-posts "
+            "--item-code CODE (the /posts/by-item endpoint) for a stock-specific feed."
+        )
     if body is not None:
         _validate_body_keys(body)
     return path

@@ -40,12 +40,14 @@ RANKING_TYPES = {
     "volume-surge": ("upperQuantTop", None),
 }
 
+# Preserve older CLI inputs while sending the current server enum values.
+ORDER_TYPE_ALIASES = {"accAmount": "priceTop", "steady": "flat"}
+
 RAW_ORDER_TYPES = tuple(
     sorted(
         {
-            "accAmount",
+            *ORDER_TYPE_ALIASES,
             "searchTop",
-            "steady",
             *(order_type for order_type, _ in RANKING_TYPES.values()),
         }
     )
@@ -139,7 +141,7 @@ def fetch_default(args: argparse.Namespace) -> Any:
     return _fetch_default_list(
         trade_type=args.trade_type,
         market_type=args.market_type,
-        order_type=args.order_type,
+        order_type=ORDER_TYPE_ALIASES.get(args.order_type, args.order_type),
         start_idx=args.start_idx,
         page_size=args.page_size,
         alert_type=args.alert_type,

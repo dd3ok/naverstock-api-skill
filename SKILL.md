@@ -22,7 +22,9 @@ description: Safely queries and audits unofficial read-only Naver Stock (네이�
 
 로컬 카탈로그를 관찰 기록으로 취급하세요. 조회 실패, 404, 빈 응답, 응답 구조 변경, route 변경 의심이 있으면 현재 공개 페이지를 다시 확인하세요. 새 엔드포인트 캡처나 카탈로그 갱신은 사용자가 명시적으로 요청했을 때만 수행하고 [references/capture-workflow.md](references/capture-workflow.md)를 따르세요.
 
-404를 "자료 없음"이나 빈 목록으로 바꾸지 마세요. 단일 조회는 구조화된 API 오류로 실패시키고, 여러 독립 섹션을 모으는 `research.py home`만 실패 섹션을 `unavailable`로 표시한 뒤 나머지 조회를 계속하세요.
+404, redirect, 응답 크기 초과와 레거시 필수 표·헤더 누락을 "자료 없음"이나 빈 목록으로 바꾸지 마세요. redirect는 목적지 요청 전에 중단하세요. 단일 조회는 명시적 오류로 실패시키고, 여러 독립 섹션을 모으는 `research.py home`만 실패 섹션을 `unavailable`로 표시한 뒤 나머지 조회를 계속하세요.
+
+404·500의 대안, 무시되는 종목 필터, 200의 빈 항목을 판단할 때는 [references/known-limitations.md](references/known-limitations.md)를 확인하세요. 검증 상태는 정확한 요청 조건별로 적용하고 미검증 조합까지 성공으로 확대하지 마세요.
 
 ## 작업 라우팅
 
@@ -41,7 +43,7 @@ description: Safely queries and audits unofficial read-only Naver Stock (네이�
 | 예탁금, 국내 투자자 동향 집계/차트, 외국인/기관, 프로그램 동향 | `scripts/market_trend.py` | [references/api-domestic.md](references/api-domestic.md) |
 | KOSPI/KOSDAQ/KPI200 상세·페이징, 주요 시장지표 블록, 원자재, 운임, 금리, 환율, 지수·지표 차트 | `scripts/marketindex.py` | [references/api-home-market-fund.md](references/api-home-market-fund.md) |
 | 가상자산 랭킹, 주요 코인, 기간별 등락률, 폴링 가격, 분봉·일봉, 비교 차트, 뉴스, 카테고리, AI 브리핑 | `scripts/crypto.py` | [references/api-crypto.md](references/api-crypto.md) |
-| 홈 시장 상태, 해외 거래시간, AI 시장 브리핑, 공개 콘텐츠, 통합 지표와 주목 ETF | `scripts/home.py` | [references/api-home-market-fund.md](references/api-home-market-fund.md) |
+| 홈 시장 상태, 해외 거래시간, AI 시장 브리핑(현재 목록·상세는 `--api-version v2`), 공개 콘텐츠, 통합 지표와 주목 ETF | `scripts/home.py` | [references/api-home-market-fund.md](references/api-home-market-fund.md) |
 | 헤더 자동완성과 전체 상품 검색 | `scripts/search.py` | [references/api-home-market-fund.md](references/api-home-market-fund.md) |
 | 시장 뉴스, 뉴스포커스 하위 탭, 해외뉴스 목록/상세, 키워드 검색 | `scripts/news.py` | [references/api-content.md](references/api-content.md) |
 | 서비스 공지 목록/상세/배너 | `scripts/notices.py` | [references/api-content.md](references/api-content.md) |
@@ -51,9 +53,9 @@ description: Safely queries and audits unofficial read-only Naver Stock (네이�
 
 ## 기본 절차
 
-1. 네이버 증권 페이지와 상품 식별자를 확인하세요. 국내 주식은 6자리 `itemCode`, 지수는 `KOSPI` 같은 코드를 사용하세요. 가상자산은 폴링에 `BTC_KRW_UPBIT` 같은 `fqnfTicker`, 뉴스·프로필에 `BTC` 같은 plain ticker를 사용하세요.
+1. 네이버 증권 페이지와 상품 식별자를 확인하세요. 국내 상품은 `005930`, `0193W0` 같은 ASCII 영숫자 6자리 `itemCode`, 지수는 `KOSPI` 같은 코드를 사용하세요. 기존 숫자 코드의 `A005930` 입력도 지원합니다. WiseReport는 숫자 6자리만 허용하며, 코드 형식이 유효하다는 이유로 상품별 API 지원까지 가정하지 마세요. 가상자산은 폴링에 `BTC_KRW_UPBIT` 같은 `fqnfTicker`, 뉴스·프로필에 `BTC` 같은 plain ticker를 사용하세요.
 2. 사용자가 직접 데이터를 요청하면 번들 스크립트를 우선 사용하세요.
-3. 공지는 `stockSecurity/notices/v2`, 리서치는 `stockSecurity/researches/v2` 계열을 우선하세요. `research.py v1-*` 명령은 명시적 호환 조회에만 사용하세요.
+3. 공지는 `stockSecurity/notices/v2`, 리서치는 `stockSecurity/researches/v2` 계열을 우선하세요. 2026-09-07 실검증에서 `research.py v1-*`의 8개 경로가 404였으므로 정상 조회 예시에는 v2 명령을 사용하세요. v1 명령은 호환성을 위해 남겨 두며 실패를 빈 자료로 바꾸거나 자동 fallback하지 않습니다.
 4. 기업분석 8종은 현재 종목 페이지가 연결하는 `wisereport.py` v3를 사용하세요. 일반 시세·뉴스·리서치는 현재 `stock.naver.com` 소스를 유지하세요.
 5. `legacy_screeners.py`는 사용자가 해당 조건검색을 요청했을 때만 사용하세요. 기술적 명령에는 시장 인자를 붙이지 말고 가격 위치 명령에서만 KOSPI/KOSDAQ을 고르세요.
 6. 스크립트가 감싸지 않은 엔드포인트 계열은 호출 전 [references/api-catalog.md](references/api-catalog.md)에서 상태·공통 계약을 확인하고 작업 라우팅 표의 도메인 문서에서 상세 경로를 확인하세요.

@@ -11,6 +11,7 @@ from naverstock_api import (
     build_path,
     emit_output,
     normalize_item_code,
+    normalize_reuters_code_case,
     render_json,
     request_json,
 )
@@ -22,10 +23,10 @@ _FOREIGN_CODE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._=-]{0,31}$")
 def _asset_code(asset_type: str, value: str) -> str:
     if asset_type == "domestic":
         return normalize_item_code(value)
-    clean = value.strip().upper() if isinstance(value, str) else ""
+    clean = value.strip() if isinstance(value, str) else ""
     if not _FOREIGN_CODE.fullmatch(clean):
         raise ValueError("foreign code contains an unsupported character or path separator")
-    return clean
+    return normalize_reuters_code_case(clean)
 
 
 def fetch_holder_ranking(args: argparse.Namespace) -> Any:

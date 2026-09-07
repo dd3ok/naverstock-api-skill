@@ -13,7 +13,13 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from naverstock_api import bounded_int, normalize_item_code
+from naverstock_api import (
+    bounded_int,
+    normalize_item_code,
+    open_public_url,
+    read_http_error_detail,
+    read_public_response,
+)
 
 
 DEFAULT_TIMEOUT = 30
@@ -90,9 +96,14 @@ def build_external_url(
             )
         if key == "cmp_cd":
             try:
-                clean_params[key] = normalize_item_code(str(value))
+                clean_code = normalize_item_code(str(value))
             except ValueError as exc:
                 raise ExternalRequestValidationError(str(exc)) from exc
+            if not clean_code.isdigit():
+                raise ExternalRequestValidationError(
+                    "Wisereport cmp_cd must remain a six-digit domestic stock code"
+                )
+            clean_params[key] = clean_code
         elif key == "page":
             clean_params[key] = str(
                 bounded_int(value, name="page", minimum=1, maximum=10_000)
@@ -130,14 +141,16 @@ def request_public_html(
         },
     )
     try:
-        with urllib.request.urlopen(request, timeout=clean_timeout) as response:
+        with open_public_url(request, timeout=clean_timeout) as response:
             final_url = response.geturl()
             _validate_final_url(url, final_url)
-            raw = response.read(MAX_RESPONSE_BYTES + 1)
+            raw = read_public_response(response, limit=MAX_RESPONSE_BYTES)
             content_type = response.headers.get("Content-Type", "")
     except urllib.error.HTTPError as exc:
-        detail = exc.read(2_048).decode("utf-8", errors="replace")
-        if exc.code in {403, 429}:
+        detail = read_http_error_detail(exc)
+        if 300 <= exc.code < 400:
+            message = "External public source returned a redirect. Stop; do not follow it."
+        elif exc.code in {403, 429}:
             message = (
                 f"External public source returned HTTP {exc.code}. "
                 "Stop; do not retry automatically."

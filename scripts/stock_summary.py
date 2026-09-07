@@ -41,7 +41,7 @@ def fetch_stock_summary(args: argparse.Namespace) -> dict[str, Any]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--code", required=True, help="Six-digit item code, e.g. 005930")
+    parser.add_argument("--code", required=True, help="Six-character ASCII item code, e.g. 005930 or 0193W0")
     parser.add_argument("--code-type", choices=["KRX", "NXT"], default="KRX")
     parser.add_argument("--market-type", choices=["ALL", "KOSPI", "KOSDAQ"], default="ALL")
     parser.add_argument("--include-sosok", action=argparse.BooleanOptionalAction, default=True)

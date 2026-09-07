@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 from datetime import date
 import http.client
+import json
 import sys
 import unittest
 from io import BytesIO, StringIO
@@ -74,7 +75,7 @@ class OutputTests(unittest.TestCase):
             fp=BytesIO(b'{"error":"Not Found","statusCode":404}'),
         )
 
-        with patch.object(naverstock_api.urllib.request, "urlopen", side_effect=error):
+        with patch.object(naverstock_api, "open_public_url", side_effect=error):
             with self.assertRaises(naverstock_api.NaverStockAPIError) as raised:
                 naverstock_api.request_json("/api/domestic/home/marketStatus")
 
@@ -97,8 +98,8 @@ class OutputTests(unittest.TestCase):
 
     def test_request_json_wraps_incomplete_transport_response(self) -> None:
         with patch.object(
-            naverstock_api.urllib.request,
-            "urlopen",
+            naverstock_api,
+            "open_public_url",
             side_effect=http.client.IncompleteRead(b"partial"),
         ):
             with self.assertRaises(naverstock_api.NaverStockAPIError) as raised:
@@ -786,6 +787,34 @@ class NewsTests(unittest.TestCase):
 
 
 class StockDetailPageTests(unittest.TestCase):
+    def test_price_cli_sends_observed_alphanumeric_and_legacy_numeric_codes(self) -> None:
+        for value, expected in (
+            ("0193w0", "0193W0"), ("005930", "005930"), ("A005930", "005930")
+        ):
+            with (
+                self.subTest(value=value),
+                patch.object(sys, "argv", ["stock_detail_pages.py", "price", "--code", value]),
+                patch.object(naverstock_api, "open_public_url", return_value=BytesIO(b'{"nowPrice":"100"}')) as transport,
+                patch("sys.stdout", new_callable=StringIO) as output,
+            ):
+                stock_detail_pages.main()
+            self.assertEqual(
+                transport.call_args.args[0].full_url,
+                f"https://stock.naver.com/api/domestic/detail/{expected}/price",
+            )
+            self.assertEqual(json.loads(output.getvalue()), {"nowPrice": "100"})
+
+    def test_price_cli_rejects_unicode_path_and_private_codes_before_transport(self) -> None:
+        for value in ("0193ß", "0193ﬀ", "0193W0/../auth", "orders"):
+            with (
+                self.subTest(value=value),
+                patch.object(sys, "argv", ["stock_detail_pages.py", "price", "--code", value]),
+                patch.object(naverstock_api, "open_public_url") as transport,
+                self.assertRaises(ValueError),
+            ):
+                stock_detail_pages.main()
+            transport.assert_not_called()
+
     def test_ir_detail_accepts_current_board_and_plan_identifiers(self) -> None:
         self.assertEqual(stock_detail_pages._ir_article_id("BOARD75384"), "BOARD75384")
         self.assertEqual(stock_detail_pages._ir_article_id("plan8570"), "PLAN8570")
