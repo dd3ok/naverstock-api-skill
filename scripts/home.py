@@ -29,6 +29,7 @@ DOMESTIC_NOTABLE_ETF_ORDER_TYPES = (
 FOREIGN_NOTABLE_ETF_ORDER_TYPES = ("priceTop", "up", "return1Month", "dividend")
 _INDICATOR_CODE = re.compile(r"^(?:\.?[A-Za-z0-9][A-Za-z0-9._=-]{0,31})$")
 _DOMESTIC_CODE = re.compile(r"^[A-Z0-9]{6}$")
+_THEME_CODE = re.compile(r"^(?:all|[A-Za-z0-9_-]{1,20})$")
 
 
 def _bounded_integer(name: str, minimum: int, maximum: int) -> Any:
@@ -83,6 +84,13 @@ def _indicator_codes(value: str) -> str:
             "indicator-codes must contain 1-30 comma-separated market codes without path separators"
         )
     return ",".join(codes)
+
+
+def _theme_code(value: str) -> str:
+    clean = value.strip()
+    if not _THEME_CODE.fullmatch(clean):
+        raise argparse.ArgumentTypeError("theme code must be 'all' or a short alphanumeric code")
+    return clean
 
 
 def fetch_market_info(args: argparse.Namespace) -> Any:
@@ -154,12 +162,18 @@ def fetch_indicators(args: argparse.Namespace) -> Any:
 
 
 def fetch_notable_etf(args: argparse.Namespace) -> Any:
+    large_code = getattr(args, "large_code", None)
+    middle_code = getattr(args, "middle_code", None)
+    if args.nation == "domestic" and (large_code is not None or middle_code is not None):
+        raise ValueError("--large-code and --middle-code require --nation foreign")
     order_type = args.order_type or ("amount_etf" if args.nation == "domestic" else "up")
     return request_json(
         build_path(
             f"/api/{args.nation}/market/home/notableETF",
             {
                 "orderType": order_type,
+                "largeCode": _theme_code(large_code) if large_code is not None else None,
+                "middleCode": _theme_code(middle_code) if middle_code is not None else None,
                 "startIdx": args.start_idx,
                 "pageSize": args.page_size,
             },
@@ -281,6 +295,14 @@ def main() -> None:
         choices=DOMESTIC_NOTABLE_ETF_ORDER_TYPES + FOREIGN_NOTABLE_ETF_ORDER_TYPES,
         help="Defaults to amount_etf for domestic and up for foreign",
     )
+    notable_etf.add_argument(
+        "--large-code", type=_theme_code, help="Optional foreign ETF large theme code"
+    )
+    notable_etf.add_argument(
+        "--middle-code",
+        type=_theme_code,
+        help="Optional foreign ETF middle theme code; current return1Month UI selects a theme, e.g. 0101",
+    )
     notable_etf.add_argument("--start-idx", type=_bounded_integer("start-idx", 0, 10_000), default=0)
     notable_etf.add_argument("--page-size", type=_bounded_integer("page-size", 1, 100), default=10)
     add_output(notable_etf)
@@ -322,6 +344,9 @@ def main() -> None:
         )
         if args.order_type not in allowed:
             parser.error(f"{args.order_type} is not valid for --nation {args.nation}")
+    if args.command == "notable-etf" and args.nation == "domestic":
+        if args.large_code is not None or args.middle_code is not None:
+            parser.error("--large-code and --middle-code require --nation foreign")
     emit_output(render_json(args.func(args)), args.output)
 
 

@@ -13,12 +13,16 @@
 - stockSecurity v2 공지 목록은 `{ "hasNext": ..., "items": [...] }` 형태이고, 공지 배너는 list를 바로 반환합니다.
 - 가상자산 랭킹 응답은 `{ "contents": [...] }` 형태이고, 주요 코인 엔드포인트는 list를 반환합니다.
 - 시장 브리핑 v2 목록은 `items`, `hasMore`, `nextPageToken`입니다. cursor를 계산·디코딩하지 않고 그대로 전달하고, 날짜 변경 시 이전 cursor를 재사용하지 않습니다. 상세 schema와 v1/v2 선택은 [홈 API 문서](api-home-market-fund.md)를 확인합니다.
+- `script-backed`는 CLI 지원 여부이며 현재 응답 성공을 보증하는 라벨이 아닙니다. 2026-09-07 v1 리서치 8경로와 bare 시장지표 exchange/bond는 404였습니다. v2 리서치·개별 지표는 별도로 확인한 현재 대안입니다.
+- 200 응답의 빈 배열, 누락 필드, 전송 실패를 구분합니다. 표본 펀드의 `classes=[]`, 일부 리서치 필터의 `items=[]`, 토론 인접 글의 `null`은 실제 빈 결과였으며 해당 비어 있지 않은 분기까지 검증했다는 뜻은 아닙니다.
+- 국내 ETF v3와 가격 보강은 `krx`·`nxt`를 포함하며, 해외 가격 보강은 종목 코드가 키인 객체를 반환합니다. 홈 인기 ETF 집계 배열, 인기 주식 집계의 `items`, 가상자산·토론 랭킹의 `contents`를 같은 공통 배열로 간주하지 않습니다.
 - JSON과 허용된 외부 HTML의 응답 상한은 5 MiB입니다. 초과·redirect는 오류이며 자동 추가 요청을 하지 않습니다. 레거시 조건검색의 필수 표·헤더 누락도 정상 빈 목록과 구분합니다.
 - `Content-Length`보다 짧게 수신된 본문과 완료되지 않은 chunked 응답은 내용이 유효한 JSON·HTML처럼 보여도 전송 오류로 처리합니다. 길이 헤더가 없는 응답의 완전성까지 보증하지는 않습니다.
 
 ## 유용한 enum
 
 - 국내 `codeType`: `KRX`, `NXT`.
+- 해외 Reuters 코드의 underscore 접미사는 대소문자를 보존합니다. 실제 `RIV_r`를 `RIV_R`로 바꾸면 기본 정보가 409였고 수정 후 기본 정보·주식 폴링은 200이었습니다. 일반 `nvda.o`→`NVDA.O`와 선물 `GCcv1` 처리, 각 소비자의 문자 제한은 유지합니다.
 - 국내 `itemCode`는 숫자 전용이 아닙니다. `0193W0` 같은 ASCII 영숫자 6자리를 보존하고 대문자로 정규화합니다. WiseReport의 `cmp_cd`는 별도 숫자 코드 제한을 유지합니다. 공통 정규화를 쓰는 종목·리서치·토론·홈·인사이트 명령에도 형식 지원이 적용되지만 개별 ETF에 제공되는 데이터는 endpoint마다 다시 확인해야 합니다.
 - 국내 시장 목록 `tradeType`: `KRX`, `NXT`.
 - 국내 시장 목록 `marketType`: `ALL`, `KOSPI`, `KOSDAQ`; `KONEX`는 현재 화면이 사용하는 `tradeType=KRX&orderType=quantTop` 조합으로만 노출합니다.
@@ -35,6 +39,7 @@
 - 토론 랭킹 `postType`: 확인된 기본값은 `HOT`입니다. `LATEST`는 chunk enum으로 관찰했지만 중요한 사용 전 재검증합니다.
 - 카테고리 페이지 타입: `industry`, `theme`, `groups`; API path 타입: `upjong`, `theme`, `group`.
 - 카테고리 종목 목록 chip alias: `accQuant -> quantTop`, `accAmount -> priceTop`, 그리고 `up`, `down`, `marketSum`, `sales`, `operatingProfit`.
+- 국내 기본 종목 목록의 호환 입력 `accAmount`, `steady`는 각각 `priceTop`, `flat`으로 변환합니다. 카테고리 구성 종목의 `sales`, `operatingProfit`은 기존 입력을 유지하지만 2026-09-07 업종·테마·그룹사 표본 모두 500이었고 현재 화면 정렬 탭에는 없습니다.
 - ETF 목록 alias: `priceTop -> tradingValueDesc`, `capitalization -> aumDesc`, `upper -> changeRateDescUpAll`, `lower -> changeRateDescDownAll`, `trading -> tradingVolumeDesc`.
 - ETN 목록 alias: `priceTop -> AMOUNT_ETN`, `marketSum -> MARKET_SUM_ETN`, `trading -> QUANT_ETN`, `upper -> UP_ETN`, `lower -> DOWN_ETN`.
 

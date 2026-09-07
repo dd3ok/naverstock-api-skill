@@ -7,7 +7,13 @@ import argparse
 import re
 from typing import Any, Callable
 
-from naverstock_api import build_path, emit_output, render_json, request_json
+from naverstock_api import (
+    build_path,
+    emit_output,
+    normalize_reuters_code_case,
+    render_json,
+    request_json,
+)
 
 
 NATIONS = ("usa", "chn", "hkg", "jpn", "vnm")
@@ -19,7 +25,7 @@ NOTABLE_ETF_ORDER_TYPES = ("priceTop", "up", "return1Month", "dividend")
 POLL_TYPES = ("stock", "etf", "index", "futures")
 EXCHANGES = ("NASDAQ", "NYSE", "AMEX")
 
-_REUTERS_CODE = re.compile(r"^(?:[A-Z0-9][A-Z0-9._-]{0,31}|\.[A-Z0-9][A-Z0-9._-]{0,30})$")
+_REUTERS_CODE = re.compile(r"^(?:[A-Za-z0-9][A-Za-z0-9._-]{0,31}|\.[A-Za-z0-9][A-Za-z0-9._-]{0,30})$")
 _INDUSTRY_CODE = re.compile(r"^[0-9]{2,12}$")
 _THEME_CODE = re.compile(r"^(?:all|[A-Za-z0-9_-]{1,20})$")
 
@@ -40,21 +46,17 @@ def bounded_int(name: str, minimum: int, maximum: int) -> Callable[[str], int]:
 
 
 def reuters_code(value: str) -> str:
-    """Normalize a public Reuters code while rejecting path/query separators."""
+    """Normalize a public Reuters code without rewriting its underscore suffix."""
 
-    result = value.strip().upper()
-    if not _REUTERS_CODE.fullmatch(result):
-        raise argparse.ArgumentTypeError(
-            "Reuters code must contain only letters, digits, dot, underscore, or hyphen"
-        )
-    return result
+    return normalize_reuters_code_case(poll_code(value))
 
 
 def poll_code(value: str) -> str:
-    """Validate a polling code while preserving futures Reuters suffix casing."""
+    """Validate a Reuters code before any security-specific case normalization."""
 
     result = value.strip()
-    if not _REUTERS_CODE.fullmatch(result.upper()):
+    # Validate the original ASCII spelling before upper() can expand Unicode.
+    if not _REUTERS_CODE.fullmatch(result):
         raise argparse.ArgumentTypeError(
             "Reuters code must contain only letters, digits, dot, underscore, or hyphen"
         )
@@ -63,7 +65,7 @@ def poll_code(value: str) -> str:
 
 def _canonical_poll_code(value: str, security_type: str) -> str:
     if security_type != "futures":
-        return value.upper()
+        return normalize_reuters_code_case(value)
     continuous = re.fullmatch(r"(.+?)cv([0-9]+)", value, flags=re.IGNORECASE)
     if continuous:
         return f"{continuous.group(1).upper()}cv{continuous.group(2)}"

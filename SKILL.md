@@ -53,7 +53,7 @@ description: Safely queries and audits unofficial read-only Naver Stock (네이�
 
 1. 네이버 증권 페이지와 상품 식별자를 확인하세요. 국내 상품은 `005930`, `0193W0` 같은 ASCII 영숫자 6자리 `itemCode`, 지수는 `KOSPI` 같은 코드를 사용하세요. 기존 숫자 코드의 `A005930` 입력도 지원합니다. WiseReport는 숫자 6자리만 허용하며, 코드 형식이 유효하다는 이유로 상품별 API 지원까지 가정하지 마세요. 가상자산은 폴링에 `BTC_KRW_UPBIT` 같은 `fqnfTicker`, 뉴스·프로필에 `BTC` 같은 plain ticker를 사용하세요.
 2. 사용자가 직접 데이터를 요청하면 번들 스크립트를 우선 사용하세요.
-3. 공지는 `stockSecurity/notices/v2`, 리서치는 `stockSecurity/researches/v2` 계열을 우선하세요. `research.py v1-*` 명령은 명시적 호환 조회에만 사용하세요.
+3. 공지는 `stockSecurity/notices/v2`, 리서치는 `stockSecurity/researches/v2` 계열을 우선하세요. 2026-09-07 실검증에서 `research.py v1-*`의 8개 경로가 404였으므로 정상 조회 예시에는 v2 명령을 사용하세요. v1 명령은 호환성을 위해 남겨 두며 실패를 빈 자료로 바꾸거나 자동 fallback하지 않습니다.
 4. 기업분석 8종은 현재 종목 페이지가 연결하는 `wisereport.py` v3를 사용하세요. 일반 시세·뉴스·리서치는 현재 `stock.naver.com` 소스를 유지하세요.
 5. `legacy_screeners.py`는 사용자가 해당 조건검색을 요청했을 때만 사용하세요. 기술적 명령에는 시장 인자를 붙이지 말고 가격 위치 명령에서만 KOSPI/KOSDAQ을 고르세요.
 6. 스크립트가 감싸지 않은 엔드포인트 계열은 호출 전 [references/api-catalog.md](references/api-catalog.md)에서 상태·공통 계약을 확인하고 작업 라우팅 표의 도메인 문서에서 상세 경로를 확인하세요.
