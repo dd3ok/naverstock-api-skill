@@ -11,6 +11,7 @@
 - [시장 지수와 지표](#시장-지수와-지표)
 - [가상자산](#가상자산)
 - [뉴스와 리서치](#뉴스와-리서치)
+- [리서치 소량 검증](#리서치-소량-검증)
 
 ## 국내 주식
 
@@ -232,4 +233,23 @@ python3 scripts/discussion.py rankings --nation-type KOR --post-type HOT --page-
 
 기존 `recent-popular`, `category-latest`, `aggregate-static` 명령은 각각 `weekly-hot`, `latest`, `home`의 호환 alias로 유지됩니다. `home`의 `partial: true`와 `unavailable` 섹션은 API 실패를 뜻하며 빈 자료와 구분합니다.
 
+`research.py`의 v2 `category`, `industry-research`는 1-based 페이지를 요구합니다. 예전에 첫 페이지로 보정하던 0·음수는 이제 요청 전에 오류로 거부합니다. 날짜는 실제 달력에 존재하는 `YYYY-MM-DD` 또는 `YYYYMMDD`만 허용하고 시작일이 종료일보다 늦으면 거부합니다. v1의 0-based `--index`는 유지합니다. `home`은 선택한 섹션의 요청 조건을 먼저 검증하며, 실행 중 403·429·3xx·비정상 JSON이면 이후 섹션을 `not_run`으로 남깁니다. 일반 404·500은 기존처럼 해당 섹션만 실패 처리합니다.
+
+`stock_summary.py --include-industry`의 페이지(1~10000)·페이지 크기(1~500)는 첫 API 요청 전에 검증합니다. 업종 조회를 선택하지 않으면 사용하지 않는 업종 옵션은 검증하지 않습니다.
+
 `discussion.py feed`는 전체 피드입니다. 종목별 조회에는 위 `item-posts`를 사용하고, 직접 `/posts?itemCode=...`를 호출하면 필터 무시 방지를 위해 요청 전에 거부됩니다. 알려진 404·500의 대안과 검증된 조건은 [제한 문서](known-limitations.md)를 확인하세요.
+
+## 리서치 소량 검증
+
+```bash
+python3 scripts/research_check.py --category COMPANY
+python3 scripts/research_check.py --category COMPANY --live --output research-check.json
+```
+
+기본 실행은 네트워크 없이 요청 계획만 출력합니다. `--live`는 선택한 v2 카테고리 한 곳에서 `size=2`로 첫·다음 페이지를 최대 2회 GET하며, 첫 응답 처리 후 1초 이상 기다립니다. 첫 페이지의 `hasNext=false`이면 다음 요청을 건너뛰고, 요청 실패·구조 불일치에는 중단합니다. 기존 `research.py category`와 요청 경로 생성 함수를 공유합니다.
+
+검사는 `items` 배열, boolean `hasNext`, 공개 리포트 `nid`, 요청 크기, 페이지 내·간 ID 중복에 한정합니다. 추가 필드는 허용하고 정상 빈 목록은 `empty`로 표시합니다. JSON 요약에는 요청 경로·조건·확인 시각·개수·판정만 남기며 원본 본문과 리포트 내용은 저장하지 않습니다. 요청 오류에는 확인 가능한 HTTP 상태와 로컬 오류 종류 `errorKind`를 남깁니다. 종류는 `http`, `timeout`, `network`, `transport`, `encoding`, `invalid_json`, `response_too_large`, `api`, `unknown`입니다. 실패 전 결과와 아직 실행하지 않은 `not_run` 항목도 출력하며, 파일 저장은 `--output`을 지정할 때만 수행합니다. 자동 재시도나 저장된 상태에서 재개하는 기능은 없습니다.
+
+`status=planned`는 미실행, `passed`는 실행한 표본의 검사 통과, `failed`는 요청·계약·중복 검사 실패입니다. 종료 코드는 계획/통과 0, 실패 1, 잘못된 CLI 인자 2입니다. `pagination=disjoint`만 두 비어 있지 않은 페이지의 ID 비중복을 뜻합니다. `terminal`은 첫 페이지에서 종료, `empty_next_page`는 다음 요청이 정상 빈 목록인 경우이며 비어 있지 않은 다음 페이지의 진행을 검증한 것은 아닙니다. 조회 사이 새 글이 추가되면 중복이 생길 수 있으므로 `overlap`만으로 API 결함이나 삭제를 단정하지 않습니다.
+
+결과는 해당 조건·시점의 표본입니다. 모든 필터·끝 페이지·금융 수치 정확성을 보증하지 않으며, 전체 페이지 감사에는 [캡처 워크플로](capture-workflow.md)를 사용합니다. 기본 CI는 실 API를 호출하지 않습니다.

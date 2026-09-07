@@ -135,6 +135,191 @@ class DomesticStockSummaryTests(unittest.TestCase):
         )
 
 
+class RequestPreflightTests(unittest.TestCase):
+    @staticmethod
+    def summary_args(**changes: object) -> argparse.Namespace:
+        values = {
+            "code": "A005930", "code_type": "KRX", "market_type": "ALL",
+            "include_sosok": True, "include_consensus": True, "include_polling": True,
+            "include_industry": True, "industry_page": 1, "industry_page_size": 10,
+        }
+        values.update(changes)
+        return argparse.Namespace(**values)
+
+    @staticmethod
+    def home_args(**changes: object) -> argparse.Namespace:
+        values = {
+            "research_category": True, "research_ranking": True, "recent_popular": True,
+            "latest_size": 3, "weekly_hot_start_date": "2026-07-14", "weekly_hot_size": 10,
+            "ranking_type": "SEARCH_TOP", "selected_rank": 1,
+        }
+        values.update(changes)
+        return argparse.Namespace(**values)
+
+    @staticmethod
+    def list_args(**changes: object) -> argparse.Namespace:
+        values = {
+            "category": "COMPANY", "page": 1, "page_size": 2, "size": 2, "search_text": None,
+            "start_date": None, "end_date": None, "broker_code": None, "industry_type": None,
+            "item_code": None,
+        }
+        values.update(changes)
+        return argparse.Namespace(**values)
+
+    def test_summary_rejects_invalid_selected_options_before_any_request(self) -> None:
+        for changes in (
+            {"code": "../invalid"}, {"industry_page": 0}, {"industry_page": 10001},
+            {"industry_page_size": 0}, {"industry_page_size": 501},
+        ):
+            with self.subTest(changes=changes), patch.object(stock_summary, "request_json") as request:
+                with self.assertRaises(ValueError):
+                    stock_summary.fetch_stock_summary(self.summary_args(**changes))
+                request.assert_not_called()
+
+    def test_summary_keeps_normalized_code_order_and_upper_industry_bounds(self) -> None:
+        with patch.object(stock_summary, "request_json", return_value={}) as request:
+            result = stock_summary.fetch_stock_summary(
+                self.summary_args(industry_page=10000, industry_page_size=500)
+            )
+        self.assertEqual(result["itemCode"], "005930")
+        self.assertEqual([call.args[0] for call in request.call_args_list], [
+            "/api/domestic/detail/005930/detail?codeType=KRX",
+            "/api/domestic/detail/005930/sosok",
+            "/api/domestic/detail/005930/consensus",
+            "/api/polling/domestic/stock?itemCodes=005930",
+            "/api/domestic/detail/005930/stock/industry?page=10000&pageSize=500&marketType=ALL",
+        ])
+
+    def test_summary_ignores_invalid_unused_industry_options(self) -> None:
+        with patch.object(stock_summary, "request_json", return_value={}) as request:
+            result = stock_summary.fetch_stock_summary(self.summary_args(
+                include_industry=False, industry_page=0, industry_page_size=501,
+            ))
+        self.assertEqual(request.call_count, 4)
+        self.assertNotIn("industry", result)
+
+    def test_summary_cli_rejects_invalid_selected_options_without_http(self) -> None:
+        for options in (
+            ["--code", "../invalid"],
+            ["--code", "005930", "--include-industry", "--industry-page", "0"],
+            ["--code", "005930", "--include-industry", "--industry-page-size", "501"],
+        ):
+            with (
+                self.subTest(options=options), patch.object(sys, "argv", ["stock_summary.py", *options]),
+                patch.object(sys, "stderr", StringIO()), patch.object(stock_summary, "request_json") as request,
+            ):
+                with self.assertRaises(SystemExit) as raised:
+                    stock_summary.main()
+                self.assertEqual(raised.exception.code, 2)
+                request.assert_not_called()
+
+    def test_research_direct_lists_reject_page_date_and_range_before_http(self) -> None:
+        invalid = (
+            {"page": 0}, {"page": 100002},
+            {"start_date": "2026-02-30"}, {"end_date": "20260229"},
+            {"start_date": "2026-W01-1"}, {"start_date": "2026-7-01"},
+            {"start_date": "2026/07/01"}, {"start_date": "２０２６０７０１"},
+            {"start_date": "2026-07-02", "end_date": "20260701"},
+        )
+        for fetcher in (research.fetch_category, research.fetch_industry_research):
+            for changes in invalid:
+                with self.subTest(fetcher=fetcher.__name__, changes=changes), patch.object(research, "request_json") as request:
+                    with self.assertRaises(ValueError):
+                        fetcher(self.list_args(**changes))
+                    request.assert_not_called()
+
+    def test_research_cli_rejects_page_date_and_range_without_http(self) -> None:
+        for command in ("category", "industry-research"):
+            for options in (
+                ["--page", "0"], ["--page", "100002"],
+                ["--start-date", "2026-02-30"], ["--end-date", "20260229"],
+                ["--start-date", "2026-W01-1"],
+                ["--start-date", "20260702", "--end-date", "2026-07-01"],
+            ):
+                with (
+                    self.subTest(command=command, options=options),
+                    patch.object(sys, "argv", ["research.py", command, *options]),
+                    patch.object(sys, "stderr", StringIO()), patch.object(research, "request_json") as request,
+                ):
+                    with self.assertRaises(SystemExit) as raised:
+                        research.main()
+                    self.assertEqual(raised.exception.code, 2)
+                    request.assert_not_called()
+
+    def test_research_lists_preserve_index_upper_bound_and_valid_date_forms(self) -> None:
+        for fetcher, category in ((research.fetch_category, "company"), (research.fetch_industry_research, "industry")):
+            for page in (1, 100001):
+                with self.subTest(fetcher=fetcher.__name__, page=page), patch.object(research, "request_json", return_value={}) as request:
+                    fetcher(self.list_args(page=page, start_date="20240229", end_date="2024-02-29"))
+                request.assert_called_once_with(
+                    f"/api/stockSecurity/researches/v2/{category}?index={page - 1}&size=2&startDate=2024-02-29&endDate=2024-02-29"
+                )
+
+    def test_home_preflights_all_enabled_sections_before_any_request(self) -> None:
+        for changes in (
+            {"latest_size": 0}, {"latest_size": 501},
+            {"weekly_hot_size": 0}, {"weekly_hot_size": 501},
+            {"weekly_hot_start_date": "2026-02-30"},
+        ):
+            with self.subTest(changes=changes), patch.object(research, "request_json") as request:
+                with self.assertRaises(ValueError):
+                    research.fetch_home(self.home_args(**changes))
+                request.assert_not_called()
+
+    def test_home_cli_preflights_later_section_before_any_request(self) -> None:
+        for options in (["--weekly-hot-size", "0"], ["--weekly-hot-start-date", "20260230"]):
+            with (
+                self.subTest(options=options), patch.object(sys, "argv", ["research.py", "home", *options]),
+                patch.object(sys, "stderr", StringIO()), patch.object(research, "request_json") as request,
+            ):
+                with self.assertRaises(SystemExit) as raised:
+                    research.main()
+                self.assertEqual(raised.exception.code, 2)
+                request.assert_not_called()
+
+    def test_home_ignores_options_for_disabled_sections(self) -> None:
+        with patch.object(research, "request_json", return_value={"ranking": []}) as request:
+            result = research.fetch_home(self.home_args(
+                research_category=False, recent_popular=False, latest_size=0,
+                weekly_hot_size=501, weekly_hot_start_date="invalid",
+            ))
+        request.assert_called_once_with("/api/domestic/research/ranking?rankingType=SEARCH_TOP&selectedRank=1")
+        self.assertEqual(result, {"partial": False, "sections": {
+            "researchRanking": {"status": "ok", "data": {"ranking": []}},
+        }})
+
+    def test_home_stops_on_access_redirect_or_invalid_json_and_keeps_prior_results(self) -> None:
+        errors = [naverstock_api.NaverStockAPIError("stop", path="/api/test", status_code=status)
+                  for status in (*range(300, 400), 403, 429)]
+        errors.append(naverstock_api.NaverStockAPIError("stop", path="/api/test", kind="invalid_json"))
+        names = ("latestResearch", "researchRanking", "weeklyHot")
+        for error in errors:
+            for position in (0, 1):
+                with (
+                    self.subTest(status=error.status_code, kind=error.kind, position=position),
+                    patch.object(research, "request_json", side_effect=[{"kept": True}] * position + [error]) as request,
+                ):
+                    result = research.fetch_home(self.home_args())
+                self.assertTrue(result["partial"])
+                self.assertEqual(request.call_count, position + 1)
+                for index, name in enumerate(names):
+                    section = result["sections"][name]
+                    self.assertEqual(section["status"], "ok" if index < position else "unavailable" if index == position else "not_run")
+                    if index < position:
+                        self.assertEqual(section["data"], {"kept": True})
+                self.assertEqual(result["sections"][names[position]]["error"], error.as_dict())
+
+    def test_home_continues_independent_sections_after_ordinary_404_or_500(self) -> None:
+        for status in (404, 500):
+            error = naverstock_api.NaverStockAPIError("unavailable", path="/api/test", status_code=status)
+            with self.subTest(status=status), patch.object(research, "request_json", side_effect=[{}, error, {"items": []}]) as request:
+                result = research.fetch_home(self.home_args())
+            self.assertEqual(request.call_count, 3)
+            self.assertTrue(result["partial"])
+            self.assertEqual(result["sections"]["researchRanking"]["status"], "unavailable")
+            self.assertEqual(result["sections"]["weeklyHot"], {"status": "ok", "data": {"items": []}})
+
+
 class StockInsightTests(unittest.TestCase):
     def test_public_holder_ranking_and_what_if_paths(self) -> None:
         with patch.object(stock_insights, "request_json", return_value={}) as request_json:
