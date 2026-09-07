@@ -6,6 +6,7 @@ import sys
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlsplit
 
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1] / "scripts"
@@ -53,6 +54,85 @@ class HomeTests(unittest.TestCase):
             home.fetch_market_briefing_list(args)
 
         request_json.assert_called_once_with("/api/securityAi/marketBriefing?date=2026-07-17&size=20")
+
+    def test_market_briefing_detail_keeps_old_namespace_compatible(self) -> None:
+        args = argparse.Namespace(briefing_id="12345")
+
+        with patch.object(home, "request_json", return_value={}) as request_json:
+            home.fetch_market_briefing_detail(args)
+
+        request_json.assert_called_once_with("/api/securityAi/marketBriefing/12345")
+
+    def test_market_briefing_v2_preserves_cursor_and_raw_payload(self) -> None:
+        token = "next:abc/def+ghi==._~-"
+        payload = {"items": [{"id": 12345}], "hasMore": True, "nextPageToken": token}
+        for page_token in (None, token):
+            args = argparse.Namespace(
+                date="2026-09-07", size=20, page_token=page_token, api_version="v2"
+            )
+            with (
+                self.subTest(page_token=page_token),
+                patch.object(home, "request_json", return_value=payload) as request_json,
+            ):
+                result = home.fetch_market_briefing_list(args)
+
+            self.assertIs(result, payload)
+            request_json.assert_called_once()
+            url = urlsplit(request_json.call_args.args[0])
+            self.assertEqual(url.path, "/api/securityAi/v2/marketBriefing")
+            expected_query = {"date": ["2026-09-07"], "size": ["20"]}
+            if page_token is not None:
+                expected_query["pageToken"] = [token]
+            self.assertEqual(parse_qs(url.query), expected_query)
+
+    def test_market_briefing_cli_version_selection_preserves_default(self) -> None:
+        for command, selector, suffix in (
+            ("market-briefing-list", ["--date", "2026-09-07"], "?date=2026-09-07&size=20"),
+            ("market-briefing-detail", ["--briefing-id", "12345"], "/12345"),
+        ):
+            for version in (None, "v1", "v2"):
+                argv = ["home.py", command, *selector]
+                if version is not None:
+                    argv.extend(["--api-version", version])
+                with (
+                    self.subTest(command=command, version=version),
+                    patch.object(sys, "argv", argv),
+                    patch.object(home, "request_json", return_value={}) as request_json,
+                    patch("sys.stdout", new_callable=StringIO),
+                ):
+                    home.main()
+
+                base = "/api/securityAi/v2/marketBriefing" if version == "v2" else "/api/securityAi/marketBriefing"
+                request_json.assert_called_once_with(base + suffix)
+
+    def test_market_briefing_rejects_invalid_versions_before_request(self) -> None:
+        for version in ("v3", "../personal", None):
+            args = argparse.Namespace(
+                date="2026-09-07", size=20, page_token=None, briefing_id="12345", api_version=version
+            )
+            for fetch in (home.fetch_market_briefing_list, home.fetch_market_briefing_detail):
+                with (
+                    self.subTest(version=version, function=fetch.__name__),
+                    patch.object(home, "request_json") as request_json,
+                    self.assertRaisesRegex(ValueError, "api-version"),
+                ):
+                    fetch(args)
+                request_json.assert_not_called()
+
+        for command, selector in (
+            ("market-briefing-list", ["--date", "2026-09-07"]),
+            ("market-briefing-detail", ["--briefing-id", "12345"]),
+        ):
+            with (
+                self.subTest(command=command),
+                patch.object(sys, "argv", ["home.py", command, *selector, "--api-version", "v3"]),
+                patch.object(home, "request_json") as request_json,
+                patch.object(sys, "stderr", StringIO()),
+                self.assertRaises(SystemExit) as exited,
+            ):
+                home.main()
+            self.assertEqual(exited.exception.code, 2)
+            request_json.assert_not_called()
 
     def test_market_info_uses_trade_type_path(self) -> None:
         args = argparse.Namespace(trade_type="NXT")
@@ -122,6 +202,92 @@ class HomeTests(unittest.TestCase):
         request_json.assert_called_once_with(
             "/api/domestic/market/home/notableETF?orderType=amount_etf&startIdx=0&pageSize=10"
         )
+
+    def test_foreign_notable_etf_forwards_only_supplied_theme_filters(self) -> None:
+        payload = [{"reutersCode": "SPY"}]
+        for large_code, middle_code, expected_filters in (
+            (None, None, {}),
+            ("01", None, {"largeCode": ["01"]}),
+            (None, "0101", {"middleCode": ["0101"]}),
+            ("01", "0101", {"largeCode": ["01"], "middleCode": ["0101"]}),
+        ):
+            args = argparse.Namespace(
+                nation="foreign", order_type="return1Month", start_idx=0, page_size=10,
+                large_code=large_code, middle_code=middle_code,
+            )
+            with (
+                self.subTest(large_code=large_code, middle_code=middle_code),
+                patch.object(home, "request_json", return_value=payload) as request_json,
+            ):
+                result = home.fetch_notable_etf(args)
+
+            self.assertIs(result, payload)
+            request_json.assert_called_once()
+            url = urlsplit(request_json.call_args.args[0])
+            self.assertEqual(url.path, "/api/foreign/market/home/notableETF")
+            self.assertEqual(parse_qs(url.query), {
+                "orderType": ["return1Month"], "startIdx": ["0"], "pageSize": ["10"],
+                **expected_filters,
+            })
+
+    def test_foreign_notable_etf_cli_preserves_selected_theme_codes(self) -> None:
+        argv = [
+            "home.py", "notable-etf", "--nation", "foreign", "--order-type", "return1Month",
+            "--large-code", " 01 ", "--middle-code", " 0101 ",
+        ]
+        with (
+            patch.object(sys, "argv", argv),
+            patch.object(home, "request_json", return_value=[]) as request_json,
+            patch("sys.stdout", new_callable=StringIO),
+        ):
+            home.main()
+
+        request_json.assert_called_once_with(
+            "/api/foreign/market/home/notableETF?orderType=return1Month&largeCode=01&middleCode=0101&startIdx=0&pageSize=10"
+        )
+
+    def test_domestic_notable_etf_rejects_foreign_filters_before_request(self) -> None:
+        for flag, attribute, value in (
+            ("--large-code", "large_code", "01"),
+            ("--middle-code", "middle_code", "0101"),
+        ):
+            args = argparse.Namespace(
+                nation="domestic", order_type=None, start_idx=0, page_size=10,
+                **{attribute: value},
+            )
+            with (
+                self.subTest(flag=flag, entrypoint="function"),
+                patch.object(home, "request_json") as request_json,
+                self.assertRaisesRegex(ValueError, "require --nation foreign"),
+            ):
+                home.fetch_notable_etf(args)
+            request_json.assert_not_called()
+
+            for nation_args in ([], ["--nation", "domestic"]):
+                with (
+                    self.subTest(flag=flag, entrypoint="cli", nation_args=nation_args),
+                    patch.object(sys, "argv", ["home.py", "notable-etf", *nation_args, flag, value]),
+                    patch.object(home, "request_json") as request_json,
+                    patch("sys.stderr", new_callable=StringIO) as stderr,
+                    self.assertRaises(SystemExit),
+                ):
+                    home.main()
+                request_json.assert_not_called()
+                self.assertIn("require --nation foreign", stderr.getvalue())
+
+    def test_notable_etf_rejects_unsafe_or_unbounded_theme_codes_before_request(self) -> None:
+        for flag in ("--large-code", "--middle-code"):
+            for value in ("", "../personal", "01&userId=1", "01/02", "01%2F02", "a" * 21, "테마"):
+                argv = ["home.py", "notable-etf", "--nation", "foreign", flag, value]
+                with (
+                    self.subTest(flag=flag, value=value),
+                    patch.object(sys, "argv", argv),
+                    patch.object(home, "request_json") as request_json,
+                    patch("sys.stderr", new_callable=StringIO),
+                    self.assertRaises(SystemExit),
+                ):
+                    home.main()
+                request_json.assert_not_called()
 
     def test_cli_accepts_only_nation_specific_notable_etf_enums(self) -> None:
         cases = (

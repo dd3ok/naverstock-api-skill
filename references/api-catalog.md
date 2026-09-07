@@ -1,6 +1,6 @@
 # NaverStock Web API 카탈로그
 
-기준 관찰일: 2026-05-05, 부분 재점검: 2026-07-09, 전범위 재감사: 2026-07-17, 전체 정적 재점검 및 변경 경로 실호출: 2026-07-20, 브라우저·탭·페이징 재점검: 2026-07-21, route·transport·chunk 재점검: 2026-08-04, 전체 링크·탭·페이징 재감사: 2026-08-13
+기준 관찰일: 2026-05-05, 부분 재점검: 2026-07-09, 전범위 재감사: 2026-07-17, 전체 정적 재점검 및 변경 경로 실호출: 2026-07-20, 브라우저·탭·페이징 재점검: 2026-07-21, route·transport·chunk 재점검: 2026-08-04, 전체 링크·탭·페이징 재감사: 2026-08-13, 브라우징·계약 갱신 및 실응답 확대 검증: 2026-09-07
 관찰 출처: 로그인하지 않은 공개 `https://stock.naver.com/` 페이지와 Next.js chunk  
 기본 호스트: `https://stock.naver.com`
 
@@ -21,10 +21,12 @@
 
 | 상태 | 의미 |
 | --- | --- |
-| `script-backed` | 번들 스크립트가 이 엔드포인트 계열을 호출합니다. |
+| `script-backed` | 번들 스크립트가 이 엔드포인트 계열을 호출합니다. 현재 성공·가용성을 보증하지 않습니다. |
 | `observed` | 공개 페이지 트래픽 또는 정적 chunk에서 관찰했지만 스크립트로 감싸지 않았습니다. |
 | `needs-recheck` | route, enum, 인증 민감도, 페이징 형태를 새로 검증해야 합니다. |
 | `excluded` | 읽기 전용 주식/시장 정보 범위 밖입니다. 호출하지 않습니다. |
+
+이 라벨과 별도로 현재 성공·실패·미검증 조건과 대체 사용법은 [알려진 제한과 검증 범위](known-limitations.md)에 기록합니다. `script-backed`를 정상 동작 판정으로 사용하지 않습니다.
 
 ## 페이지 점검 메모
 
@@ -33,6 +35,8 @@
 2026-08-04에는 로그인하지 않은 in-app 브라우저에서 홈, 국내·미국·글로벌, 가상자산, 시장지표, 뉴스, 리서치, 토론, 국내 종목·지수와 해외 종목의 현재 메뉴 route 및 하위 탭을 다시 이동했습니다. 화면이 실제로 로드한 중복 제거 Next.js/공유 script 227개를 정적 검사해 API literal 236개와 WebSocket/SSE 관련 코드를 대조했습니다. 공개 시세·시장 데이터에서는 REST polling만 관찰됐고, WebSocket은 로그인 보유종목 refresh 모듈에서만 확인됐습니다. 공통 Fender bundle의 범용 SSE client는 구체적인 증권 데이터 stream URL을 노출하지 않았습니다.
 
 2026-08-13에는 홈과 모든 주요 상단 메뉴에서 연결되는 국내·해외 주식, 지수, ETF, 업종·테마·그룹사, 시장지표, 가상자산, 뉴스, 리서치, 공지, 토론의 링크·탭·상세·더보기/무한스크롤 요청을 다시 대조했습니다. 종목 리서치와 리서치 카테고리의 `index`는 0부터 1씩 증가하는 페이지 index이며, 종목 뉴스는 1-based `page`, 종목 공시·IR과 국내 지수 시간대 시세는 0-based `startIdx`를 사용합니다.
+
+2026-09-07에는 현재 공개 화면·로드된 chunk와 도메인별 실제 CLI 요청을 대조했습니다. 브리핑 v2는 첫/다음/종료, 실제 ID 상세·이전다음과 날짜 변경을 검증했고 기존 unversioned 목록·상세도 200이었습니다. 국내 ETF v2/v3, 국내외 인기 ETF cursor, 가격 보강과 홈 종목 집계도 직접 확인했으며 CLI 미구현 계열은 `observed`를 유지합니다. 국내 정렬의 호환 입력 두 개를 현재 서버 enum으로 매핑하고, 홈 해외 주목 ETF에 현재 화면의 테마 조건을 전달하도록 보완했습니다. 국내·해외 5개국·콘텐츠·시장지표·펀드·가상자산·외부 HTML을 대표 상품과 문서화된 분기로 검사하고, 실제 ID·cursor로 상세와 후속 목록을 연결했습니다. 리서치 v1 8경로, bare 환율/채권 카테고리와 일부 정렬의 404/500은 정상 빈 응답으로 처리하지 않습니다. 각 도메인 문서에 성공 조건과 오류·표본 한계를 구분했습니다. 브라우저 네트워크 캡처 기능은 없어 UI 조작과 직접 API 검증은 별도 근거입니다. ETN은 명시적 더 보기로 100→200행을 확인했습니다. naverfinance 비교와 허용된 조건검색·WiseReport 응답도 점검했으며, 서비스 종료 예정 공지만으로 개별 API 삭제를 확정하지 않았습니다. 이 검증은 모든 종목·시점·파라미터 조합의 수치 정확성이나 미래 가용성을 보증하지 않습니다.
 
 목록 화면의 요청 크기와 저용량 CLI 기본값은 구분합니다. 국내·해외 주식, ETF, ETN의 전체 목록 UI는 현재 주로 100건을 한 번에 요청하지만, 범용 목록 helper는 자동 대량 조회를 피하려고 기본 20건을 유지합니다. 화면 요청을 정확히 재현해야 할 때만 `--page-size 100` 또는 `--size 100`을 명시합니다. 반면 화면 전용 흐름으로 추가한 명령은 확인된 UI 기본값을 그대로 사용합니다.
 
@@ -50,10 +54,10 @@
 | `/market/stock/kr/management/{tradingHalt\|investmentAlert\|investmentWarning\|investmentRisk}` | 200 | 관리·거래정지·투자주의/경고/위험 현재 route |
 | `/market/stock/kr/{industry\|theme\|groups}` | 307 | 각각 `/1`로 이동 |
 | `/market/stock/kr/{industry\|theme\|groups}/{rank}?no={actualId}` | 200 | path 숫자는 현재 랭킹 순번이며 query/API category `no`와 다를 수 있음 |
-| `/market/stock/kr/etf` | 307 | `/market/stock/kr/etf/priceTop?etfListEntry=1`로 이동 |
-| `/market/stock/kr/etf/{capitalization\|priceTop\|return1m\|return3m\|return6m\|upper\|lower\|trading\|quantHigh\|quantLow\|new}` | 200 | 현재 국내 ETF UI에서 확인한 11개 목록 탭 |
-| `/market/stock/kr/etn` | 307 | `/market/stock/kr/etn/priceTop?etnListEntry=1`로 이동 |
-| `/market/stock/kr/etn/{capitalization\|priceTop\|upper\|lower\|trading\|quantHigh\|quantLow\|new}` | 200 | 현재 국내 ETN UI에서 확인한 8개 목록 탭 |
+| `/market/stock/kr/etf` | redirect 관찰 | 과거 `priceTop?etfListEntry=1`, 2026-09-07 브라우저 메뉴 이동은 `priceTop`으로 진입. entry query를 필수 계약으로 가정하지 않음 |
+| `/market/stock/kr/etf/{capitalization\|priceTop\|top\|return1m\|return3m\|return6m\|upper\|lower\|trading\|quantHigh\|quantLow\|new}` | UI 진입 관찰 | 2026-09-07 국내 ETF 12개 링크로 진입. 새 `top`은 인기 종목이며 필터 비활성. 개장 후 priceTop/top 각각 100행 확인, 나머지 탭의 비동기 로딩·필터 조합은 미검증 |
+| `/market/stock/kr/etn` | redirect 관찰 | 과거 `priceTop?etnListEntry=1`, 2026-09-07 브라우저 메뉴 이동은 `priceTop`으로 진입 |
+| `/market/stock/kr/etn/{capitalization\|priceTop\|upper\|lower\|trading\|quantHigh\|quantLow\|new}` | 200 | 현재 국내 ETN UI의 8개 목록 탭. 2026-09-07 표·필터와 명시적 항목 더 보기 100→200행 확인 |
 | `/market/stock/kr/ipo`, `/market/stock/kr/ipo/recent` | 200 | 각각 상장 진행 중(타입 생략), 상장 완료(`LISTING`) 탭. `/market/stock/kr/ipo/progress`는 404 |
 | `/market/stock/kr/deposit` | 200 | 예탁금 페이지 |
 | `/market/stock/kr/trend/{foreigner\|organization\|program\|trader}` | 200 | 투자자 동향 페이지 |
@@ -74,7 +78,7 @@
 | `/market/marketindex/bondAndInterest/{bond\|domesticInterest\|standardInterest}` | 200 | 채권/금리 탭 |
 | `/market/stock/global`, `/market/stock/usa` | 200 | 해외 주식 메인 |
 | `/market/stock/usa/stocklist` | 307 | `/market/stock/usa/stocklist/priceTop`으로 이동 |
-| `/market/stock/usa/stocklist/{top\|priceTop\|up\|down\|marketValue}` | 200 | 미국 종목 정렬 탭. 배당은 별도 `/market/stock/usa/dividend` |
+| `/market/stock/usa/stocklist/{top\|priceTop\|up\|down\|marketValue\|trading}` | UI 링크 관찰 | 2026-09-07 거래량 상위 `trading`을 포함한 6개 링크. priceTop→나스닥 필터→trading 실제 이동과 정렬 결과 변경 확인. 배당은 별도 `/market/stock/usa/dividend` |
 | `/market/stock/usa/etf` | 307 | `/market/stock/usa/etf/priceTop`으로 이동 |
 | `/market/stock/usa/industry/{rank}?no={industryCode}` | 200 | path는 랭킹 순번, `no`는 실제 업종 ID |
 | `/market/stock/global/{chn\|hkg\|jpn\|vnm}/{marketValue\|priceTop\|up\|down\|top\|dividend}` | 200 | 해외 국가별 목록 |
@@ -122,7 +126,7 @@
 
 | 식별자 | 예시 | 의미 |
 | --- | --- | --- |
-| `itemCode` | `005930` | 6자리 국내 종목 코드. |
+| `itemCode` | `005930`, `0193W0` | ASCII 영숫자 6자리 국내 상품 코드. 대문자로 정규화하며 기존 `A005930`도 지원. WiseReport의 숫자 코드 경계와 구분 |
 | `codeType` | `KRX`, `NXT` | 국내 종목 상세 거래 route. |
 | `itemCodes` | `005930,000660` 또는 반복 query | 국내 종목/지수 코드 목록. 폴링은 comma 구분 문자열을, 리서치 v2는 `itemCodes=005930&itemCodes=000660` 같은 반복 query를 사용합니다. |
 | `reutersCode` | `KOSPI`, `GCcv1` | 시장지표 API에서 쓰는 지수, 선물, 지표 코드. |

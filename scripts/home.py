@@ -29,6 +29,7 @@ DOMESTIC_NOTABLE_ETF_ORDER_TYPES = (
 FOREIGN_NOTABLE_ETF_ORDER_TYPES = ("priceTop", "up", "return1Month", "dividend")
 _INDICATOR_CODE = re.compile(r"^(?:\.?[A-Za-z0-9][A-Za-z0-9._=-]{0,31})$")
 _DOMESTIC_CODE = re.compile(r"^[A-Z0-9]{6}$")
+_THEME_CODE = re.compile(r"^(?:all|[A-Za-z0-9_-]{1,20})$")
 
 
 def _bounded_integer(name: str, minimum: int, maximum: int) -> Any:
@@ -85,6 +86,13 @@ def _indicator_codes(value: str) -> str:
     return ",".join(codes)
 
 
+def _theme_code(value: str) -> str:
+    clean = value.strip()
+    if not _THEME_CODE.fullmatch(clean):
+        raise argparse.ArgumentTypeError("theme code must be 'all' or a short alphanumeric code")
+    return clean
+
+
 def fetch_market_info(args: argparse.Namespace) -> Any:
     return request_json(f"/api/domestic/market/{args.trade_type}/info")
 
@@ -97,10 +105,19 @@ def fetch_market_briefing(args: argparse.Namespace) -> Any:
     return request_json("/api/securityAi/marketBriefing/current?marketBriefing=domain")
 
 
+def _market_briefing_base(args: argparse.Namespace) -> str:
+    version = getattr(args, "api_version", "v1")
+    if version not in ("v1", "v2"):
+        raise ValueError("api-version must be v1 or v2")
+    if version == "v2":
+        return "/api/securityAi/v2/marketBriefing"
+    return "/api/securityAi/marketBriefing"
+
+
 def fetch_market_briefing_list(args: argparse.Namespace) -> Any:
     return request_json(
         build_path(
-            "/api/securityAi/marketBriefing",
+            _market_briefing_base(args),
             {"date": args.date, "size": args.size, "pageToken": args.page_token},
         )
     )
@@ -108,7 +125,7 @@ def fetch_market_briefing_list(args: argparse.Namespace) -> Any:
 
 def fetch_market_briefing_detail(args: argparse.Namespace) -> Any:
     briefing_id = validate_identifier(args.briefing_id, name="briefing-id")
-    return request_json(f"/api/securityAi/marketBriefing/{briefing_id}")
+    return request_json(f"{_market_briefing_base(args)}/{briefing_id}")
 
 
 def fetch_shorttents(args: argparse.Namespace) -> Any:
@@ -145,12 +162,18 @@ def fetch_indicators(args: argparse.Namespace) -> Any:
 
 
 def fetch_notable_etf(args: argparse.Namespace) -> Any:
+    large_code = getattr(args, "large_code", None)
+    middle_code = getattr(args, "middle_code", None)
+    if args.nation == "domestic" and (large_code is not None or middle_code is not None):
+        raise ValueError("--large-code and --middle-code require --nation foreign")
     order_type = args.order_type or ("amount_etf" if args.nation == "domestic" else "up")
     return request_json(
         build_path(
             f"/api/{args.nation}/market/home/notableETF",
             {
                 "orderType": order_type,
+                "largeCode": _theme_code(large_code) if large_code is not None else None,
+                "middleCode": _theme_code(middle_code) if middle_code is not None else None,
                 "startIdx": args.start_idx,
                 "pageSize": args.page_size,
             },
@@ -222,11 +245,23 @@ def main() -> None:
     briefing_list.add_argument("--date", type=_iso_date, required=True)
     briefing_list.add_argument("--size", type=_bounded_integer("size", 1, 100), default=20)
     briefing_list.add_argument("--page-token", type=_opaque_cursor)
+    briefing_list.add_argument(
+        "--api-version",
+        choices=["v1", "v2"],
+        default="v1",
+        help="Use v2 for the current home-page briefing list; defaults to v1 for compatibility",
+    )
     add_output(briefing_list)
     briefing_list.set_defaults(func=fetch_market_briefing_list)
 
     briefing_detail = sub.add_parser("market-briefing-detail", help="AI market briefing detail by ID")
     briefing_detail.add_argument("--briefing-id", type=_briefing_id, required=True)
+    briefing_detail.add_argument(
+        "--api-version",
+        choices=["v1", "v2"],
+        default="v1",
+        help="Use v2 for the current home-page briefing detail; defaults to v1 for compatibility",
+    )
     add_output(briefing_detail)
     briefing_detail.set_defaults(func=fetch_market_briefing_detail)
 
@@ -259,6 +294,14 @@ def main() -> None:
         "--order-type",
         choices=DOMESTIC_NOTABLE_ETF_ORDER_TYPES + FOREIGN_NOTABLE_ETF_ORDER_TYPES,
         help="Defaults to amount_etf for domestic and up for foreign",
+    )
+    notable_etf.add_argument(
+        "--large-code", type=_theme_code, help="Optional foreign ETF large theme code"
+    )
+    notable_etf.add_argument(
+        "--middle-code",
+        type=_theme_code,
+        help="Optional foreign ETF middle theme code; current return1Month UI selects a theme, e.g. 0101",
     )
     notable_etf.add_argument("--start-idx", type=_bounded_integer("start-idx", 0, 10_000), default=0)
     notable_etf.add_argument("--page-size", type=_bounded_integer("page-size", 1, 100), default=10)
@@ -301,6 +344,9 @@ def main() -> None:
         )
         if args.order_type not in allowed:
             parser.error(f"{args.order_type} is not valid for --nation {args.nation}")
+    if args.command == "notable-etf" and args.nation == "domestic":
+        if args.large_code is not None or args.middle_code is not None:
+            parser.error("--large-code and --middle-code require --nation foreign")
     emit_output(render_json(args.func(args)), args.output)
 
 

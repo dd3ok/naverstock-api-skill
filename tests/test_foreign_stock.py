@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from io import StringIO
+import json
 from pathlib import Path
 import sys
 import unittest
@@ -269,6 +270,89 @@ class ForeignSecurityRequestTests(unittest.TestCase):
 
 
 class ForeignStockCliContractTests(unittest.TestCase):
+    def test_stock_basic_cli_preserves_explicit_reuters_suffix_case(self) -> None:
+        for supplied, expected in [
+            ("RIV_r", "RIV_r"),
+            ("riv_r", "RIV_r"),
+            ("RIV_R", "RIV_R"),
+            ("abc_aB.n", "ABC_aB.N"),
+        ]:
+            payload = {"reutersCode": expected, "metadata": {"sourceCode": supplied}}
+            with (
+                self.subTest(code=supplied),
+                patch.object(sys, "argv", ["foreign_stock.py", "stock-basic", "--code", supplied]),
+                patch.object(foreign_stock, "request_json", return_value=payload) as request_json,
+                patch("sys.stdout", new_callable=StringIO) as stdout,
+            ):
+                foreign_stock.main()
+
+                request_json.assert_called_once_with(f"/api/securityService/stock/{expected}/basic")
+                self.assertEqual(json.loads(stdout.getvalue()), payload)
+
+    def test_query_commands_preserve_source_reuters_suffix(self) -> None:
+        for command, options, path in [
+            ("finance", ["--section", "overview"], "/api/securityService/stock/overview?reutersCode=RIV_r"),
+            ("stock-world-news", [], "/api/foreign/worldStock/list?reutersCode=RIV_r&page=1&pageSize=20"),
+            ("stock-local-news", [], "/api/domestic/detail/news?itemCode=RIV_r&page=1&pageSize=20"),
+        ]:
+            with (
+                self.subTest(command=command),
+                patch.object(sys, "argv", ["foreign_stock.py", command, "--code", "RIV_r", *options]),
+                patch.object(foreign_stock, "request_json", return_value={}) as request_json,
+                patch("sys.stdout", new_callable=StringIO),
+            ):
+                foreign_stock.main()
+
+                request_json.assert_called_once_with(path)
+
+    def test_stock_poll_cli_roundtrips_suffix_and_normalizes_ordinary_codes(self) -> None:
+        argv = [
+            "foreign_stock.py", "poll", "stock",
+            "--code", "RIV_r", "--code", "nvda.o", "--code", "riv_R.n",
+        ]
+        with (
+            patch.object(sys, "argv", argv),
+            patch.object(foreign_stock, "request_json", return_value={}) as request_json,
+            patch("sys.stdout", new_callable=StringIO),
+        ):
+            foreign_stock.main()
+
+        request_json.assert_called_once_with(
+            "/api/polling/worldstock/stock?reutersCodes=RIV_r%2CNVDA.O%2CRIV_R.N"
+        )
+
+    def test_futures_poll_cli_keeps_continuous_contract_canonicalization(self) -> None:
+        for supplied in ("GCcv1", "gccv1", "GCCV1"):
+            with (
+                self.subTest(code=supplied),
+                patch.object(sys, "argv", ["foreign_stock.py", "poll", "futures", "--code", supplied]),
+                patch.object(foreign_stock, "request_json", return_value={}) as request_json,
+                patch("sys.stdout", new_callable=StringIO),
+            ):
+                foreign_stock.main()
+
+                request_json.assert_called_once_with("/api/polling/worldstock/futures?reutersCodes=GCcv1")
+
+    def test_security_and_poll_cli_reject_unsafe_and_non_ascii_codes_before_request(self) -> None:
+        for command in (["stock-basic"], ["poll", "stock"], ["poll", "futures"]):
+            for code in (
+                "../api/personal", "RIV_r?x=1", "RIV_r#x", "RIV_r\\x", "RIV%5fr",
+                "RIV_r,NVDA.O", "RIV=r", "_r", "", "A" * 33,
+                "Aß", "ı", "ſ", "RIV_ß", "RIV_ſ", "ＮVDA.O",
+            ):
+                with (
+                    self.subTest(command=command, code=code),
+                    patch.object(sys, "argv", ["foreign_stock.py", *command, "--code", code]),
+                    patch.object(foreign_stock, "request_json", return_value={}) as request_json,
+                    patch("sys.stderr", new_callable=StringIO),
+                    patch("sys.stdout", new_callable=StringIO),
+                ):
+                    with self.assertRaises(SystemExit) as raised:
+                        foreign_stock.main()
+
+                    self.assertEqual(raised.exception.code, 2)
+                    request_json.assert_not_called()
+
     def test_notable_etf_cli_accepts_every_current_ui_order_type(self) -> None:
         for order_type in foreign_stock.NOTABLE_ETF_ORDER_TYPES:
             argv = [
