@@ -58,6 +58,10 @@
 | 업종 전체 시가총액 | `observed` | GET | `/api/domestic/market/home/upjong/totalMarketSum?type=upjong` |
 | ETF 테마 | `observed` | GET | `/api/domestic/market/etf/themes` |
 | 국내 ETF 목록 | `script-backed` | GET | `/api/stockSecurity/etfs/v2/domestic?listingType=tradingValueDesc&size=20&index=0`. CLI 저용량 기본은 20, 현재 전체 목록 UI는 `size=100` |
+| 홈 국내 ETF v3 목록 | `observed` | GET | `/api/stockSecurity/etfs/v3/domestic`에 `listingType`, `size`, `index`와 선택적 카테고리·배율 필터. 홈 랭킹은 `size=10`, 테마 카드는 `size=3`, `index=0`. 전체 목록 v2를 대체하지 않음 |
+| 국내 인기 ETF | `observed` | GET | `/api/stockSecurity/rankings/v2/domestic/popular-etf?size=10&cursor={cursor}` 및 홈 `/api/stockSecurity/aggregate/domesticPopularEtf?size=10`. 인기 화면과 해당 요청 함수는 관찰했지만 cursor 응답·종료 계약은 미검증 |
+| 국내 종목 가격 보강 | `observed` | GET | `/api/stockSecurity/items/v2/domestic/prices?itemCodes={code}&itemCodes={code}&recurring={true\|false}`. 홈 인기 ETF는 `recurring=true`, 함수 기본은 false |
+| 홈 국내 종목 집계 | `observed` | GET | `/api/stockSecurity/aggregate/domesticStock`의 공통 query는 `type={listing\|popular}`, `exchangeType`, `size`. listing은 `index`, `listingType`, `marketType`; popular는 `cursor`, `ageGroup`. 호출자 정적 관찰이며 직접 응답 미검증 |
 | 국내 ETF 카테고리 메타데이터 | `script-backed` | GET | `/api/stockSecurity/etfs/v2/domestic/themes` |
 | 국내 ETF 레버리지 메타데이터 | `script-backed` | GET | `/api/stockSecurity/etfs/v1/domestic/leverage-types` |
 | ETF 기본 정보 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFBase` |
@@ -70,6 +74,8 @@
 | 종목 인사이트 보유자 랭킹·가상 투자 | `script-backed` | GET | `/api/securityService/home/v3/mystock/ranking/{itemCode}`, `/api/securityService/home/v3/whatIf/{domestic\|worldstock}/{code}?periodType=year&range=5` |
 
 ## 검증 메모
+
+2026-09-07 공개 검색에서 `0193W0`, `0162Z0`, `0177N0`처럼 영문을 포함한 국내 ETF 코드와 실제 종목 상세 링크를 확인했습니다. [0193W0 가격 화면](https://stock.naver.com/domestic/stock/0193W0/price)에 대응하는 가격 응답은 같은 `itemcode`, 상품명과 `type=EF`를 반환했습니다. 공통 `normalize_item_code`와 이를 사용하는 국내 스크립트는 ASCII 영숫자 6자리를 대문자로 정규화하며, 숫자 6자리와 기존 `A005930` 호환을 유지합니다. Unicode 대문자 변환으로 ASCII 코드가 만들어지는 입력과 경로 구분자는 거절합니다. 종목·리서치·토론·홈·인사이트 명령도 이 형식 확장의 영향을 받습니다. 코드 유효성과 개별 상품의 데이터 지원은 별개이며, 이번 실응답 검증은 가격에 한정됩니다. endpoint allowlist는 변경하지 않았고 WiseReport의 숫자 코드 제한은 별도로 유지합니다.
 
 2026-07-21 현재 종목 목록 UI에서 확인하고 live 요청으로 검증한 의미 매핑은 `market-cap -> marketSum`, `rise -> up`, `flat -> flat`, `fall -> down`, `volume -> quantTop`, `volume-surge -> upperQuantTop`, `volume-drop -> lowerQuantTop`, `trading-value -> priceTop`, `new-stock -> newStock`, `foreign-hold -> frgnRate`, `52-week-high -> high52week`, `52-week-low -> low52week`, `management -> statusTag`, `trading-halt -> tradeStopYn`입니다.
 
@@ -90,5 +96,11 @@ NXT 화면은 `marketSum`, `up`, `down`, `quantTop`, `searchTop`만 사용합니
 국내 ETF `listingType` alias는 UI chunk에서 `tradingValueDesc`, `aumDesc`, `changeRateDescUpAll`, `changeRateDescDownAll`, `tradingVolumeDesc`, `tradingVolumeIncreaseRateDesc`, `tradingVolumeIncreaseRateAsc`, `returnRate1mDesc`, `returnRate3mDesc`, `returnRate6mDesc`, `marketCapDesc`, `listedAtDesc`가 관찰되었습니다.
 
 2026-07-20 확인에서 ETF 목록과 테마의 v1 route는 404였고 v2 route가 200을 반환했습니다. 레버리지 메타데이터는 현재 chunk가 계속 `/api/stockSecurity/etfs/v1/domestic/leverage-types`를 사용하므로 이 한 경로만 v1을 유지합니다.
+
+2026-09-07 [홈 chunk](https://ssl.pstatic.net/imgstock/fn/real/pc/_next/static/chunks/app/page-ae5fb7f70db05b3d.js)에서 홈 ETF 랭킹·테마 카드의 v3와 전체 목록의 v2가 공존함을 확인했습니다. v3 항목은 `krx`·`nxt` 가격 분기를 가지므로 기존 v2 출력과 동일하다고 가정하지 않습니다. 전체 목록 hook은 여전히 v2, `size=100`, `index=0`으로 시작해 `hasNext`일 때 index를 1 증가시킵니다.
+
+[현재 ETF 화면](https://stock.naver.com/market/stock/kr/etf/priceTop)은 기존 11개 정렬에 `/top` 인기 종목이 추가된 12개 링크를 노출합니다. [ETF page chunk](https://ssl.pstatic.net/imgstock/fn/real/pc/_next/static/chunks/app/market/stock/kr/etf/%5Bchip%5D/page-ffb06b08cd432c13.js)의 인기 요청은 일반 ETF `listingType`과 별개입니다. `domestic_etf.py list --listing-type top`을 인기 조회로 안내하지 않습니다. 인기 탭의 대분류·중분류·배율 필터는 비활성화되며, 일반 탭에서는 주식→대형주→일반 선택을 확인했습니다. 개장 전에는 안내만 표시됐지만 같은 날 개장 후 재방문에서 priceTop 100행, 인기 100행과 `목록의 마지막입니다`를 확인했습니다. 12개 경로에 진입했으나 나머지 탭의 비동기 로딩 완료·모든 필터 조합까지 검증한 것은 아닙니다. UI 필터 라벨을 API 코드값으로 추정하지 않습니다.
+
+개장 후 v2 일반 목록에 `listingType=tradingValueDesc&size=2`를 고정해 `index=0`과 `1`을 직접 조회했습니다. 각각 2개 항목과 `hasNext: true`, 서로 다른 코드 묶음(`122630,069500` → `233740,459580`)을 확인했습니다. `totalCount`, `size`, `index`와 가격·수익률 필드는 문자열이므로 숫자로 단정하지 않습니다. 이 결과를 인기 ETF의 cursor 계약이나 v3 응답 검증으로 확대하지 않습니다.
 
 국내 ETN `orderType` 값은 UI chunk에서 `MARKET_SUM_ETN`, `AMOUNT_ETN`, `UP_ETN`, `DOWN_ETN`, `QUANT_ETN`, `QUANT_HIGH_ETN`, `QUANT_LOW_ETN`, `NEW_STOCK_ETN`이 관찰되었습니다.

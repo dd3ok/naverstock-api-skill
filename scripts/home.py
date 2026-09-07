@@ -97,10 +97,19 @@ def fetch_market_briefing(args: argparse.Namespace) -> Any:
     return request_json("/api/securityAi/marketBriefing/current?marketBriefing=domain")
 
 
+def _market_briefing_base(args: argparse.Namespace) -> str:
+    version = getattr(args, "api_version", "v1")
+    if version not in ("v1", "v2"):
+        raise ValueError("api-version must be v1 or v2")
+    if version == "v2":
+        return "/api/securityAi/v2/marketBriefing"
+    return "/api/securityAi/marketBriefing"
+
+
 def fetch_market_briefing_list(args: argparse.Namespace) -> Any:
     return request_json(
         build_path(
-            "/api/securityAi/marketBriefing",
+            _market_briefing_base(args),
             {"date": args.date, "size": args.size, "pageToken": args.page_token},
         )
     )
@@ -108,7 +117,7 @@ def fetch_market_briefing_list(args: argparse.Namespace) -> Any:
 
 def fetch_market_briefing_detail(args: argparse.Namespace) -> Any:
     briefing_id = validate_identifier(args.briefing_id, name="briefing-id")
-    return request_json(f"/api/securityAi/marketBriefing/{briefing_id}")
+    return request_json(f"{_market_briefing_base(args)}/{briefing_id}")
 
 
 def fetch_shorttents(args: argparse.Namespace) -> Any:
@@ -222,11 +231,23 @@ def main() -> None:
     briefing_list.add_argument("--date", type=_iso_date, required=True)
     briefing_list.add_argument("--size", type=_bounded_integer("size", 1, 100), default=20)
     briefing_list.add_argument("--page-token", type=_opaque_cursor)
+    briefing_list.add_argument(
+        "--api-version",
+        choices=["v1", "v2"],
+        default="v1",
+        help="Use v2 for the current home-page briefing list; defaults to v1 for compatibility",
+    )
     add_output(briefing_list)
     briefing_list.set_defaults(func=fetch_market_briefing_list)
 
     briefing_detail = sub.add_parser("market-briefing-detail", help="AI market briefing detail by ID")
     briefing_detail.add_argument("--briefing-id", type=_briefing_id, required=True)
+    briefing_detail.add_argument(
+        "--api-version",
+        choices=["v1", "v2"],
+        default="v1",
+        help="Use v2 for the current home-page briefing detail; defaults to v1 for compatibility",
+    )
     add_output(briefing_detail)
     briefing_detail.set_defaults(func=fetch_market_briefing_detail)
 

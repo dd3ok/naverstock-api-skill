@@ -12,10 +12,13 @@
 - `research.py home`은 각 섹션을 `{ "status": "ok", "data": ... }` 또는 `{ "status": "unavailable", "error": ... }`로 감쌉니다. `partial: true`는 일부 API 실패를 뜻하며 자료가 없다는 뜻이 아닙니다.
 - stockSecurity v2 공지 목록은 `{ "hasNext": ..., "items": [...] }` 형태이고, 공지 배너는 list를 바로 반환합니다.
 - 가상자산 랭킹 응답은 `{ "contents": [...] }` 형태이고, 주요 코인 엔드포인트는 list를 반환합니다.
+- 시장 브리핑 v2 목록은 `items`, `hasMore`, `nextPageToken`입니다. cursor를 계산·디코딩하지 않고 그대로 전달하고, 날짜 변경 시 이전 cursor를 재사용하지 않습니다. 상세 schema와 v1/v2 선택은 [홈 API 문서](api-home-market-fund.md)를 확인합니다.
+- JSON과 허용된 외부 HTML의 응답 상한은 5 MiB입니다. 초과·redirect는 오류이며 자동 추가 요청을 하지 않습니다. 레거시 조건검색의 필수 표·헤더 누락도 정상 빈 목록과 구분합니다.
 
 ## 유용한 enum
 
 - 국내 `codeType`: `KRX`, `NXT`.
+- 국내 `itemCode`는 숫자 전용이 아닙니다. `0193W0` 같은 ASCII 영숫자 6자리를 보존하고 대문자로 정규화합니다. WiseReport의 `cmp_cd`는 별도 숫자 코드 제한을 유지합니다. 공통 정규화를 쓰는 종목·리서치·토론·홈·인사이트 명령에도 형식 지원이 적용되지만 개별 ETF에 제공되는 데이터는 endpoint마다 다시 확인해야 합니다.
 - 국내 시장 목록 `tradeType`: `KRX`, `NXT`.
 - 국내 시장 목록 `marketType`: `ALL`, `KOSPI`, `KOSDAQ`; `KONEX`는 현재 화면이 사용하는 `tradeType=KRX&orderType=quantTop` 조합으로만 노출합니다.
 - NXT 종목 목록은 현재 화면의 `marketSum`, `up`, `down`, `quantTop`, `searchTop`만 허용합니다.
@@ -48,7 +51,7 @@
 - 네이버증권은 폴링 응답에서 숫자 필드를 comma가 포함된 문자열로, 상세 응답에서 일반 숫자 문자열로 포맷할 수 있습니다.
 - `/api/securityService/economic/indicator/nations/upcoming`은 파라미터를 생략하거나 `nationTypeList`를 반복해서 보내는 형태를 우선 사용합니다. 2026-07-09 직접 확인에서 단일 `nationTypeList=USA`는 400을 반환했습니다.
 - `/api/domestic/home/noticeList`와 `POST /api/domestic/home/researchaggregate/static`은 404를 반환합니다. 공지는 `/api/stockSecurity/notices/v2`, 리서치는 `/api/stockSecurity/researches/v2` 계열을 우선 사용합니다.
-- 국내 ETF 목록과 테마는 v2 route를 사용하지만 레버리지 메타데이터는 현재도 v1 route를 사용합니다. 계열 전체에 같은 버전을 가정하지 않습니다.
+- 국내 ETF 전체 목록과 테마는 v2, 레버리지 메타데이터는 v1, 현재 홈의 일부 ETF 랭킹·카드는 v3를 사용합니다. 인기 ETF는 별도 rankings 계열입니다. 계열 전체에 같은 버전·페이징·응답 구조를 가정하지 않습니다.
 
 - 현재 JSON API를 우선하며 테마나 업종 구성 종목을 추론하기 위해 `finance.naver.com` 그룹 상세 HTML을 사용하지 않습니다. 외부 HTML은 [external-sources.md](external-sources.md)의 WiseReport v3와 조건검색 7종만 허용합니다.
 - WiseReport 표는 행 순서를 보존하지만 병합 머리글을 추정하지 않습니다. 레거시 가격 위치 표는 첫 지표를 `저가대비등락률` 또는 `고가대비등락률`로 구분합니다.
@@ -56,6 +59,7 @@
 - 종목 공시/IR 엔드포인트는 `startIdx`를 사용하고, 종목 뉴스는 1-based `page`, 종목 리서치는 0-based `index`를 사용합니다. 현재 화면 기본 크기는 각각 공시 30, IR 60, 뉴스 15, 리서치 16입니다. 상세 하위 페이지 전체에 하나의 페이징 방식을 가정하지 않습니다.
 - 가격 탭 엔드포인트는 페이징 방식이 섞여 있습니다. `siseDay`는 `pageSize`와 선택적 `bizdate`, `siseTick`과 투자자 `trend`는 `startIdx`와 `pageSize`를 사용합니다.
 - `/api/domestic/market/trend/daily`와 `/api/domestic/market/trendDeposit`은 화면의 1·2페이지가 각각 `startIdx=0`, `startIdx=1`을 사용하므로 여기서 `startIdx`는 row offset이 아니라 0-based page index입니다.
+- 해외 `/api/foreign/market/stock/global`도 `startIdx`가 0-based 페이지 번호입니다. 같은 `pageSize`의 다음 묶음은 `startIdx=1`이며, 다른 해외 endpoint의 페이징까지 같은 것으로 추정하지 않습니다.
 - 리서치 v2의 `index`는 0-based 페이지 번호입니다. `size=15`의 다음 묶음은 `index=1`입니다. 뉴스의 `page`는 1-based이고, 공지·카테고리 v2 cursor는 서버가 준 opaque 값을 그대로 전달합니다. 화면 route의 `?page=`가 내부 API pagination을 항상 바꾸지는 않으므로 네트워크 요청을 기준으로 합니다.
 - 토론 all/market 및 코인 Npay feed의 다음 `offset`은 마지막 `posts[].orderNo`, CMC의 다음 `offsetPostTime`은 마지막 `items[].postTime`입니다. 이 값은 계산하지 않고 응답 그대로 전달합니다.
 - 가상자산 기간별 등락률 `/api/coin/priceChange/{market}/{ticker}`는 `1d`, `1w`, `1M`, `3M`, `6M`, `1y`, `3y`, `5y`, `10y` 행을 반환합니다. 각 행의 `baseDate`와 `basePrice`를 함께 보존하고 수익률만 현재가 기준으로 재계산하지 않습니다.

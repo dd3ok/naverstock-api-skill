@@ -10,6 +10,7 @@ from typing import Any
 from external_public import (
     FINANCE_PRICE_POSITION_PATHS,
     FINANCE_TECHNICAL_PATHS,
+    ExternalPublicError,
     clean_cell,
     extract_tables,
     request_public_html,
@@ -84,8 +85,12 @@ def _extract_rows(markup: str, *, group: str, kind: str) -> list[dict[str, str]]
             continue
         rows = [row for row in table["rows"] if any(cell for cell in row)]
         if not rows:
-            return []
+            raise ExternalPublicError("Legacy screener expected a table header")
         header = _normalize_header(rows[0], group=group, kind=kind)
+        if not {"종목명", "현재가"}.issubset(header):
+            raise ExternalPublicError(
+                "Legacy screener expected the 종목명 and 현재가 table headers"
+            )
         codes = _stock_codes_by_name(markup)
         records = []
         for row in rows[1:]:
@@ -100,7 +105,10 @@ def _extract_rows(markup: str, *, group: str, kind: str) -> list[dict[str, str]]
                 record["종목코드"] = code
             records.append(record)
         return records
-    return []
+    raise ExternalPublicError(
+        f"Legacy screener expected a {target_class} table; the page structure changed "
+        "or the source is unavailable"
+    )
 
 
 def _normalize_header(

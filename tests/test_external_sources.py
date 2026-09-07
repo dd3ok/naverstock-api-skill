@@ -20,6 +20,20 @@ import wisereport  # noqa: E402
 
 
 class ExternalPublicBoundaryTests(unittest.TestCase):
+    def test_wisereport_keeps_numeric_code_boundary_before_transport(self) -> None:
+        for code in ("0193W0", "0162z0", "0193ß", "../auth"):
+            with (
+                self.subTest(code=code),
+                patch.object(external_public, "open_public_url") as transport,
+                self.assertRaises(external_public.ExternalRequestValidationError),
+            ):
+                external_public.request_public_html(
+                    "wisereport",
+                    external_public.WISEREPORT_COMPANY_PATHS["status"],
+                    {"cmp_cd": code},
+                )
+            transport.assert_not_called()
+
     def test_wisereport_url_is_narrow_and_normalizes_code(self) -> None:
         url = external_public.build_external_url(
             "wisereport",
@@ -73,7 +87,7 @@ class ExternalPublicBoundaryTests(unittest.TestCase):
         response.headers = Message()
 
         with (
-            patch.object(external_public.urllib.request, "urlopen", return_value=response),
+            patch.object(external_public, "open_public_url", return_value=response),
             self.assertRaises(external_public.ExternalPublicError),
         ):
             external_public.request_public_html(
@@ -94,7 +108,7 @@ class ExternalPublicBoundaryTests(unittest.TestCase):
         response.headers = Message()
 
         with (
-            patch.object(external_public.urllib.request, "urlopen", return_value=response),
+            patch.object(external_public, "open_public_url", return_value=response),
             self.assertRaises(external_public.ExternalPublicError),
         ):
             external_public.request_public_html(
@@ -104,16 +118,17 @@ class ExternalPublicBoundaryTests(unittest.TestCase):
             )
 
     def test_stops_on_rate_limit(self) -> None:
+        stream = BytesIO(b"rate limited")
         error = HTTPError(
             "https://navercomp.wisereport.co.kr/v3/company/c1010001.aspx",
             429,
             "Too Many Requests",
             hdrs=None,
-            fp=BytesIO(b"rate limited"),
+            fp=stream,
         )
 
         with (
-            patch.object(external_public.urllib.request, "urlopen", side_effect=error),
+            patch.object(external_public, "open_public_url", side_effect=error),
             self.assertRaisesRegex(
                 external_public.ExternalPublicError,
                 "Stop; do not retry automatically",
@@ -124,6 +139,20 @@ class ExternalPublicBoundaryTests(unittest.TestCase):
                 external_public.WISEREPORT_COMPANY_PATHS["status"],
                 {"cmp_cd": "005930"},
             )
+        self.assertTrue(stream.closed)
+
+    def test_http_error_detail_is_bounded_and_stream_is_closed(self) -> None:
+        stream = BytesIO(b"x" * 4096)
+        error = HTTPError("https://finance.naver.com/", 404, "missing", {}, stream)
+        with (
+            patch.object(external_public, "open_public_url", side_effect=error),
+            self.assertRaises(external_public.ExternalPublicError) as raised,
+        ):
+            external_public.request_public_html("finance", "/sise/item_gold.naver")
+        self.assertIn("HTTP 404", str(raised.exception))
+        self.assertTrue(str(raised.exception).endswith(": " + "x" * 2048))
+        self.assertEqual(str(raised.exception).split(": ", 1)[1], "x" * 2048)
+        self.assertTrue(stream.closed)
 
     def test_rejects_non_html_response(self) -> None:
         requested_url = (
@@ -138,7 +167,7 @@ class ExternalPublicBoundaryTests(unittest.TestCase):
         response.headers["Content-Type"] = "application/json"
 
         with (
-            patch.object(external_public.urllib.request, "urlopen", return_value=response),
+            patch.object(external_public, "open_public_url", return_value=response),
             self.assertRaisesRegex(
                 external_public.ExternalPublicError, "unexpected content type"
             ),
@@ -197,6 +226,30 @@ class LegacyScreenerTests(unittest.TestCase):
       <tr><td>1</td><td>41.11%</td><td><a href="/item/main.naver?code=123456">테스트</a></td><td>127</td><td>+29.59%</td></tr>
     </table>
     """
+
+    def test_missing_or_changed_screener_table_is_not_an_empty_result(self) -> None:
+        markups = (
+            "<html><h1>Service unavailable</h1></html>",
+            '<table class="changed"><tr><th>종목명</th><th>현재가</th></tr></table>',
+            '<table class="type_5"></table>',
+            '<table class="type_5"><tr><th>Name</th><th>Price</th></tr></table>',
+        )
+        args = argparse.Namespace(kind="golden-cross", page=1, limit=20)
+        for markup in markups:
+            with (
+                self.subTest(markup=markup),
+                patch.object(legacy_screeners, "request_public_html", return_value=markup),
+                self.assertRaisesRegex(external_public.ExternalPublicError, "expected"),
+            ):
+                legacy_screeners.fetch_technical(args)
+
+    def test_header_only_screener_remains_a_valid_empty_result(self) -> None:
+        args = argparse.Namespace(kind="golden-cross", page=1, limit=20)
+        markup = '<table class="type_5"><tr><th>종목명</th><th>현재가</th></tr></table>'
+        with patch.object(legacy_screeners, "request_public_html", return_value=markup):
+            result = legacy_screeners.fetch_technical(args)
+        self.assertEqual(result["rows"], [])
+        self.assertFalse(result["truncated"])
 
     def test_price_position_preserves_both_change_rate_columns(self) -> None:
         args = argparse.Namespace(
