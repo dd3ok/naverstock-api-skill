@@ -4,17 +4,19 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Callable
 from datetime import date, timedelta
+import re
 from typing import Any
 
 from naverstock_api import (
     NaverStockAPIError,
+    bounded_int,
     build_path,
     emit_output,
     normalize_item_code,
     render_json,
     request_json,
+    validate_public_request,
 )
 
 
@@ -32,20 +34,24 @@ def _numeric_id(value: str) -> str:
 
 
 def fetch_category(args: argparse.Namespace) -> Any:
-    return request_json(
-        build_path(
-            f"{RESEARCH_BASE}/{RESEARCH_TYPES[args.category]}",
-            {
-                "index": max(args.page - 1, 0),
-                "size": args.page_size,
-                "query": args.search_text,
-                "startDate": _normalize_date(args.start_date),
-                "endDate": _normalize_date(args.end_date),
-                "brokerCodes": args.broker_code,
-                "industryTypes": args.industry_type,
-                "itemCodes": _normalize_item_codes(args.item_code),
-            },
-        )
+    return request_json(build_category_path(args))
+
+
+def build_category_path(args: argparse.Namespace) -> str:
+    """Share the category request contract with the bounded research check."""
+    start, end = _date_range(args.start_date, args.end_date)
+    return build_path(
+        f"{RESEARCH_BASE}/{RESEARCH_TYPES[args.category]}",
+        {
+            "index": _page_index(args.page),
+            "size": args.page_size,
+            "query": args.search_text,
+            "startDate": start,
+            "endDate": end,
+            "brokerCodes": args.broker_code,
+            "industryTypes": args.industry_type,
+            "itemCodes": _normalize_item_codes(args.item_code),
+        },
     )
 
 
@@ -83,15 +89,16 @@ def fetch_category_latest(args: argparse.Namespace) -> Any:
 
 
 def fetch_industry_research(args: argparse.Namespace) -> Any:
+    start, end = _date_range(args.start_date, args.end_date)
     return request_json(
         build_path(
             f"{RESEARCH_BASE}/industry",
             {
-                "index": max(args.page - 1, 0),
+                "index": _page_index(args.page),
                 "size": args.size,
                 "query": args.search_text,
-                "startDate": _normalize_date(args.start_date),
-                "endDate": _normalize_date(args.end_date),
+                "startDate": start,
+                "endDate": end,
                 "brokerCodes": args.broker_code,
                 "industryTypes": args.industry_type,
             },
@@ -128,22 +135,34 @@ def fetch_analysis_focus(args: argparse.Namespace) -> Any:
 def fetch_home(args: argparse.Namespace) -> dict[str, Any]:
     """Fetch independent home sections without hiding unavailable endpoints as empty data."""
 
-    sections: dict[str, Any] = {}
+    paths: dict[str, str] = {}
     if args.research_category:
-        sections["latestResearch"] = _best_effort_section(lambda: _request_latest(args.latest_size))
+        paths["latestResearch"] = build_path(f"{RESEARCH_BASE}/latestResearch", {"size": args.latest_size})
     if args.research_ranking:
-        sections["researchRanking"] = _best_effort_section(
-            lambda: request_json(
-                build_path(
-                    "/api/domestic/research/ranking",
-                    {"rankingType": args.ranking_type, "selectedRank": args.selected_rank},
-                )
-            )
+        paths["researchRanking"] = build_path(
+            "/api/domestic/research/ranking",
+            {"rankingType": args.ranking_type, "selectedRank": args.selected_rank},
         )
     if args.recent_popular:
-        sections["weeklyHot"] = _best_effort_section(
-            lambda: _request_weekly_hot(args.weekly_hot_start_date, args.weekly_hot_size)
-        )
+        paths["weeklyHot"] = _weekly_hot_path(args.weekly_hot_start_date, args.weekly_hot_size)
+    for path in paths.values():
+        validate_public_request(path)
+
+    sections: dict[str, Any] = {}
+    stopped = False
+    for name, path in paths.items():
+        if stopped:
+            sections[name] = {"status": "not_run", "reason": "Stopped after an access restriction, redirect or non-JSON response"}
+            continue
+        try:
+            sections[name] = {"status": "ok", "data": request_json(path)}
+        except NaverStockAPIError as exc:
+            sections[name] = {"status": "unavailable", "error": exc.as_dict()}
+            stopped = (
+                exc.status_code in {403, 429}
+                or (exc.status_code is not None and 300 <= exc.status_code < 400)
+                or exc.kind == "invalid_json"
+            )
     return {
         "partial": any(section["status"] != "ok" for section in sections.values()),
         "sections": sections,
@@ -191,29 +210,39 @@ def _request_latest(size: int) -> Any:
 
 
 def _request_weekly_hot(start_date: str | None, size: int) -> Any:
+    return request_json(_weekly_hot_path(start_date, size))
+
+
+def _weekly_hot_path(start_date: str | None, size: int) -> str:
     # The current endpoint rejects a request without startDate (HTTP 400).
     # Match the current weekly-hot block by defaulting to seven days ago;
     # callers can still provide an explicit date for a custom window.
-    effective_start_date = start_date or (date.today() - timedelta(days=7)).isoformat()
-    return request_json(
-        build_path(
-            f"{RESEARCH_BASE}/weekly-hot",
-            {"startDate": _normalize_date(effective_start_date), "size": size},
-        )
+    effective_start_date = (
+        _normalize_date(start_date) if start_date is not None
+        else (date.today() - timedelta(days=7)).isoformat()
     )
-
-
-def _best_effort_section(fetcher: Callable[[], Any]) -> dict[str, Any]:
-    try:
-        return {"status": "ok", "data": fetcher()}
-    except NaverStockAPIError as exc:
-        return {"status": "unavailable", "error": exc.as_dict()}
+    return build_path(f"{RESEARCH_BASE}/weekly-hot", {"startDate": effective_start_date, "size": size})
 
 
 def _normalize_date(value: str | None) -> str | None:
-    if value and len(value) == 8 and value.isdigit():
-        return f"{value[:4]}-{value[4:6]}-{value[6:]}"
-    return value
+    if value is None:
+        return None
+    if re.fullmatch(r"[0-9]{8}", value):
+        value = f"{value[:4]}-{value[4:6]}-{value[6:]}"
+    if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+        raise ValueError("date must be YYYY-MM-DD or YYYYMMDD")
+    return date.fromisoformat(value).isoformat()
+
+
+def _date_range(start: str | None, end: str | None) -> tuple[str | None, str | None]:
+    start, end = _normalize_date(start), _normalize_date(end)
+    if start is not None and end is not None and start > end:
+        raise ValueError("start-date must be earlier than or equal to end-date")
+    return start, end
+
+
+def _page_index(page: int) -> int:
+    return bounded_int(page, name="page", minimum=1, maximum=100_001) - 1
 
 
 def _normalize_item_codes(values: list[str] | None) -> list[str] | None:
@@ -336,7 +365,11 @@ def main() -> None:
     v1_analysis.set_defaults(func=fetch_v1_analysis_focus)
 
     args = parser.parse_args()
-    emit_output(render_json(args.func(args)), args.output)
+    try:
+        payload = args.func(args)
+    except ValueError as exc:
+        parser.error(str(exc))
+    emit_output(render_json(payload), args.output)
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@
 - 공개 가격 갱신은 현재 `/api/polling/*` REST 응답을 사용합니다. 로그인 보유종목 refresh용 Socket.IO는 공개 시세 transport가 아니며, 공개 증권 SSE endpoint도 확인되지 않았습니다.
 - 리서치 v2 카테고리 응답은 `{ "hasNext": ..., "totalCount": ..., "items": [...] }` 형태를 반환합니다. `index`는 0부터 증가합니다.
 - 리서치 주간 인기 `/api/stockSecurity/researches/v2/weekly-hot`은 현재 `startDate`가 필수입니다. 생략하면 400이므로 `research.py`는 명시값이 없을 때 현재 화면과 같은 7일 전 날짜를 넣습니다.
-- `research.py home`은 각 섹션을 `{ "status": "ok", "data": ... }` 또는 `{ "status": "unavailable", "error": ... }`로 감쌉니다. `partial: true`는 일부 API 실패를 뜻하며 자료가 없다는 뜻이 아닙니다.
+- `research.py home`은 각 섹션을 `{ "status": "ok", "data": ... }` 또는 `{ "status": "unavailable", "error": ... }`로 감쌉니다. 403·429·3xx·비정상 JSON에서는 후속 섹션을 `not_run`으로 남기고 중단합니다. `partial: true`는 실패나 미실행이 있다는 뜻이며 자료가 없다는 뜻은 아닙니다.
 - stockSecurity v2 공지 목록은 `{ "hasNext": ..., "items": [...] }` 형태이고, 공지 배너는 list를 바로 반환합니다.
 - 가상자산 랭킹 응답은 `{ "contents": [...] }` 형태이고, 주요 코인 엔드포인트는 list를 반환합니다.
 - 시장 브리핑 v2 목록은 `items`, `hasMore`, `nextPageToken`입니다. cursor를 계산·디코딩하지 않고 그대로 전달하고, 날짜 변경 시 이전 cursor를 재사용하지 않습니다. 상세 schema와 v1/v2 선택은 [홈 API 문서](api-home-market-fund.md)를 확인합니다.

@@ -94,6 +94,8 @@ python3 scripts/discussion.py global-community --ticker BTC
 
 더 많은 명령은 [스크립트 쿡북](references/script-cookbook.md), 응답 구조와 페이징 주의사항은 [응답 노트](references/response-notes.md)를 참고하세요.
 
+업데이트 후에는 [리서치 소량 검증](references/script-cookbook.md#리서치-소량-검증)으로 한 카테고리의 첫·다음 페이지를 재확인할 수 있습니다. 기본은 요청 계획이며 `--live`를 지정해야 실제 조회합니다.
+
 ## 한계와 안전 범위
 
 - 엔드포인트는 비공식·미문서화 인터페이스이므로 예고 없이 바뀔 수 있습니다.

@@ -22,7 +22,7 @@ description: Safely queries and audits unofficial read-only Naver Stock (네이�
 
 로컬 카탈로그를 관찰 기록으로 취급하세요. 조회 실패, 404, 빈 응답, 응답 구조 변경, route 변경 의심이 있으면 현재 공개 페이지를 다시 확인하세요. 새 엔드포인트 캡처나 카탈로그 갱신은 사용자가 명시적으로 요청했을 때만 수행하고 [references/capture-workflow.md](references/capture-workflow.md)를 따르세요.
 
-404, redirect, 응답 크기 초과와 레거시 필수 표·헤더 누락을 "자료 없음"이나 빈 목록으로 바꾸지 마세요. redirect는 목적지 요청 전에 중단하세요. 단일 조회는 명시적 오류로 실패시키고, 여러 독립 섹션을 모으는 `research.py home`만 실패 섹션을 `unavailable`로 표시한 뒤 나머지 조회를 계속하세요.
+404, redirect, 응답 크기 초과와 레거시 필수 표·헤더 누락을 "자료 없음"이나 빈 목록으로 바꾸지 마세요. redirect는 목적지 요청 전에 중단하세요. 단일 조회는 명시적 오류로 실패시킵니다. `research.py home`은 일반 조회 실패를 `unavailable`로 남기고 계속하지만, 403·429·3xx·비정상 JSON에서는 후속 요청을 중단하고 `not_run`으로 표시합니다.
 
 404·500의 대안, 무시되는 종목 필터, 200의 빈 항목을 판단할 때는 [references/known-limitations.md](references/known-limitations.md)를 확인하세요. 검증 상태는 정확한 요청 조건별로 적용하고 미검증 조합까지 성공으로 확대하지 마세요.
 
@@ -48,6 +48,7 @@ description: Safely queries and audits unofficial read-only Naver Stock (네이�
 | 시장 뉴스, 뉴스포커스 하위 탭, 해외뉴스 목록/상세, 키워드 검색 | `scripts/news.py` | [references/api-content.md](references/api-content.md) |
 | 서비스 공지 목록/상세/배너 | `scripts/notices.py` | [references/api-content.md](references/api-content.md) |
 | 리서치 v2 카테고리/상세/종목별 목록, 랭킹, 최신/주간 인기, 증권사 목록, best-effort 홈과 명시적 v1 호환 조회 | `scripts/research.py` | [references/api-content.md](references/api-content.md) |
+| 리서치 업데이트 후 첫·다음 페이지의 구조와 진행 재검증 | `scripts/research_check.py` (기본은 요청 계획, 실행은 `--live`) | [검증 범위와 결과 해석](references/script-cookbook.md#리서치-소량-검증) |
 | 종목토론 feed, 시장 feed, 인기 글, 상세/이전다음/관련 글, 종목·코인 Npay/CMC 토론, 랭킹·통계 | `scripts/discussion.py` | [references/api-content.md](references/api-content.md), [references/api-crypto.md](references/api-crypto.md) |
 | 새 엔드포인트 캡처 또는 문서화되지 않은 페이지 분석 | 브라우저 네트워크 캡처와 chunk 검사 | [references/capture-workflow.md](references/capture-workflow.md), [references/safety-rules.md](references/safety-rules.md) |
 

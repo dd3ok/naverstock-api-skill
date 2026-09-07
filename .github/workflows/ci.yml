@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install lint tool
-        run: python -m pip install --disable-pip-version-check ruff
+        run: python -m pip install --disable-pip-version-check "ruff==0.16.6"
       - name: Compile scripts
         run: python -m compileall -q scripts
       - name: Check whitespace
@@ -57,3 +57,4 @@ jobs:
           python "$target/scripts/home.py" --help >/dev/null
           python "$target/scripts/foreign_stock.py" --help >/dev/null
           python "$target/scripts/search.py" --help >/dev/null
+          python "$target/scripts/research_check.py" >/dev/null

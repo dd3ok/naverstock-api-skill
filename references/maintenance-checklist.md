@@ -8,7 +8,7 @@ Use this checklist when changing endpoints, scripts, safety rules, or vendor-fac
    For WiseReport or legacy HTML, also verify [external-sources.md](external-sources.md), exact host/path/query allowlists, response-size cap, redirect rejection, and current-API non-duplication.
    For WebSocket/SSE-looking code, distinguish a loaded client library from an observed public data connection. Never connect to or document session-issued personal/holding channels as public market data.
 4. Update focused tests under `tests/`, including [../tests/test_cli_contracts.py](../tests/test_cli_contracts.py), when a CLI command, endpoint path, query string, method, request body, allowlist, or privacy filter changes. Add an HTTP/error-path test when changing failure handling; a mocked success response does not prove a live route still exists.
-5. Run the local checks. If Ruff is unavailable, install it first with `python -m pip install ruff`:
+5. Run the local checks. Use the Ruff version pinned in [CI](../.github/workflows/ci.yml) for reproducible results:
 
    ```bash
    python -B -m unittest discover -s tests -v
