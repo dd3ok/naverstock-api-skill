@@ -19,6 +19,7 @@ python3 scripts/stock_summary.py --code 005930
 python3 scripts/stock_summary.py --code 005930 --include-industry
 python3 scripts/stock_summary.py --code 005930 --code-type NXT --include-polling
 python3 scripts/stock_detail_pages.py price --code 005930
+python3 scripts/stock_detail_pages.py price --code 0193W0
 python3 scripts/stock_detail_pages.py hoga --code 005930
 python3 scripts/stock_detail_pages.py chart-prices --code 005930 --period-type day
 python3 scripts/stock_detail_pages.py sise-day --code 005930 --page-size 5
@@ -113,12 +114,14 @@ python3 scripts/fund.py daily-prices --code K55105B00244 --date 2026-08-13 --siz
 python3 scripts/home.py market-info --trade-type KRX
 python3 scripts/home.py operating-time --exchange NASDAQ
 python3 scripts/home.py market-briefing
-python3 scripts/home.py market-briefing-list --date 2026-07-17 --size 10
+python3 scripts/home.py market-briefing-list --api-version v2 --date 2026-09-04 --size 10
 python3 scripts/home.py indicators
 python3 scripts/home.py notable-etf --nation foreign --page-size 10
 python3 scripts/search.py autocomplete --query 삼성전자
 python3 scripts/search.py search --query 나스닥 --target index --page 1 --size 30
 ```
+
+브리핑 목록의 날짜는 조회할 한국 날짜로 바꿉니다. 다음 페이지는 `hasMore`와 `nextPageToken`을 확인한 뒤 같은 명령에 `--page-token`으로 서버 값을 그대로 전달합니다. 상세는 목록에서 받은 ID로 `home.py market-briefing-detail --api-version v2 --briefing-id ID`를 사용합니다. 버전 옵션을 생략하면 호환용 기존 unversioned 경로를 유지하며, 현재 화면 계약은 v2입니다.
 
 ## 시장 지수와 지표
 

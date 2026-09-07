@@ -22,8 +22,15 @@
 | AI 현재 시장 브리핑 | `script-backed` | GET | `/api/securityAi/marketBriefing/current?marketBriefing=domain` |
 | AI 시장 브리핑 목록 | `script-backed` | GET | `/api/securityAi/marketBriefing?date={yyyy-MM-dd}&size=20&pageToken={token}` |
 | AI 시장 브리핑 상세 | `script-backed` | GET | `/api/securityAi/marketBriefing/{briefingId}` |
+| AI 시장 브리핑 v2 목록 | `script-backed` | GET | `/api/securityAi/v2/marketBriefing?date={yyyy-MM-dd}&size=20&pageToken={token}`. `home.py market-briefing-list --api-version v2` |
+| AI 시장 브리핑 v2 상세 | `script-backed` | GET | `/api/securityAi/v2/marketBriefing/{briefingId}`. `home.py market-briefing-detail --api-version v2` |
+| 지표 AI 브리핑 | `observed` | GET | `/api/securityAi/indicatorBriefing/current?itemCode={code}`. 현재 홈 chunk 호출자는 204를 `null`로 처리. 직접 응답 미검증이므로 공통 JSON helper에 빈 응답 허용을 추가하지 않음 |
 
 검색 결과의 최근 기록 endpoint와 `/api/personal/{guest|users}/recent/products`는 개인 상태이므로 호출하지 않습니다.
+
+2026-09-07 [현재 홈](https://stock.naver.com/)이 로드한 [page chunk](https://ssl.pstatic.net/imgstock/fn/real/pc/_next/static/chunks/app/page-ae5fb7f70db05b3d.js)에서 브리핑 목록·상세가 v2를 사용하고, 현재 브리핑은 기존 unversioned 경로를 유지함을 확인했습니다. 날짜는 화면의 로컬 달력 날짜 `YYYY-MM-DD`, 브리핑 시각은 한국 시간 `+09:00`으로 구성합니다. `date=2026-09-04&size=2` 직접 응답은 `items` 2개, `hasMore: true`, `nextPageToken` 문자열을 반환했습니다. 항목의 `id`는 정수이고 `title`, `summary`, `detail`, `briefingDate`, `briefingHour`는 문자열입니다.
+
+v2 첫 요청은 `pageToken`을 생략할 수 있습니다. 다음 요청은 같은 날짜·크기를 유지하고 `hasMore`가 참이며 `nextPageToken`이 있을 때 서버 값을 그대로 전달합니다. chunk의 상세 renderer에는 `renderMode`, `document`, `visuals`, `briefingMeta`, `createdAtLabel`이 추가되어 있습니다. 상세 응답과 다음 페이지는 이번에 실호출하지 않았으며, 스크립트는 원격 JSON을 변환하지 않습니다. 기존 호출자의 경로·기본값을 보존하려고 목록·상세의 `--api-version` 기본은 `v1`이며, 현재 화면 계약에는 `v2`를 명시합니다. `v1`은 경로에 `/v1`을 붙인다는 뜻이 아닙니다. 구경로의 종료 여부는 미검증이고, v2 실패 시 v1 자동 fallback은 없습니다.
 
 ## 시장 지수와 지표
 
@@ -64,6 +71,8 @@
 ## 펀드 API
 
 2026-08-13 검색 결과의 펀드 링크가 `/domestic/fund/{fundCode}/total`로 연결되고 `total`, `performance`, `allocation` 3개 탭이 정상 렌더링되는 것을 확인했습니다. 목록 정렬·테마 enum은 여전히 충분히 검증되지 않아 노출하지 않고, 상세 화면이 실제 사용하는 아래 8개 GET만 exact-shape allowlist로 제공합니다.
+
+2026-09-07 헤더 검색에 `펀드`를 입력하고 Enter→전체 검색의 펀드 유형을 선택해 `K55301DT3764` 결과에서 종합·성과분석·자산구성 3개 탭에 실제 진입했습니다. 검색은 기존 페이지 위 결과 패널로 표시되어 브라우저 URL이 그대로였으며, 상품 클릭 후에 `/domestic/fund/...`로 이동했습니다. 화면 동작 유지 근거이며 이번에 펀드 8개 API를 실호출 재검증한 것은 아닙니다.
 
 | 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |

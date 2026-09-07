@@ -22,7 +22,7 @@ description: Safely queries and audits unofficial read-only Naver Stock (네이�
 
 로컬 카탈로그를 관찰 기록으로 취급하세요. 조회 실패, 404, 빈 응답, 응답 구조 변경, route 변경 의심이 있으면 현재 공개 페이지를 다시 확인하세요. 새 엔드포인트 캡처나 카탈로그 갱신은 사용자가 명시적으로 요청했을 때만 수행하고 [references/capture-workflow.md](references/capture-workflow.md)를 따르세요.
 
-404를 "자료 없음"이나 빈 목록으로 바꾸지 마세요. 단일 조회는 구조화된 API 오류로 실패시키고, 여러 독립 섹션을 모으는 `research.py home`만 실패 섹션을 `unavailable`로 표시한 뒤 나머지 조회를 계속하세요.
+404, redirect, 응답 크기 초과와 레거시 필수 표·헤더 누락을 "자료 없음"이나 빈 목록으로 바꾸지 마세요. redirect는 목적지 요청 전에 중단하세요. 단일 조회는 명시적 오류로 실패시키고, 여러 독립 섹션을 모으는 `research.py home`만 실패 섹션을 `unavailable`로 표시한 뒤 나머지 조회를 계속하세요.
 
 ## 작업 라우팅
 
@@ -41,7 +41,7 @@ description: Safely queries and audits unofficial read-only Naver Stock (네이�
 | 예탁금, 국내 투자자 동향 집계/차트, 외국인/기관, 프로그램 동향 | `scripts/market_trend.py` | [references/api-domestic.md](references/api-domestic.md) |
 | KOSPI/KOSDAQ/KPI200 상세·페이징, 주요 시장지표 블록, 원자재, 운임, 금리, 환율, 지수·지표 차트 | `scripts/marketindex.py` | [references/api-home-market-fund.md](references/api-home-market-fund.md) |
 | 가상자산 랭킹, 주요 코인, 기간별 등락률, 폴링 가격, 분봉·일봉, 비교 차트, 뉴스, 카테고리, AI 브리핑 | `scripts/crypto.py` | [references/api-crypto.md](references/api-crypto.md) |
-| 홈 시장 상태, 해외 거래시간, AI 시장 브리핑, 공개 콘텐츠, 통합 지표와 주목 ETF | `scripts/home.py` | [references/api-home-market-fund.md](references/api-home-market-fund.md) |
+| 홈 시장 상태, 해외 거래시간, AI 시장 브리핑(현재 목록·상세는 `--api-version v2`), 공개 콘텐츠, 통합 지표와 주목 ETF | `scripts/home.py` | [references/api-home-market-fund.md](references/api-home-market-fund.md) |
 | 헤더 자동완성과 전체 상품 검색 | `scripts/search.py` | [references/api-home-market-fund.md](references/api-home-market-fund.md) |
 | 시장 뉴스, 뉴스포커스 하위 탭, 해외뉴스 목록/상세, 키워드 검색 | `scripts/news.py` | [references/api-content.md](references/api-content.md) |
 | 서비스 공지 목록/상세/배너 | `scripts/notices.py` | [references/api-content.md](references/api-content.md) |
@@ -51,7 +51,7 @@ description: Safely queries and audits unofficial read-only Naver Stock (네이�
 
 ## 기본 절차
 
-1. 네이버 증권 페이지와 상품 식별자를 확인하세요. 국내 주식은 6자리 `itemCode`, 지수는 `KOSPI` 같은 코드를 사용하세요. 가상자산은 폴링에 `BTC_KRW_UPBIT` 같은 `fqnfTicker`, 뉴스·프로필에 `BTC` 같은 plain ticker를 사용하세요.
+1. 네이버 증권 페이지와 상품 식별자를 확인하세요. 국내 상품은 `005930`, `0193W0` 같은 ASCII 영숫자 6자리 `itemCode`, 지수는 `KOSPI` 같은 코드를 사용하세요. 기존 숫자 코드의 `A005930` 입력도 지원합니다. WiseReport는 숫자 6자리만 허용하며, 코드 형식이 유효하다는 이유로 상품별 API 지원까지 가정하지 마세요. 가상자산은 폴링에 `BTC_KRW_UPBIT` 같은 `fqnfTicker`, 뉴스·프로필에 `BTC` 같은 plain ticker를 사용하세요.
 2. 사용자가 직접 데이터를 요청하면 번들 스크립트를 우선 사용하세요.
 3. 공지는 `stockSecurity/notices/v2`, 리서치는 `stockSecurity/researches/v2` 계열을 우선하세요. `research.py v1-*` 명령은 명시적 호환 조회에만 사용하세요.
 4. 기업분석 8종은 현재 종목 페이지가 연결하는 `wisereport.py` v3를 사용하세요. 일반 시세·뉴스·리서치는 현재 `stock.naver.com` 소스를 유지하세요.

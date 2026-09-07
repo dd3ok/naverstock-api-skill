@@ -1,6 +1,6 @@
 # NaverStock Web API 카탈로그
 
-기준 관찰일: 2026-05-05, 부분 재점검: 2026-07-09, 전범위 재감사: 2026-07-17, 전체 정적 재점검 및 변경 경로 실호출: 2026-07-20, 브라우저·탭·페이징 재점검: 2026-07-21, route·transport·chunk 재점검: 2026-08-04, 전체 링크·탭·페이징 재감사: 2026-08-13
+기준 관찰일: 2026-05-05, 부분 재점검: 2026-07-09, 전범위 재감사: 2026-07-17, 전체 정적 재점검 및 변경 경로 실호출: 2026-07-20, 브라우저·탭·페이징 재점검: 2026-07-21, route·transport·chunk 재점검: 2026-08-04, 전체 링크·탭·페이징 재감사: 2026-08-13, 부분 브라우징·계약 갱신: 2026-09-07
 관찰 출처: 로그인하지 않은 공개 `https://stock.naver.com/` 페이지와 Next.js chunk  
 기본 호스트: `https://stock.naver.com`
 
@@ -34,6 +34,8 @@
 
 2026-08-13에는 홈과 모든 주요 상단 메뉴에서 연결되는 국내·해외 주식, 지수, ETF, 업종·테마·그룹사, 시장지표, 가상자산, 뉴스, 리서치, 공지, 토론의 링크·탭·상세·더보기/무한스크롤 요청을 다시 대조했습니다. 종목 리서치와 리서치 카테고리의 `index`는 0부터 1씩 증가하는 페이지 index이며, 종목 뉴스는 1-based `page`, 종목 공시·IR과 국내 지수 시간대 시세는 0-based `startIdx`를 사용합니다.
 
+2026-09-07 부분 점검에서는 현재 공개 화면과 로드된 chunk를 대조해 브리핑 v2 목록·상세, 홈 ETF v3와 기존 전체 목록 v2의 공존, 인기 ETF 별도 계열을 발견했습니다. v2 브리핑 목록은 직접 응답을 확인했고, 상세는 정적 계약을 바탕으로 지원하되 실응답 미검증으로 남겼습니다. ETF 등 미구현 신규 후보는 도메인 문서에 `observed`로 구분했습니다. 개장 후 국내 ETF v2와 해외 일반 목록의 첫·다음 묶음을 직접 확인했고, 새 해외 거래량 탭은 기존 `quantTop` 매핑을 유지했습니다. 검색에 나타난 영숫자 ETF `0193W0`의 실제 가격 응답을 확인해 공통 코드 검증을 갱신했습니다. 현재 브라우저 도구에서 네트워크 캡처를 제공하지 않아 화면 전환을 API 트래픽 검증으로 세지 않습니다. ETN 추가 로딩 등 모든 기존 endpoint가 같은 날 재검증된 것은 아닙니다. naverfinance의 9월 10일 종료 예정 공지와 실제 연결·표·페이지 묶음 동작도 대조했으며, 개별 API 삭제는 확정하지 않았습니다.
+
 목록 화면의 요청 크기와 저용량 CLI 기본값은 구분합니다. 국내·해외 주식, ETF, ETN의 전체 목록 UI는 현재 주로 100건을 한 번에 요청하지만, 범용 목록 helper는 자동 대량 조회를 피하려고 기본 20건을 유지합니다. 화면 요청을 정확히 재현해야 할 때만 `--page-size 100` 또는 `--size 100`을 명시합니다. 반면 화면 전용 흐름으로 추가한 명령은 확인된 UI 기본값을 그대로 사용합니다.
 
 확인된 주요 페이지 route:
@@ -50,9 +52,9 @@
 | `/market/stock/kr/management/{tradingHalt\|investmentAlert\|investmentWarning\|investmentRisk}` | 200 | 관리·거래정지·투자주의/경고/위험 현재 route |
 | `/market/stock/kr/{industry\|theme\|groups}` | 307 | 각각 `/1`로 이동 |
 | `/market/stock/kr/{industry\|theme\|groups}/{rank}?no={actualId}` | 200 | path 숫자는 현재 랭킹 순번이며 query/API category `no`와 다를 수 있음 |
-| `/market/stock/kr/etf` | 307 | `/market/stock/kr/etf/priceTop?etfListEntry=1`로 이동 |
-| `/market/stock/kr/etf/{capitalization\|priceTop\|return1m\|return3m\|return6m\|upper\|lower\|trading\|quantHigh\|quantLow\|new}` | 200 | 현재 국내 ETF UI에서 확인한 11개 목록 탭 |
-| `/market/stock/kr/etn` | 307 | `/market/stock/kr/etn/priceTop?etnListEntry=1`로 이동 |
+| `/market/stock/kr/etf` | redirect 관찰 | 과거 `priceTop?etfListEntry=1`, 2026-09-07 브라우저 메뉴 이동은 `priceTop`으로 진입. entry query를 필수 계약으로 가정하지 않음 |
+| `/market/stock/kr/etf/{capitalization\|priceTop\|top\|return1m\|return3m\|return6m\|upper\|lower\|trading\|quantHigh\|quantLow\|new}` | UI 진입 관찰 | 2026-09-07 국내 ETF 12개 링크로 진입. 새 `top`은 인기 종목이며 필터 비활성. 개장 후 priceTop/top 각각 100행 확인, 나머지 탭의 비동기 로딩·필터 조합은 미검증 |
+| `/market/stock/kr/etn` | redirect 관찰 | 과거 `priceTop?etnListEntry=1`, 2026-09-07 브라우저 메뉴 이동은 `priceTop`으로 진입 |
 | `/market/stock/kr/etn/{capitalization\|priceTop\|upper\|lower\|trading\|quantHigh\|quantLow\|new}` | 200 | 현재 국내 ETN UI에서 확인한 8개 목록 탭 |
 | `/market/stock/kr/ipo`, `/market/stock/kr/ipo/recent` | 200 | 각각 상장 진행 중(타입 생략), 상장 완료(`LISTING`) 탭. `/market/stock/kr/ipo/progress`는 404 |
 | `/market/stock/kr/deposit` | 200 | 예탁금 페이지 |
@@ -74,7 +76,7 @@
 | `/market/marketindex/bondAndInterest/{bond\|domesticInterest\|standardInterest}` | 200 | 채권/금리 탭 |
 | `/market/stock/global`, `/market/stock/usa` | 200 | 해외 주식 메인 |
 | `/market/stock/usa/stocklist` | 307 | `/market/stock/usa/stocklist/priceTop`으로 이동 |
-| `/market/stock/usa/stocklist/{top\|priceTop\|up\|down\|marketValue}` | 200 | 미국 종목 정렬 탭. 배당은 별도 `/market/stock/usa/dividend` |
+| `/market/stock/usa/stocklist/{top\|priceTop\|up\|down\|marketValue\|trading}` | UI 링크 관찰 | 2026-09-07 거래량 상위 `trading`을 포함한 6개 링크. priceTop→나스닥 필터→trading 실제 이동과 정렬 결과 변경 확인. 배당은 별도 `/market/stock/usa/dividend` |
 | `/market/stock/usa/etf` | 307 | `/market/stock/usa/etf/priceTop`으로 이동 |
 | `/market/stock/usa/industry/{rank}?no={industryCode}` | 200 | path는 랭킹 순번, `no`는 실제 업종 ID |
 | `/market/stock/global/{chn\|hkg\|jpn\|vnm}/{marketValue\|priceTop\|up\|down\|top\|dividend}` | 200 | 해외 국가별 목록 |
@@ -122,7 +124,7 @@
 
 | 식별자 | 예시 | 의미 |
 | --- | --- | --- |
-| `itemCode` | `005930` | 6자리 국내 종목 코드. |
+| `itemCode` | `005930`, `0193W0` | ASCII 영숫자 6자리 국내 상품 코드. 대문자로 정규화하며 기존 `A005930`도 지원. WiseReport의 숫자 코드 경계와 구분 |
 | `codeType` | `KRX`, `NXT` | 국내 종목 상세 거래 route. |
 | `itemCodes` | `005930,000660` 또는 반복 query | 국내 종목/지수 코드 목록. 폴링은 comma 구분 문자열을, 리서치 v2는 `itemCodes=005930&itemCodes=000660` 같은 반복 query를 사용합니다. |
 | `reutersCode` | `KOSPI`, `GCcv1` | 시장지표 API에서 쓰는 지수, 선물, 지표 코드. |

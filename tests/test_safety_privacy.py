@@ -5,11 +5,14 @@ from __future__ import annotations
 
 import io
 import json
+from email.message import Message
 from pathlib import Path
 import socket
 import sys
 import unittest
 import urllib.error
+import urllib.request
+import urllib.response
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,13 +21,31 @@ sys.path.insert(0, str(SCRIPTS))
 
 import discussion  # noqa: E402
 import naverstock_api  # noqa: E402
+import external_public  # noqa: E402
 
 
 class PublicRequestBoundaryTests(unittest.TestCase):
+    def test_normalize_item_code_accepts_ascii_etf_and_existing_stock_codes(self) -> None:
+        cases = {
+            "005930": "005930",
+            "A005930": "005930",
+            "a005930": "005930",
+            "0193W0": "0193W0",
+            " 0193w0 ": "0193W0",
+            "0162z0": "0162Z0",
+            "0177n0": "0177N0",
+        }
+        for value, expected in cases.items():
+            with self.subTest(value=value):
+                self.assertEqual(naverstock_api.normalize_item_code(value), expected)
+
     def test_normalize_item_code_rejects_path_and_non_domestic_values(self) -> None:
         self.assertEqual(naverstock_api.normalize_item_code("A005930"), "005930")
         self.assertEqual(naverstock_api.normalize_item_code("005930"), "005930")
-        for value in ["../auth", "NVDA.O", "5930", "005930/price", "１２３４５６"]:
+        for value in [
+            "../auth", "NVDA.O", "5930", "005930/price", "１２３４５６",
+            "0193ß", "0193ﬀ", "0193ｗ0", "0193W0/../auth", "A0193W0", None,
+        ]:
             with self.subTest(value=value), self.assertRaises(ValueError):
                 naverstock_api.normalize_item_code(value)
 
@@ -194,7 +215,137 @@ class PublicRequestBoundaryTests(unittest.TestCase):
                 naverstock_api.validate_public_request("/api/domestic/detail/005930", timeout=timeout)
 
 
+class RedirectTransportTests(unittest.TestCase):
+    def test_redirects_never_send_a_destination_request(self) -> None:
+        build_opener = urllib.request.build_opener
+
+        class FakeHTTPS(urllib.request.HTTPSHandler):
+            def __init__(self, status, destination):
+                super().__init__()
+                self.status = status
+                self.destination = destination
+                self.requests = []
+                self.streams = []
+
+            def https_open(self, request):
+                self.requests.append(request.full_url)
+                headers = Message()
+                headers["Location"] = self.destination
+                stream = io.BytesIO(b"moved")
+                self.streams.append(stream)
+                response = urllib.response.addinfourl(
+                    stream, headers, request.full_url, self.status
+                )
+                response.msg = "Moved"
+                return response
+
+        for status in (301, 302, 303, 307, 308):
+            for source in ("json-get", "json-post", "html"):
+                transport = FakeHTTPS(
+                    status,
+                    "https://login.naver.com/"
+                    if source == "html"
+                    else "https://stock.naver.com/api/personal/users/holding/stocks",
+                )
+
+                def fake_opener(*handlers):
+                    return build_opener(
+                        *handlers, urllib.request.ProxyHandler({}), transport
+                    )
+
+                with (
+                    self.subTest(status=status, source=source),
+                    patch("socket.create_connection", side_effect=AssertionError("Network forbidden")),
+                    patch("socket.getaddrinfo", side_effect=AssertionError("DNS forbidden")),
+                    patch("urllib.request.build_opener", side_effect=fake_opener),
+                    self.assertRaisesRegex(RuntimeError, "redirect") as raised,
+                ):
+                    if source == "html":
+                        external_public.request_public_html(
+                            "finance", "/sise/item_gold.naver", {"page": 1}
+                        )
+                    elif source == "json-post":
+                        naverstock_api.request_json(
+                            "/api/domestic/home/marketaggregate/aggregateInvestor",
+                            method="POST",
+                            body={"sections": {}},
+                        )
+                    else:
+                        naverstock_api.request_json("/api/domestic/market/KRX/info")
+
+                self.assertEqual(len(transport.requests), 1)
+                self.assertTrue(all(stream.closed for stream in transport.streams))
+                if source != "html":
+                    self.assertEqual(raised.exception.status_code, status)
+
+
 class RequestErrorTests(unittest.TestCase):
+    def test_json_response_size_limit_and_stream_cleanup(self) -> None:
+        class Response(io.BytesIO):
+            def __init__(self, payload):
+                super().__init__(payload)
+                self.read_sizes = []
+
+            def read(self, size=-1):
+                self.read_sizes.append(size)
+                return super().read(size)
+
+        limit = naverstock_api.MAX_RESPONSE_BYTES
+        for size in (limit, limit + 1):
+            response = Response(b'{"value":"' + b"x" * (size - 12) + b'"}')
+            with (
+                self.subTest(size=size),
+                patch.object(naverstock_api, "open_public_url", return_value=response),
+            ):
+                if size == limit:
+                    result = naverstock_api.request_json("/api/domestic/market/KRX/info")
+                    self.assertEqual(len(result["value"]), size - 12)
+                else:
+                    with self.assertRaisesRegex(naverstock_api.NaverStockAPIError, "response bytes") as raised:
+                        naverstock_api.request_json("/api/domestic/market/KRX/info")
+                    self.assertEqual(raised.exception.path, "/api/domestic/market/KRX/info")
+            self.assertEqual(response.read_sizes, [limit + 1])
+            self.assertTrue(response.closed)
+
+    def test_http_error_diagnostic_is_bounded_and_closed(self) -> None:
+        stream = io.BytesIO(b"x" * 4096)
+        error = urllib.error.HTTPError("https://stock.naver.com/", 404, "missing", {}, stream)
+        with (
+            patch.object(naverstock_api, "open_public_url", side_effect=error),
+            self.assertRaises(naverstock_api.NaverStockAPIError) as raised,
+        ):
+            naverstock_api.request_json("/api/domestic/market/KRX/info")
+        self.assertEqual(raised.exception.status_code, 404)
+        self.assertEqual(len(raised.exception.detail), naverstock_api.MAX_ERROR_BYTES)
+        self.assertTrue(stream.closed)
+
+    def test_http_error_read_failure_keeps_status_and_closes_stream(self) -> None:
+        class FailedBody(io.BytesIO):
+            def read(self, size=-1):
+                raise OSError("response connection failed")
+
+        stream = FailedBody()
+        error = urllib.error.HTTPError("https://stock.naver.com/", 429, "blocked", {}, stream)
+        with (
+            patch.object(naverstock_api, "open_public_url", side_effect=error),
+            self.assertRaises(naverstock_api.NaverStockAPIError) as raised,
+        ):
+            naverstock_api.request_json("/api/domestic/market/KRX/info")
+        self.assertEqual(raised.exception.status_code, 429)
+        self.assertIn("Stop; do not retry automatically", str(raised.exception))
+        self.assertTrue(stream.closed)
+
+    def test_json_error_payload_has_bounded_diagnostic(self) -> None:
+        response = io.BytesIO(json.dumps({"error": "x" * 4096, "statusCode": 400}).encode())
+        with (
+            patch.object(naverstock_api, "open_public_url", return_value=response),
+            self.assertRaises(naverstock_api.NaverStockAPIError) as raised,
+        ):
+            naverstock_api.request_json("/api/domestic/market/KRX/info")
+        self.assertEqual(raised.exception.status_code, 400)
+        self.assertEqual(len(raised.exception.detail), naverstock_api.MAX_ERROR_BYTES)
+        self.assertTrue(response.closed)
+
     def test_403_and_429_instruct_caller_to_stop(self) -> None:
         for status in (403, 429):
             error = urllib.error.HTTPError(
@@ -206,7 +357,7 @@ class RequestErrorTests(unittest.TestCase):
             )
             with (
                 self.subTest(status=status),
-                patch("urllib.request.urlopen", side_effect=error),
+                patch("naverstock_api.open_public_url", side_effect=error),
                 self.assertRaisesRegex(RuntimeError, "Stop; do not retry automatically"),
             ):
                 naverstock_api.request_json("/api/domestic/detail/005930")
@@ -216,7 +367,7 @@ class RequestErrorTests(unittest.TestCase):
         for error in errors:
             with (
                 self.subTest(error=type(error).__name__),
-                patch("urllib.request.urlopen", side_effect=error),
+                patch("naverstock_api.open_public_url", side_effect=error),
                 self.assertRaises(RuntimeError),
             ):
                 naverstock_api.request_json("/api/domestic/detail/005930")
@@ -225,7 +376,7 @@ class RequestErrorTests(unittest.TestCase):
         response = unittest.mock.MagicMock()
         response.__enter__.return_value.read.return_value = b"not json"
         with (
-            patch("urllib.request.urlopen", return_value=response),
+            patch("naverstock_api.open_public_url", return_value=response),
             self.assertRaisesRegex(RuntimeError, "invalid JSON"),
         ):
             naverstock_api.request_json("/api/domestic/detail/005930")

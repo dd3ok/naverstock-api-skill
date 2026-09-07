@@ -21,6 +21,8 @@ import urllib.request
 BASE_URL = "https://stock.naver.com"
 DEFAULT_TIMEOUT = 30
 MAX_TIMEOUT = 120
+MAX_RESPONSE_BYTES = 5 * 1024 * 1024
+MAX_ERROR_BYTES = 2_048
 
 # These are deliberately API-family allowlists, not a blanket ``/api`` pass.
 # Every caller is still restricted to GET unless its exact path appears in the
@@ -187,11 +189,18 @@ class NaverStockAPIError(RuntimeError):
 
 
 def normalize_item_code(code: str) -> str:
-    value = code.strip().upper() if isinstance(code, str) else ""
+    message = (
+        "item code must be exactly six ASCII letters or digits; "
+        "six-digit codes may also be prefixed with A"
+    )
+    # Check before upper() can turn non-ASCII characters such as ß into ASCII.
+    if not isinstance(code, str) or not code.isascii():
+        raise ValueError(message)
+    value = code.strip().upper()
     if value.startswith("A") and value[1:].isdigit() and len(value) == 7:
         value = value[1:]
-    if not (len(value) == 6 and value.isascii() and value.isdigit()):
-        raise ValueError("item code must be exactly six digits, optionally prefixed with A")
+    if not (len(value) == 6 and value.isalnum()):
+        raise ValueError(message)
     return value
 
 
@@ -203,6 +212,34 @@ def build_path(path: str, params: dict[str, Any] | None = None) -> str:
         doseq=True,
     )
     return f"{path}?{query}" if query else path
+
+
+class _RejectRedirects(urllib.request.HTTPRedirectHandler):
+    def http_error_302(self, req, fp, code, msg, headers):
+        # Reject before urllib constructs or sends a request to the destination.
+        raise urllib.error.HTTPError(
+            req.full_url, code, "Redirects are not allowed", headers, fp
+        )
+
+    http_error_301 = http_error_302
+    http_error_303 = http_error_302
+    http_error_307 = http_error_302
+    http_error_308 = http_error_302
+
+
+def open_public_url(request: urllib.request.Request, *, timeout: int) -> Any:
+    """Open an already validated request without following redirects."""
+    return urllib.request.build_opener(_RejectRedirects()).open(request, timeout=timeout)
+
+
+def read_http_error_detail(error: urllib.error.HTTPError) -> str:
+    """Read a small diagnostic and release the response even if reading fails."""
+    try:
+        return error.read(MAX_ERROR_BYTES).decode("utf-8", errors="replace")
+    except (http.client.HTTPException, OSError, ValueError):
+        return "Unable to read the HTTP error response"
+    finally:
+        error.close()
 
 
 def request_json(
@@ -229,11 +266,19 @@ def request_json(
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            text = resp.read().decode("utf-8")
+        with open_public_url(req, timeout=timeout) as resp:
+            raw = resp.read(MAX_RESPONSE_BYTES + 1)
+        if len(raw) > MAX_RESPONSE_BYTES:
+            raise NaverStockAPIError(
+                f"Naver Stock API exceeded {MAX_RESPONSE_BYTES} response bytes",
+                path=clean_path,
+            )
+        text = raw.decode("utf-8")
     except urllib.error.HTTPError as exc:
-        detail = exc.read(2_048).decode("utf-8", errors="replace")
-        if exc.code in {403, 429}:
+        detail = read_http_error_detail(exc)
+        if 300 <= exc.code < 400:
+            message = "Naver Stock API returned a redirect. Stop; do not follow it."
+        elif exc.code in {403, 429}:
             message = (
                 f"Naver Stock API returned HTTP {exc.code}. Stop; do not retry automatically. "
                 "Re-verify that the endpoint is public and wait before trying again."
@@ -285,7 +330,7 @@ def request_json(
             "Naver Stock API returned an error payload",
             path=clean_path,
             status_code=status_code if isinstance(status_code, int) else None,
-            detail=json.dumps(payload, ensure_ascii=False),
+            detail=raw[:MAX_ERROR_BYTES].decode("utf-8", errors="replace"),
         )
     return payload
 
