@@ -18,6 +18,7 @@ from naverstock_api import (
     normalize_item_code,
     open_public_url,
     read_http_error_detail,
+    read_public_response,
 )
 
 
@@ -143,7 +144,7 @@ def request_public_html(
         with open_public_url(request, timeout=clean_timeout) as response:
             final_url = response.geturl()
             _validate_final_url(url, final_url)
-            raw = response.read(MAX_RESPONSE_BYTES + 1)
+            raw = read_public_response(response, limit=MAX_RESPONSE_BYTES)
             content_type = response.headers.get("Content-Type", "")
     except urllib.error.HTTPError as exc:
         detail = read_http_error_detail(exc)

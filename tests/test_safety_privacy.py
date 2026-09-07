@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import io
+import http.client
 import json
 from email.message import Message
 from pathlib import Path
@@ -280,6 +281,62 @@ class RedirectTransportTests(unittest.TestCase):
 
 
 class RequestErrorTests(unittest.TestCase):
+    def _check_http_framing(self, framing: bytes, wire_body: bytes, *, complete: bool) -> None:
+        body = b'{"items":[]}'
+        for source in ("json", "html"):
+            stream = io.BytesIO(
+                b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n"
+                + framing + b"\r\n" + wire_body
+            )
+
+            class MemorySocket:
+                def makefile(self, *args, **kwargs):
+                    return stream
+
+            response = http.client.HTTPResponse(MemorySocket())
+            response.begin()
+            response.url = "https://finance.naver.com/sise/item_gold.naver"
+            module = naverstock_api if source == "json" else external_public
+            with (
+                self.subTest(source=source, framing=framing, complete=complete),
+                patch.object(module, "open_public_url", return_value=response),
+            ):
+                def fetch():
+                    if source == "json":
+                        return naverstock_api.request_json("/api/domestic/market/KRX/info")
+                    return external_public.request_public_html("finance", "/sise/item_gold.naver")
+
+                if complete:
+                    expected = {"items": []} if source == "json" else body.decode()
+                    self.assertEqual(fetch(), expected)
+                else:
+                    with self.assertRaisesRegex(RuntimeError, "transport failed") as raised:
+                        fetch()
+                    self.assertIsInstance(raised.exception.__cause__, http.client.IncompleteRead)
+            self.assertTrue(stream.closed)
+
+    def test_complete_http_framings_preserve_payloads(self) -> None:
+        body = b'{"items":[]}'
+        length = f"Content-Length: {len(body)}\r\n".encode()
+        chunked = b"Transfer-Encoding: chunked\r\n"
+        chunk = f"{len(body):x}\r\n".encode() + body + b"\r\n0\r\n\r\n"
+        for framing, wire_body in (
+            (length, body),
+            (b"", body),
+            (chunked, chunk),
+            (chunked + b"Content-Length: 999\r\n", chunk),
+        ):
+            self._check_http_framing(framing, wire_body, complete=True)
+
+    def test_premature_http_eof_is_not_a_valid_payload(self) -> None:
+        body = b'{"items":[]}'
+        for framing, wire_body in (
+            (b"Content-Length: 999\r\n", body),
+            (b"Content-Length: 999\r\n", b""),
+            (b"Transfer-Encoding: chunked\r\n", f"{len(body):x}\r\n".encode() + body + b"\r\n"),
+        ):
+            self._check_http_framing(framing, wire_body, complete=False)
+
     def test_json_response_size_limit_and_stream_cleanup(self) -> None:
         class Response(io.BytesIO):
             def __init__(self, payload):

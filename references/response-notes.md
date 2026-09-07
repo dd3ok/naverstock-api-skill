@@ -14,6 +14,7 @@
 - 가상자산 랭킹 응답은 `{ "contents": [...] }` 형태이고, 주요 코인 엔드포인트는 list를 반환합니다.
 - 시장 브리핑 v2 목록은 `items`, `hasMore`, `nextPageToken`입니다. cursor를 계산·디코딩하지 않고 그대로 전달하고, 날짜 변경 시 이전 cursor를 재사용하지 않습니다. 상세 schema와 v1/v2 선택은 [홈 API 문서](api-home-market-fund.md)를 확인합니다.
 - JSON과 허용된 외부 HTML의 응답 상한은 5 MiB입니다. 초과·redirect는 오류이며 자동 추가 요청을 하지 않습니다. 레거시 조건검색의 필수 표·헤더 누락도 정상 빈 목록과 구분합니다.
+- `Content-Length`보다 짧게 수신된 본문과 완료되지 않은 chunked 응답은 내용이 유효한 JSON·HTML처럼 보여도 전송 오류로 처리합니다. 길이 헤더가 없는 응답의 완전성까지 보증하지는 않습니다.
 
 ## 유용한 enum
 
