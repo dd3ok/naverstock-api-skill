@@ -1,7 +1,7 @@
 # NaverStock Web API 카탈로그
 
 기준 관찰일: 2026-05-05, 부분 재점검: 2026-07-09, 전범위 재감사: 2026-07-17, 전체 정적 재점검 및 변경 경로 실호출: 2026-07-20, 브라우저·탭·페이징 재점검: 2026-07-21, route·transport·chunk 재점검: 2026-08-04, 전체 링크·탭·페이징 재감사: 2026-08-13, 브라우징·계약 갱신 및 실응답 확대 검증: 2026-09-07
-부분 추가 관찰: 2026-09-16 거래소 통합 장 상태·유형별 통합 지표 v1과 KRX 애프터마켓 안내. 기존 전체 감사 범위의 재검증은 아닙니다.
+추가 점검: 2026-09-16 공개 메뉴·페이지 유형·하위 탭·관련 링크·페이징 브라우징 및 변경 API 실응답. [이번 점검표와 미검증 분기](page-audit-2026-09-16.md)를 참조하세요.
 관찰 출처: 로그인하지 않은 공개 `https://stock.naver.com/` 페이지와 Next.js chunk  
 기본 호스트: `https://stock.naver.com`
 
@@ -30,6 +30,8 @@
 이 라벨과 별도로 현재 성공·실패·미검증 조건과 대체 사용법은 [알려진 제한과 검증 범위](known-limitations.md)에 기록합니다. `script-backed`를 정상 동작 판정으로 사용하지 않습니다.
 
 ## 페이지 점검 메모
+
+2026-09-16 후속 점검에서는 공개 메뉴의 페이지 유형을 직접 순회하고, 국내외 목록·종목 상세·공모주·검색/펀드·시장지표·가상자산·콘텐츠의 탭과 페이징을 대조했습니다. 추가 공개 GET24회의 유효 JSON(22회 HTTP200 별도 관찰, 인기ETF 집계2회 배열 확인)을 확인하고 새 명령을 보완했습니다. [페이지별 증거·후속 입력·남은 제약](page-audit-2026-09-16.md)을 함께 보세요. 모든 개별 상품·기간·필터 조합의 완료를 뜻하지 않습니다. 아래 과거 감사 기록은 당시 범위입니다.
 
 2026-09-16에는 공개 HTML 8개와 연결된 정적 JS 33개를 대조하고, 신규 관찰 API 2종의 무인증 표본 응답을 확인했습니다. [홈·시장 API](api-home-market-fund.md)의 `market-status`와 `indicators-v1`로 제공하며 기존 명령의 응답 계약은 유지합니다. [국내 시세 해석](api-domestic.md#krx-애프터마켓과-시세-해석)에 9월 14일 애프터마켓 반영과 NXT 차트의 미검증 계약을 구분했습니다. 기존 ETF v3·인기 ETF 등 `observed` 항목을 이번 신규 출시로 세지 않습니다. 각 경로의 첫 배포일, 모든 시점·상품·필터의 가용성은 확정하지 않았습니다.
 
@@ -98,6 +100,9 @@
 | `/worldstock/stock/{reutersCode}/finance/{overview\|primary\|ratios\|balance\|income\|cash}` | 200 | 해외 종목 재무 하위 탭 |
 | `/worldstock/etf/{code}/{price\|discussion\|finance\|investmentinfo}` | 200/redirect | 해외 ETF 탭 |
 | `/worldstock/index/{code}/{price\|discussion}` | 200 | 해외 지수 탭 |
+| `/worldstock/futures/{code}/price` | UI 확인 | EScv1 상세 및 일별 후속40행 확인. UI 관찰만으로 HTTP 상태를 기재하지 않음 |
+| `/ipo/{ipoCode}`, `/ipo/{ipoCode}/{news\|discussion}` | UI 확인 | 공모주 전용 A접두사 유지. 뉴스는 개별 기업이 아닌 공모주 전체 |
+| `/domestic/stock/{etfCode}/info/dividend` | UI 확인 | 국내 ETF 배당 지급현황. `/domestic/etf/...`로 조립하지 않음 |
 | `/domestic/fund/{fundCode}/{total\|performance\|allocation}` | 200 | 검색 결과가 연결하는 공개 펀드 상세 3개 탭 |
 | `/news`, `/news/{flashnews\|mainnews\|ranknews\|section\|worldnews\|marketNotice}`, `/notice` | 200 | 뉴스/뉴스포커스/해외뉴스/공시/서비스 공지 페이지 |
 | `/news/{worldnews\|marketNotice}/{articleId}`, `/notice/{noticeId}` | 200 | 해외뉴스·시장 공시·서비스 공지 상세 |

@@ -23,6 +23,10 @@
 
 - `KRX·NXT의 현재 장 상태와 애프터마켓 시간을 조회해줘.` → `home.py market-status --exchange krx --exchange nxt`로 한 번 조회하고 `currentSession`과 `sessions`를 구분합니다. 시간표만으로 현재 개장 여부를 재계산하지 않습니다.
 - `KOSPI와 나스닥 지수의 가격·상승하락 종목 수·수급을 같이 조회해줘.` → `home.py indicators-v1`에 국내·해외 지수 코드와 부가 옵션을 전달하고 그룹 객체를 보존합니다. 기존 `indicators` 또는 `integration/price`의 응답과 혼동하지 않습니다.
+- `미국 ETF 하락순 다음 페이지를 보고 싶어.` → `foreign_stock.py etfs-v2 --order-type down --index 1`은 changeRate/asc로 조회합니다. index는 행 offset이 아니며, 반환 hasNext와 정수로 변환한 index를 확인합니다.
+- `공모주 A250030 정보와 뉴스를 보여줘.` → `market_stock.py ipo-info --code A250030`, `news.py ipo-news`. A접두사를 제거하지 않고 뉴스는 공모주 전체임을 설명합니다.
+- `인기 ETF 다음 결과를 가져와줘.` → 국내 `domestic_etf.py popular` 또는 미국 `foreign_stock.py popular-etfs`의 반환 cursor를 같은 조건으로 전달합니다. popular-summary 집계 배열에 cursor를 만들어 붙이지 않습니다.
+- `USD와 미국10년물, WTI를 한 번에 조회해줘.` → `home.py indicators-v1 --currency-codes USD --bond-codes US10YT=RR --commodity-codes CLcv1`. 코드의 `=`와 소문자·그룹별 빈 객체를 보존합니다.
 - `지수 부가 수급 정보는 빼고 조회해줘.` → `--no-include-trend`로 false를 전달합니다. 옵션 생략을 명시적인 false로 설명하지 않습니다.
 - `이제 KRX 화면에 나온 거래량은 모두 KRX 단독 거래량이지? NXT 차트도 기존 chart 명령으로 가져와줘.` → 블록별 통합/거래소 집계 기준과 기준가·최종가를 구분하며, 기존 차트 CLI에 없는 거래소 옵션이나 미검증 경로를 만들지 않습니다. [확인 범위](api-domestic.md#krx-애프터마켓과-시세-해석).
 
@@ -121,7 +125,9 @@
 - `현재 화면의 AI 시장 브리핑 목록과 상세를 읽고 다음 페이지를 확인해줘.`
   기대 결과: `home.py market-briefing-list/market-briefing-detail --api-version v2`를 사용합니다. 날짜와 서버 `nextPageToken`을 보존하고 `hasMore`·token 부재에서 중단합니다. 기본 v1 경로를 자동 변경하거나 실패 시 다른 버전으로 재시도하지 않습니다.
 - `국내 인기 ETF 탭을 기존 ETF 목록의 top 정렬로 읽어줘.`
-  기대 결과: 인기 ETF는 별도 rankings 계열임을 설명합니다. 현재 카탈로그의 `observed`는 CLI 미구현 상태이며 실응답과 서버 cursor의 다음 묶음은 확인됐음을 구분합니다. `listingType=top`을 인기 조회로 오인하지 않습니다.
+  기대 결과: 현재 top 탭은 별도 집계 배열이므로 `domestic_etf.py popular-summary --size 100`을 사용합니다. 미국 인기 ETF 탭은 `foreign_stock.py popular-etf-summary --size 100`입니다. 두 집계에는 cursor가 없으며 `listingType=top`을 인기 조회로 오인하지 않습니다.
+- `국내와 미국 인기 ETF의 원시 순위를 조회하고 반환 cursor로 다음 묶음을 확인해줘.`
+  기대 결과: 국내 `domestic_etf.py popular`, 미국 `foreign_stock.py popular-etfs`를 사용합니다. 첫 cursor는 생략하고 같은 국가·size에서 반환 cursor를 그대로 전달하며 `hasNext=false`이면 중단합니다. 원시 rankings 응답을 top 탭의 집계 배열과 같은 구조로 취급하지 않습니다.
 - `기존 default --order-type accAmount와 steady 입력으로 국내 목록을 가져와줘.`
   기대 결과: 각각 현재 서버 값 `priceTop`, `flat`으로 요청합니다. 기존 NXT·KONEX 조합 제한을 우회하지 않습니다.
 - `홈의 해외 ETF 월간 수익률을 조회해줘.`

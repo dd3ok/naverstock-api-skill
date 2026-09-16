@@ -115,12 +115,14 @@ python3 scripts/fund.py daily-prices --code K55105B00244 --date 2026-08-13 --siz
 python3 scripts/home.py market-info --trade-type KRX
 python3 scripts/home.py market-status
 python3 scripts/home.py market-status --exchange krx --exchange nxt
+python3 scripts/home.py exchange-sessions --exchange krx --exchange nxt --exchange shenzhen
 python3 scripts/home.py operating-time --exchange NASDAQ
 python3 scripts/home.py market-briefing
 python3 scripts/home.py market-briefing-list --api-version v2 --date 2026-09-04 --size 10
 python3 scripts/home.py indicators
 python3 scripts/home.py indicators-v1 --domestic-index-codes KOSPI --foreign-index-codes .IXIC --include-breadth --include-trend
 python3 scripts/home.py indicators-v1 --foreign-index-codes .IXIC --no-include-breadth --no-include-trend --output indicators.json
+python3 scripts/home.py indicators-v1 --currency-codes USD --bond-codes US10YT=RR,KR10YT=RR --commodity-codes CLcv1,GCcv1
 python3 scripts/home.py notable-etf --nation foreign --page-size 10
 python3 scripts/home.py notable-etf --nation foreign --order-type return1Month --middle-code 0101 --page-size 2
 python3 scripts/search.py autocomplete --query 삼성전자
@@ -129,7 +131,28 @@ python3 scripts/search.py search --query 나스닥 --target index --page 1 --siz
 
 브리핑 목록의 날짜는 조회할 한국 날짜로 바꿉니다. 다음 페이지는 `hasMore`와 `nextPageToken`을 확인한 뒤 같은 명령에 `--page-token`으로 서버 값을 그대로 전달합니다. 상세는 목록에서 받은 ID로 `home.py market-briefing-detail --api-version v2 --briefing-id ID`를 사용합니다. 버전 옵션을 생략하면 호환용 기존 unversioned 경로를 유지하며, 현재 화면 계약은 v2입니다.
 
-`market-status`는 `--exchange` 생략 시 7개 거래소를 한 번에 조회합니다. 명시할 때는 소문자 거래소를 최대 7번 반복합니다. `indicators-v1`는 국내·해외 지수 중 적어도 한 그룹을 지정하고 두 그룹 합계 30개 이내의 쉼표 구분 코드를 받습니다. 부가정보 옵션은 생략하면 query에서 빠지고, `--no-include-*`는 명시적인 false를 보냅니다. 기존 `market-info`와 `indicators`의 경로·기본값·응답은 유지됩니다. 새 명령의 구조·세션 의미·검증 한계는 [홈 API 계약](api-home-market-fund.md#거래소-통합-장-상태)을 확인하세요.
+`market-status`는 `--exchange` 생략 시 7개 거래소를 한 번에 조회합니다. 명시할 때는 소문자 거래소를 최대7번 반복합니다. 별도 `exchange-sessions`는 기본krx/nxt, 최대9개이며 거래소별 상품·시장 상태 구조를 반환합니다. `indicators-v1`는 국내/해외 지수·환율·채권·원자재 중 적어도 한 그룹을 지정하고 전체 합계30개 이내 코드를 받습니다. 부가정보 옵션은 생략하면 query에서 빠지고, `--no-include-*`는 false를 보냅니다. 기존 `market-info`와 `indicators`의 기본값·응답은 유지됩니다. [홈 API 계약](api-home-market-fund.md#거래소-통합-장-상태)
+
+현재 페이지에서 보완한 조회 예제입니다. 각 명령은 한 번만 요청하며 다음 페이지는 같은 필터에서 반환 index/cursor를 확인한 뒤 명시합니다. 미국 인기 ETF 집계에는 커서가 없습니다.
+
+```bash
+python3 scripts/market_stock.py list-v3 --size 2 --index 0
+python3 scripts/domestic_etf.py list --api-version v3 --size 2
+python3 scripts/foreign_stock.py etfs-v2 --order-type down --size 2 --index 0
+python3 scripts/foreign_stock.py etf-themes-v2
+python3 scripts/domestic_etf.py popular --size 2
+python3 scripts/foreign_stock.py popular-etfs --size 2
+python3 scripts/foreign_stock.py popular-etf-summary --size 2
+python3 scripts/stock_detail_pages.py price-snapshot --code 005930
+python3 scripts/stock_detail_pages.py daily-prices-v2 --code 005930 --size 2
+python3 scripts/market_stock.py ipo-detail --code A250030
+python3 scripts/market_stock.py ipo-info --code A250030
+python3 scripts/news.py ipo-news --page 1 --page-size 2
+python3 scripts/discussion.py item-posts --discussion-type IPO --item-code A250030 --page-size 2
+python3 scripts/research.py detail-page --research-id 96027 --item-code 005930
+```
+
+IPO뉴스는 해당 기업이 아니라 전체 공모주 뉴스입니다. IPO의 A접두사와 일별시세·인기ETF의 opaque cursor를 변환하지 마세요. [페이지별 첫/다음 요청·응답 구조](page-audit-2026-09-16.md#페이징과-연결-규칙)
 
 ## 시장 지수와 지표
 

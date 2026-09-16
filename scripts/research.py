@@ -59,6 +59,13 @@ def fetch_detail(args: argparse.Namespace) -> Any:
     return request_json(f"{RESEARCH_BASE}/{RESEARCH_TYPES[args.category]}/{args.research_id}")
 
 
+def fetch_detail_page(args: argparse.Namespace) -> Any:
+    return request_json(build_path(
+        f"{RESEARCH_BASE}/{RESEARCH_TYPES[args.category]}/{args.research_id}/detail-page",
+        {"size": 1, "itemCode": args.item_code},
+    ))
+
+
 def fetch_weekly_hot(args: argparse.Namespace) -> Any:
     return _request_weekly_hot(args.start_date, args.size)
 
@@ -262,6 +269,13 @@ def _add_list_filters(parser: argparse.ArgumentParser) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
+
+    detail_page = sub.add_parser("detail-page", help="Report detail with adjacent summaries in item context")
+    detail_page.add_argument("--category", choices=CATEGORIES, default="COMPANY")
+    detail_page.add_argument("--research-id", type=_numeric_id, required=True)
+    detail_page.add_argument("--item-code", type=normalize_item_code)
+    detail_page.add_argument("--output")
+    detail_page.set_defaults(func=fetch_detail_page)
 
     category = sub.add_parser("category", help="Research list by category")
     category.add_argument("--category", choices=CATEGORIES, default="COMPANY")

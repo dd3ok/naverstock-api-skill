@@ -21,6 +21,7 @@ from naverstock_api import (
 
 DEFAULT_INDICATORS = "KOSPI,KOSDAQ,.DJI,.IXIC,.INX,FX_USDKRW,GCcv1,CLcv1"
 MARKET_STATUS_EXCHANGES = ("krx", "nxt", "nasdaq", "shanghai", "hongkong", "tokyo", "hanoi")
+SESSION_EXCHANGES = (*MARKET_STATUS_EXCHANGES, "shenzhen", "hochiminh")
 DOMESTIC_NOTABLE_ETF_ORDER_TYPES = (
     "amount_etf",
     "up_etf",
@@ -115,6 +116,13 @@ def fetch_operating_time(args: argparse.Namespace) -> Any:
     return request_json(f"/api/foreign/operatingTime/exchange/{args.exchange}")
 
 
+def fetch_exchange_sessions(args: argparse.Namespace) -> Any:
+    exchanges = args.exchange or ["krx", "nxt"]
+    if len(exchanges) > len(SESSION_EXCHANGES) or any(x not in SESSION_EXCHANGES for x in exchanges):
+        raise ValueError("exchange-sessions accepts 1-9 supported exchanges")
+    return request_json(build_path("/api/stockSecurity/exchanges/market-status", {"exchanges": exchanges}))
+
+
 def fetch_market_briefing(args: argparse.Namespace) -> Any:
     return request_json("/api/securityAi/marketBriefing/current?marketBriefing=domain")
 
@@ -180,13 +188,16 @@ def fetch_indicators_v1(args: argparse.Namespace) -> Any:
     for name, value in (
         ("domesticIndexCodes", args.domestic_index_codes),
         ("foreignIndexCodes", args.foreign_index_codes),
+        ("currencyCodes", getattr(args, "currency_codes", None)),
+        ("bondCodes", getattr(args, "bond_codes", None)),
+        ("commodityCodes", getattr(args, "commodity_codes", None)),
     ):
         if value is not None:
             params[name] = _indicator_codes(value)
     if not params:
-        raise ValueError("provide --domestic-index-codes or --foreign-index-codes (or both)")
+        raise ValueError("provide at least one index, currency, bond, or commodity code group")
     if sum(len(value.split(",")) for value in params.values()) > 30:
-        raise ValueError("indicators-v1 accepts at most 30 codes across both index groups")
+        raise ValueError("indicators-v1 accepts at most 30 codes across all groups")
     for name, value in (("includeBreadth", args.include_breadth), ("includeTrend", args.include_trend)):
         if value is not None and not isinstance(value, bool):
             raise ValueError(f"{name} must be a boolean or omitted")
@@ -269,6 +280,12 @@ def main() -> None:
     add_output(market_status)
     market_status.set_defaults(func=fetch_market_status)
 
+    sessions = sub.add_parser("exchange-sessions", help="Current exchange schedules grouped by stock/market type")
+    sessions.add_argument("--exchange", choices=SESSION_EXCHANGES, action="append",
+                          help="Repeat up to nine times; omitted selects krx and nxt")
+    add_output(sessions)
+    sessions.set_defaults(func=fetch_exchange_sessions)
+
     operating_time = sub.add_parser("operating-time", help="Foreign exchange operating time")
     operating_time.add_argument(
         "--exchange",
@@ -330,10 +347,12 @@ def main() -> None:
     indicators.set_defaults(func=fetch_indicators)
 
     indicators_v1 = sub.add_parser(
-        "indicators-v1", help="Grouped domestic/foreign indices with optional breadth and investor trends"
+        "indicators-v1", help="Grouped indices, currencies, bonds and commodities; optional index breadth/trends"
     )
     indicators_v1.add_argument("--domestic-index-codes", type=_indicator_codes, help="Comma-separated codes")
     indicators_v1.add_argument("--foreign-index-codes", type=_indicator_codes, help="Comma-separated codes")
+    for group in ("currency", "bond", "commodity"):
+        indicators_v1.add_argument(f"--{group}-codes", type=_indicator_codes, help="Comma-separated codes")
     indicators_v1.add_argument(
         "--include-breadth", action=argparse.BooleanOptionalAction, default=None,
         help="Request or exclude market breadth; omitted leaves the server default",
@@ -404,7 +423,7 @@ def main() -> None:
     if args.command == "notable-etf" and args.nation == "domestic":
         if args.large_code is not None or args.middle_code is not None:
             parser.error("--large-code and --middle-code require --nation foreign")
-    if args.command in ("market-status", "indicators-v1"):
+    if args.command in ("market-status", "exchange-sessions", "indicators-v1"):
         try:
             result = args.func(args)
         except (ValueError, argparse.ArgumentTypeError) as exc:
