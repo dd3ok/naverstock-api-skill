@@ -125,7 +125,9 @@
 - `현재 화면의 AI 시장 브리핑 목록과 상세를 읽고 다음 페이지를 확인해줘.`
   기대 결과: `home.py market-briefing-list/market-briefing-detail --api-version v2`를 사용합니다. 날짜와 서버 `nextPageToken`을 보존하고 `hasMore`·token 부재에서 중단합니다. 기본 v1 경로를 자동 변경하거나 실패 시 다른 버전으로 재시도하지 않습니다.
 - `국내 인기 ETF 탭을 기존 ETF 목록의 top 정렬로 읽어줘.`
-  기대 결과: 인기 ETF는 별도 rankings 계열임을 설명합니다. 국내 `domestic_etf.py popular`, 미국 `foreign_stock.py popular-etfs`에 반환 cursor를 그대로 전달합니다. 집계 배열인 popular-summary와 구분하고 `listingType=top`을 인기 조회로 오인하지 않습니다.
+  기대 결과: 현재 top 탭은 별도 집계 배열이므로 `domestic_etf.py popular-summary --size 100`을 사용합니다. 미국 인기 ETF 탭은 `foreign_stock.py popular-etf-summary --size 100`입니다. 두 집계에는 cursor가 없으며 `listingType=top`을 인기 조회로 오인하지 않습니다.
+- `국내와 미국 인기 ETF의 원시 순위를 조회하고 반환 cursor로 다음 묶음을 확인해줘.`
+  기대 결과: 국내 `domestic_etf.py popular`, 미국 `foreign_stock.py popular-etfs`를 사용합니다. 첫 cursor는 생략하고 같은 국가·size에서 반환 cursor를 그대로 전달하며 `hasNext=false`이면 중단합니다. 원시 rankings 응답을 top 탭의 집계 배열과 같은 구조로 취급하지 않습니다.
 - `기존 default --order-type accAmount와 steady 입력으로 국내 목록을 가져와줘.`
   기대 결과: 각각 현재 서버 값 `priceTop`, `flat`으로 요청합니다. 기존 NXT·KONEX 조합 제한을 우회하지 않습니다.
 - `홈의 해외 ETF 월간 수익률을 조회해줘.`
