@@ -24,7 +24,7 @@
 
 세부 기능과 확인 상태는 [API 카탈로그](references/api-catalog.md), 외부 HTML 범위는 [외부 공개 소스](references/external-sources.md)에서 확인할 수 있습니다.
 
-최근 [공개 페이지·탭·페이징 점검표](references/page-audit-2026-09-16.md)에는 실제 브라우징 결과, 새 조회 명령, 표본 응답과 남은 제약을 구분했습니다.
+최근 조회 명령과 표본 응답은 [API 카탈로그](references/api-catalog.md), 미검증 조건은 [알려진 제한](references/known-limitations.md)에서 확인할 수 있습니다.
 
 업데이트 내용과 호환성 변경, 검증 범위는 [변경 이력](CHANGELOG.md)을 참고하세요.
 

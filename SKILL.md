@@ -70,7 +70,7 @@ description: Safely queries and audits unofficial read-only Naver Stock (네이�
 11. 여러 API 결과를 합칠 때 실패한 섹션과 실제 빈 데이터를 구분하고 endpoint path와 상태를 함께 남기세요.
 12. 국내 종목의 `shortTrade` 화면은 외부 `data.krx.co.kr` iframe으로 안내하세요. `stock.naver.com` JSON API로 취급하지 마세요.
 13. KRX 애프터마켓·기준가·종가·거래량 집계를 해석할 때는 [국내 시세 해석](references/api-domestic.md#krx-애프터마켓과-시세-해석)을 확인하세요. 거래소별 장 상태는 `home.py market-status`, 국내외 지수의 부가 수급은 `home.py indicators-v1`를 사용하고 기존 명령과 응답 구조를 구분하세요.
-14. 현재 목록·페이징을 재현할 때는 [페이지 점검표](references/page-audit-2026-09-16.md)를 확인하세요. 국내 주식 `list-v3`, 미국 ETF `etfs-v2`, 인기 ETF cursor와 집계 배열을 구분합니다. 공모주는 `market_stock.py ipo-detail/ipo-info`, `news.py ipo-news`, `discussion.py item-posts --discussion-type IPO`를 사용하며 A접두사를 유지합니다. `profile` 경로는 미지원입니다.
+14. 현재 목록·페이징을 재현할 때는 [국내 API](references/api-domestic.md)와 [해외 API](references/api-foreign.md)의 해당 조회 계약을 확인하세요. 국내 주식 `list-v3`, 미국 ETF `etfs-v2`, 인기 ETF cursor와 집계 배열을 구분합니다. 공모주는 `market_stock.py ipo-detail/ipo-info`, `news.py ipo-news`, `discussion.py item-posts --discussion-type IPO`를 사용하며 A접두사를 유지합니다. `profile` 경로는 미지원입니다.
 
 ## 스크립트 사용
 

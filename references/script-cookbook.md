@@ -152,7 +152,7 @@ python3 scripts/discussion.py item-posts --discussion-type IPO --item-code A2500
 python3 scripts/research.py detail-page --research-id 96027 --item-code 005930
 ```
 
-IPO뉴스는 해당 기업이 아니라 전체 공모주 뉴스입니다. IPO의 A접두사와 일별시세·인기ETF의 opaque cursor를 변환하지 마세요. [페이지별 첫/다음 요청·응답 구조](page-audit-2026-09-16.md#페이징과-연결-규칙)
+IPO뉴스는 해당 기업이 아니라 전체 공모주 뉴스입니다. IPO의 A접두사와 일별시세·인기ETF의 opaque cursor를 변환하지 마세요. 첫/다음 요청과 응답 구조는 [국내 API](api-domestic.md), [해외 API](api-foreign.md), [콘텐츠 API](api-content.md)를 확인하세요.
 
 ## 시장 지수와 지표
 

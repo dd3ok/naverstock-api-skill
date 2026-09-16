@@ -49,7 +49,7 @@ v2 첫 요청은 `pageToken`을 생략할 수 있습니다. 다음 요청은 같
 
 ### 거래소 통합 장 상태
 
-후속 브라우징에서 `/api/stockSecurity/exchanges/market-status`도 확인해 `home.py exchange-sessions`로 추가했습니다. 기본 krx/nxt, 최대9개 반복 exchanges이며 기존7개에 shenzhen/hochiminh를 포함합니다. `serverTime`, `exchanges[]`, 각 거래소의 `zoneId`, `isDaylightSavingTime`, `statuses[]`와 상태별 stockType/marketType/today/latest/next를 원형 보존합니다. 기존 `market-status/current`의 `statuses/currentSession/sessions`와 다른 계약입니다. krx/nxt/shenzhen/hochiminh 표본200·요청코드 일치를 확인했습니다. [상세 점검](page-audit-2026-09-16.md#추가한-조회-계약)
+후속 브라우징에서 `/api/stockSecurity/exchanges/market-status`도 확인해 `home.py exchange-sessions`로 추가했습니다. 기본 krx/nxt, 최대9개 반복 exchanges이며 기존7개에 shenzhen/hochiminh를 포함합니다. `serverTime`, `exchanges[]`, 각 거래소의 `zoneId`, `isDaylightSavingTime`, `statuses[]`와 상태별 stockType/marketType/today/latest/next를 원형 보존합니다. 기존 `market-status/current`의 `statuses/currentSession/sessions`와 다른 계약입니다. krx/nxt/shenzhen/hochiminh 표본200·요청코드 일치를 확인했습니다.
 
 2026-09-16 [현재 홈 chunk](https://ssl.pstatic.net/imgstock/fn/real/pc/_next/static/chunks/app/page-061654f9636df343.js)의 공개 호출자와 무인증 응답을 확인했습니다. 최초 배포일은 미확인이며 이번에 새로 관찰한 API입니다. `market-status`는 한 번의 GET으로 원본 `serverTime`, `statuses`를 반환합니다. 페이징이나 자동 반복 조회는 없습니다.
 

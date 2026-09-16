@@ -81,7 +81,7 @@ v1 8개 경로는 CLI 명령이 남아 있어 `script-backed`로 표시하지만
 
 ## 종목토론 API
 
-`discussion.py item-posts --discussion-type IPO --item-code A250030`도 지원합니다. 공모주 코드는 A+숫자6자리를 그대로 유지하며 일반 국내 종목의 A 제거 규칙을 적용하지 않습니다. pageSize30, 네 boolean 기본false, 반환 offset(음수 가능)을 그대로 전달하고 기존 개인정보 sanitizer를 거쳐 출력합니다. [공모주 및 인접 페이지 점검](page-audit-2026-09-16.md)
+`discussion.py item-posts --discussion-type IPO --item-code A250030`도 지원합니다. 공모주 코드는 A+숫자6자리를 그대로 유지하며 일반 국내 종목의 A 제거 규칙을 적용하지 않습니다. pageSize30, 네 boolean 기본false, 반환 offset(음수 가능)을 그대로 전달하고 기존 개인정보 sanitizer를 거쳐 출력합니다.
 
 | 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
