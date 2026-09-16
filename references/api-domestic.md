@@ -4,6 +4,7 @@
 
 ## 목차
 
+- [KRX 애프터마켓과 시세 해석](#krx-애프터마켓과-시세-해석)
 - [엔드포인트](#엔드포인트)
 - [검증 메모](#검증-메모)
 
@@ -72,6 +73,17 @@
 | ETF 자금 흐름 일/주 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFSumFlowDayList?count=20`, `/ETFSumFlowWeekList?count=20` |
 | 국내 ETN 목록 | `script-backed` | GET | `/api/domestic/market/etn?orderType=AMOUNT_ETN&startIdx=0&pageSize=20` |
 | 종목 인사이트 보유자 랭킹·가상 투자 | `script-backed` | GET | `/api/securityService/home/v3/mystock/ranking/{itemCode}`, `/api/securityService/home/v3/whatIf/{domestic\|worldstock}/{code}?periodType=year&range=5` |
+
+## KRX 애프터마켓과 시세 해석
+
+2026-09-14 KRX 애프터마켓 도입에 따른 Npay 표시 변경은 [공식 공지](https://stock.naver.com/notice/153)와 [공식 FAQ](https://help.pay.naver.com/faq/content.help?faqId=18245)를 기준으로 합니다. 2026-09-16 삼성전자 공개 화면에서도 기준가와 거래소별 차트 선택, 통합 시세 안내를 확인했습니다.
+
+- 기준가는 전일 정규장 종가입니다. 종목 상세 표의 ‘종가’에 대한 최종 체결가 설명과 거래소 공식 종가를 구분하고, 특정 JSON의 `closePrice`에 일괄 대응시키지 않습니다.
+- 종목 상단의 시가·고가·저가·거래량·거래대금·52주 가격은 KRX+NXT 통합 안내가 표시됐습니다. 시가총액·투자지표·재무지표와 호가·시간별 시세 표는 각 블록의 별도 제공 기준을 확인합니다. `codeType` 또는 `tradeType`만으로 모든 필드의 집계 기준이 같다고 가정하지 않습니다.
+- FAQ는 지수 값의 정규장 산출과 거래량·거래대금의 애프터마켓 누적을 구분합니다. 장 상태·시간표는 [통합 장 상태 계약](api-home-market-fund.md#거래소-통합-장-상태)을 참고하고, 15:30 이후의 모든 지표가 멈추거나 모두 갱신된다고 해석하지 않습니다.
+- FAQ는 KRX 1일 시간축 09:00~20:00(미운영 종목은 정규장 범위)과 NXT 차트 제공을 안내합니다. 화면에서 KRX→NXT 전환과 차트 재생성을 확인했으나, 새 차트 원시 데이터의 호스트·프록시 계약은 미검증입니다. 기존 `chart`·`chart-prices` 명령은 거래소 선택을 지원하지 않습니다. NXT 상세·폴링 지원과 차트 지원을 구분합니다.
+
+이번 구현은 장 상태와 통합 지표 조회를 추가하며 기존 가격을 재계산하거나 이름을 바꾸지 않습니다. 애프터마켓 실제 체결 시각·휴일·장 전환, 원시 시세 필드별 통합/거래소 집계는 후속 검증 범위입니다.
 
 ## 검증 메모
 

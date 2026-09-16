@@ -2,15 +2,25 @@
 
 상태 라벨, page route, 전송, 식별자와 제외 기준은 [공통 API 인덱스](api-catalog.md)를 따릅니다.
 
+## 목차
+
+- [홈 및 통합 검색 API](#홈-및-통합-검색-api)
+- [거래소 통합 장 상태](#거래소-통합-장-상태)
+- [유형별 통합 지표 v1](#유형별-통합-지표-v1)
+- [시장 지수와 지표](#시장-지수와-지표)
+- [펀드 API](#펀드-api)
+
 ## 홈 및 통합 검색 API
 
 | 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
 | KRX/NXT 시장 상태 | `script-backed` | GET | `/api/domestic/market/{KRX|NXT}/info` |
+| 거래소 통합 장 상태·세션 | `script-backed` | GET | `/api/stockSecurity/market-status/current?exchanges=krx&exchanges=nxt`. 소문자 `exchanges` 반복. `home.py market-status`; [계약과 검증 범위](#거래소-통합-장-상태) |
 | 해외 거래소 운영시간 | `script-backed` | GET | `/api/foreign/operatingTime/exchange/{NASDAQ|SHANGHAI|HONG_KONG|TOKYO|HANOI}` |
 | 홈 공개 숏텐츠 | `script-backed` | GET | `/api/shorttents?source=pc.npay_finhome&type=compact&category_first=증권&nscs=0` |
 | 머니스토리 | `script-backed` | GET | `/api/content/moneyStory?mainCategoryIdList={id}&subCategoryIdList={id}&sort=id%2Cdesc&size={size}`. `subCategoryIdList`와 `sort`는 선택적이며 가상자산 홈에서 각각 `97`, `id,desc`를 사용 |
 | 통합 지표 | `script-backed` | GET | `/api/securityService/integration/indicators?indicatorCodes={codes}` |
+| 유형별 통합 지표 v1 | `script-backed` | GET | `/api/securityService/integration/v1/indicators?domesticIndexCodes=KOSPI&foreignIndexCodes=.IXIC&includeBreadth=true&includeTrend=true`. `home.py indicators-v1`; [계약과 검증 범위](#유형별-통합-지표-v1) |
 | 국내·해외 주목 ETF | `script-backed` | GET | `/api/{domestic|foreign}/market/home/notableETF?orderType={type}&startIdx=0&pageSize=10`. 현재 UI enum은 국내 `amount_etf`, `up_etf`, `1week_earn_rate`, `dividend_earn_rate`, 해외 `priceTop`, `up`, `return1Month`, `dividend`입니다. 기본값은 각각 `amount_etf`, `up`이며 다른 국가의 enum은 보내지 않습니다. |
 | 중요 경제지표 | `script-backed` | GET | `/api/securityService/economic/indicator/nations/upcoming?gteImportance=3&limit=3&nationTypeList=KOR&nationTypeList=USA` |
 | 공개 전체 이용자 자산·수익률 랭킹 | `script-backed` | GET | `/api/domestic/home/ranking/{assetAmount|earningRate}/all?startIdx=0&pageSize=20` |
@@ -35,6 +45,30 @@ v2 첫 요청은 `pageToken`을 생략할 수 있습니다. 다음 요청은 같
 실제 목록 ID `4535`, `4534`의 v2 상세도 200이며 `renderMode`, `document.sections`, `visuals`, `briefingMeta`, `createdAtLabel`을 반환했습니다. `4534`의 이전·다음 ID는 각각 `4533`, `4535`였고 브라우저의 상세·이전 이동과 일치했습니다. 실행 중 새 브리핑이 생겨 현재 항목이 `4536`으로 바뀌었으므로 시간차가 있는 목록을 고정 스냅샷처럼 비교하지 않습니다. 기존 unversioned 목록·상세·현재 경로도 200을 확인했습니다. 목록·상세의 `--api-version` 기본은 호환성을 위해 `v1`이며, 이는 경로에 `/v1`을 붙인다는 뜻이 아닙니다. 현재 화면에는 `v2`를 명시하고 자동 fallback이나 원격 JSON 변환은 하지 않습니다.
 
 해외 주목 ETF는 테마 메타데이터에서 선택한 `largeCode`, `middleCode`를 받을 수 있습니다. `home.py notable-etf --nation foreign`에도 `--large-code`, `--middle-code`를 지원하며 국내 요청에는 사용하지 않습니다. `return1Month&startIdx=0&pageSize=2`는 500이었고, 같은 조건에 실제 테마 `middleCode=0101`을 추가하면 200과 2개 행을 반환했습니다. 같은 테마의 화면 크기 `pageSize=10`도 200이었습니다. 테마를 생략하는 모든 요청이 항상 실패한다고 일반화하지 않고, 현재 화면의 테마 선택을 재현합니다. 기본 정렬과 기존 무필터 호출은 유지합니다.
+
+### 거래소 통합 장 상태
+
+2026-09-16 [현재 홈 chunk](https://ssl.pstatic.net/imgstock/fn/real/pc/_next/static/chunks/app/page-061654f9636df343.js)의 공개 호출자와 무인증 응답을 확인했습니다. 최초 배포일은 미확인이며 이번에 새로 관찰한 API입니다. `market-status`는 한 번의 GET으로 원본 `serverTime`, `statuses`를 반환합니다. 페이징이나 자동 반복 조회는 없습니다.
+
+`--exchange`는 `krx`, `nxt`, `nasdaq`, `shanghai`, `hongkong`, `tokyo`, `hanoi` 중 선택해 최대 7번 반복합니다. 생략하면 현재 UI처럼 7개 거래소를 모두 요청하고, 명시하면 선택한 값만 전달합니다. 기존 `operating-time`의 대문자 거래소 이름이나 쉼표 문자열을 사용하지 않습니다.
+
+각 거래소 항목에는 `exchange`, `indexCode`, `isHoliday`, `currentSession`, `sessions`, `delayMinutes`, `isDaylightSavingTime`이 있습니다. 세션의 `marketStatusDetailType`, `marketSessionType`, `marketState`, `legacyState`, `displayLabel`, `openTimeKst`, `closeTimeKst`는 원본 그대로 보존합니다. KRX 5개, NXT 7개 세션과 요청한 7개 거래소의 응답 일치를 확인했습니다. 당시 `indexCode`는 null이었습니다.
+
+KRX는 개장전 08:00~09:00, 정규장 09:00~15:30, 정규장 마감 15:30~16:00, 애프터마켓 16:00~20:00, 애프터마켓 마감 20:00~다음 08:00을 반환했습니다. `sessions`는 시간표이며 현재 상태는 `currentSession`과 서버 시각·휴일·지연 정보를 함께 해석합니다. 클라이언트 시간만으로 상태를 재계산하지 않습니다. 정규장 표본을 확인했으며 휴일·실제 장 전환 시각은 미검증입니다.
+
+기존 `market-info --trade-type KRX`도 `afterMarketOpeningTime`, `afterMarketClosingTime`에 16:00·20:00을 반환했습니다. 새 명령은 기존 시장 정보의 출력·기본값을 바꾸지 않습니다. 관련 차트와 시세 의미는 [KRX 애프터마켓 안내](api-domestic.md#krx-애프터마켓과-시세-해석)를 따릅니다.
+
+### 유형별 통합 지표 v1
+
+2026-09-16 [현재 종목 페이지의 공유 chunk](https://ssl.pstatic.net/imgstock/fn/real/pc/_next/static/chunks/43185-a902c9cf5473c7bb.js)와 무인증 실응답을 확인했습니다. 최초 배포일과 이 함수를 실행하는 정확한 화면 동작은 미확정입니다. CLI는 실응답을 확인한 국내·해외 지수 그룹을 지원합니다. 정적 호출자에 있는 `currencyCodes`, `bondCodes`, `commodityCodes`는 코드 계약 미검증으로 CLI에 노출하지 않습니다.
+
+`--domestic-index-codes` 또는 `--foreign-index-codes` 중 적어도 하나를 명시합니다. 각 옵션은 쉼표 구분 코드이며 두 그룹 합계 최대 30개입니다. 코드의 대소문자를 보존하고 빈 코드·경로 구분자·초과 개수는 요청 전에 거부합니다. 코드 형식 통과가 해당 지표의 가용성을 보증하지 않습니다.
+
+`--include-breadth`와 `--include-trend`는 각각 true, `--no-include-breadth`와 `--no-include-trend`는 false를 보냅니다. 옵션을 생략하면 해당 query도 생략하여 서버 기본 동작을 유지합니다. 한 번의 GET만 수행하며 자동 페이징·재시도·다른 API로의 전환은 없습니다.
+
+응답은 `domesticIndex`, `foreignIndex`, `foreignFutures`, `commodity`, `interestRate`, `exchangeRate`, `governmentBond`, `crypto` 그룹 객체입니다. 기존 `indicators`의 배열 응답과 다릅니다. KOSPI와 .IXIC 표본에서 두 부가 옵션을 함께 true로 보내면 KOSPI의 `breadth`, `investorTrends`, `programTrend`, 수급 기준일·거래소와 .IXIC의 `breadth`가 추가됐습니다. 함께 false로 보내면 두 종목 모두 `itemCode`, `group`, `price`, `meta`만 남았습니다. 두 옵션의 독립 조합·생략 시 서버 기본값과 다른 지표는 실검증하지 않았습니다.
+
+정상 빈 그룹과 null은 원본 그대로 반환하며 ‘해당 상품군 전체 지원’이나 API 오류로 확대 해석하지 않습니다. 금액 단위와 수치 정확성은 독립 원천과 대조하지 않았습니다. 기존 `integration/price`의 .IXIC 빈 응답 제한은 다른 API인 이 명령의 성공으로 해제하지 않습니다. 실행 예제는 [홈·검색 쿡북](script-cookbook.md#홈과-통합-검색)을 확인하세요.
 
 ## 시장 지수와 지표
 
