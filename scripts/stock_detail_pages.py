@@ -14,6 +14,7 @@ from naverstock_api import (
     normalize_item_code,
     render_json,
     request_json,
+    validate_page_cursor,
 )
 
 
@@ -64,6 +65,17 @@ def _one_based_page(value: str) -> int:
 
 def fetch_price(args: argparse.Namespace) -> Any:
     return request_json(f"/api/domestic/detail/{normalize_item_code(args.code)}/price")
+
+
+def fetch_price_snapshot(args: argparse.Namespace) -> Any:
+    return request_json(f"/api/stockSecurity/items/v2/domestic/{normalize_item_code(args.code)}/price-snapshot")
+
+
+def fetch_daily_prices_v2(args: argparse.Namespace) -> Any:
+    return request_json(build_path(
+        f"/api/stockSecurity/items/v2/domestic/{normalize_item_code(args.code)}/daily-prices",
+        {"size": args.size, "cursor": args.cursor},
+    ))
 
 
 def fetch_hoga(args: argparse.Namespace) -> Any:
@@ -207,6 +219,17 @@ def add_code(parser: argparse.ArgumentParser) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
+
+    snapshot = sub.add_parser("price-snapshot", help="Current KRX/NXT price snapshot, without flattening")
+    snapshot.add_argument("--code", type=normalize_item_code, required=True)
+    snapshot.add_argument("--output")
+    snapshot.set_defaults(func=fetch_price_snapshot)
+    daily_v2 = sub.add_parser("daily-prices-v2", help="Current daily prices with returned opaque cursor")
+    daily_v2.add_argument("--code", type=normalize_item_code, required=True)
+    daily_v2.add_argument("--size", type=lambda v: bounded_int(v, name="size", minimum=1, maximum=100), default=20)
+    daily_v2.add_argument("--cursor", type=validate_page_cursor)
+    daily_v2.add_argument("--output")
+    daily_v2.set_defaults(func=fetch_daily_prices_v2)
 
     for name, help_text, func in [
         ("price", "Current price payload for the stock price tab", fetch_price),

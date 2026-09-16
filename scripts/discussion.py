@@ -13,6 +13,7 @@ from naverstock_api import (
     build_path,
     emit_output,
     normalize_item_code,
+    normalize_ipo_code,
     render_json,
     request_json,
     validate_identifier,
@@ -59,7 +60,7 @@ _INTERNATIONAL_PHONE_PATTERN = re.compile(
     r"(?<!\w)(?:\+|00)[1-9]\d{0,2}(?:[ ().-]*\d){6,14}(?!\w)"
 )
 _CRYPTO_TICKER = re.compile(r"^[A-Z0-9][A-Z0-9._-]{0,31}$")
-DISCUSSION_TYPES = ("domesticStock", "cryptoUpbit", "cryptoBithumb")
+DISCUSSION_TYPES = ("domesticStock", "cryptoUpbit", "cryptoBithumb", "IPO")
 MARKET_DISCUSSION_GROUP_TYPES = (
     "exchange",
     "bondInterest",
@@ -178,6 +179,8 @@ def _crypto_ticker(value: str) -> str:
 
 
 def _discussion_item_code(value: str, discussion_type: str) -> str:
+    if discussion_type == "IPO":
+        return normalize_ipo_code(value)
     if discussion_type == "domesticStock":
         return normalize_item_code(value)
     return _crypto_ticker(value)
@@ -431,6 +434,11 @@ def main() -> None:
     rankings.set_defaults(func=fetch_rankings)
 
     args = parser.parse_args()
+    if args.command == "item-posts" and args.discussion_type == "IPO":
+        try:
+            args.item_code = normalize_ipo_code(args.item_code)
+        except ValueError as exc:
+            parser.error(str(exc))
     emit_output(render_json(sanitize_community_payload(args.func(args))), args.output)
 
 

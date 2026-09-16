@@ -8,7 +8,7 @@ import calendar
 from datetime import date
 from typing import Any
 
-from naverstock_api import build_path, emit_output, render_json, request_json
+from naverstock_api import bounded_int, build_path, emit_output, render_json, request_json
 
 
 NEWS_CATEGORIES = ("MAINNEWS", "FLASHNEWS", "RANKNEWS")
@@ -87,6 +87,14 @@ def fetch_search(args: argparse.Namespace) -> Any:
     )
 
 
+def fetch_ipo_news(args: argparse.Namespace) -> Any:
+    """IPO-wide news: the site intentionally sends an empty query, not an item code."""
+    return request_json(build_path("/api/domestic/news/search", {
+        "query": "", "IPO": True, "page": args.page, "pageSize": args.page_size,
+        "startDate": args.start_date, "endDate": args.end_date,
+    }))
+
+
 def fetch_notice(args: argparse.Namespace) -> Any:
     return request_json(
         build_path(
@@ -136,6 +144,14 @@ def fetch_aggregate(args: argparse.Namespace) -> Any:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
+
+    ipo = sub.add_parser("ipo-news", help="Latest news about all IPOs, not one company")
+    ipo.add_argument("--page", type=lambda v: bounded_int(v, name="page", minimum=1, maximum=1000), default=1)
+    ipo.add_argument("--page-size", type=lambda v: bounded_int(v, name="page-size", minimum=1, maximum=100), default=15)
+    ipo.add_argument("--start-date")
+    ipo.add_argument("--end-date")
+    ipo.add_argument("--output")
+    ipo.set_defaults(func=fetch_ipo_news)
 
     list_cmd = sub.add_parser("list", help="News list")
     list_cmd.add_argument(

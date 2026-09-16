@@ -16,6 +16,7 @@
 | --- | --- | ---: | --- |
 | KRX/NXT 시장 상태 | `script-backed` | GET | `/api/domestic/market/{KRX|NXT}/info` |
 | 거래소 통합 장 상태·세션 | `script-backed` | GET | `/api/stockSecurity/market-status/current?exchanges=krx&exchanges=nxt`. 소문자 `exchanges` 반복. `home.py market-status`; [계약과 검증 범위](#거래소-통합-장-상태) |
+| 거래소 상품별 상태 | `script-backed` | GET | `/api/stockSecurity/exchanges/market-status?exchanges=krx&exchanges=nxt`. `home.py exchange-sessions`; 최대9개 반복, 기본krx/nxt, 기존 market-status와 다른 응답 |
 | 해외 거래소 운영시간 | `script-backed` | GET | `/api/foreign/operatingTime/exchange/{NASDAQ|SHANGHAI|HONG_KONG|TOKYO|HANOI}` |
 | 홈 공개 숏텐츠 | `script-backed` | GET | `/api/shorttents?source=pc.npay_finhome&type=compact&category_first=증권&nscs=0` |
 | 머니스토리 | `script-backed` | GET | `/api/content/moneyStory?mainCategoryIdList={id}&subCategoryIdList={id}&sort=id%2Cdesc&size={size}`. `subCategoryIdList`와 `sort`는 선택적이며 가상자산 홈에서 각각 `97`, `id,desc`를 사용 |
@@ -48,6 +49,8 @@ v2 첫 요청은 `pageToken`을 생략할 수 있습니다. 다음 요청은 같
 
 ### 거래소 통합 장 상태
 
+후속 브라우징에서 `/api/stockSecurity/exchanges/market-status`도 확인해 `home.py exchange-sessions`로 추가했습니다. 기본 krx/nxt, 최대9개 반복 exchanges이며 기존7개에 shenzhen/hochiminh를 포함합니다. `serverTime`, `exchanges[]`, 각 거래소의 `zoneId`, `isDaylightSavingTime`, `statuses[]`와 상태별 stockType/marketType/today/latest/next를 원형 보존합니다. 기존 `market-status/current`의 `statuses/currentSession/sessions`와 다른 계약입니다. krx/nxt/shenzhen/hochiminh 표본200·요청코드 일치를 확인했습니다. [상세 점검](page-audit-2026-09-16.md#추가한-조회-계약)
+
 2026-09-16 [현재 홈 chunk](https://ssl.pstatic.net/imgstock/fn/real/pc/_next/static/chunks/app/page-061654f9636df343.js)의 공개 호출자와 무인증 응답을 확인했습니다. 최초 배포일은 미확인이며 이번에 새로 관찰한 API입니다. `market-status`는 한 번의 GET으로 원본 `serverTime`, `statuses`를 반환합니다. 페이징이나 자동 반복 조회는 없습니다.
 
 `--exchange`는 `krx`, `nxt`, `nasdaq`, `shanghai`, `hongkong`, `tokyo`, `hanoi` 중 선택해 최대 7번 반복합니다. 생략하면 현재 UI처럼 7개 거래소를 모두 요청하고, 명시하면 선택한 값만 전달합니다. 기존 `operating-time`의 대문자 거래소 이름이나 쉼표 문자열을 사용하지 않습니다.
@@ -60,13 +63,13 @@ KRX는 개장전 08:00~09:00, 정규장 09:00~15:30, 정규장 마감 15:30~16:0
 
 ### 유형별 통합 지표 v1
 
-2026-09-16 [현재 종목 페이지의 공유 chunk](https://ssl.pstatic.net/imgstock/fn/real/pc/_next/static/chunks/43185-a902c9cf5473c7bb.js)와 무인증 실응답을 확인했습니다. 최초 배포일과 이 함수를 실행하는 정확한 화면 동작은 미확정입니다. CLI는 실응답을 확인한 국내·해외 지수 그룹을 지원합니다. 정적 호출자에 있는 `currencyCodes`, `bondCodes`, `commodityCodes`는 코드 계약 미검증으로 CLI에 노출하지 않습니다.
+2026-09-16 [현재 종목 페이지의 공유 chunk](https://ssl.pstatic.net/imgstock/fn/real/pc/_next/static/chunks/43185-a902c9cf5473c7bb.js)와 무인증 실응답을 확인했습니다. 후속 홈 브라우징에서 지수·USD·채권·원자재 조합의 실제 URL을 관찰했고, 별도 GET으로 USD, US10YT=RR/KR10YT=RR, CLcv1/GCcv1의 응답 키 일치를 확인했습니다. CLI는 `--currency-codes`, `--bond-codes`, `--commodity-codes`도 지원합니다. 최초 배포일은 미확정입니다.
 
-`--domestic-index-codes` 또는 `--foreign-index-codes` 중 적어도 하나를 명시합니다. 각 옵션은 쉼표 구분 코드이며 두 그룹 합계 최대 30개입니다. 코드의 대소문자를 보존하고 빈 코드·경로 구분자·초과 개수는 요청 전에 거부합니다. 코드 형식 통과가 해당 지표의 가용성을 보증하지 않습니다.
+국내/해외 지수·환율·채권·원자재 중 적어도 한 코드 그룹을 명시합니다. 각 옵션은 쉼표 구분 코드이며 다섯 그룹 합계 최대30개입니다. 코드의 대소문자와 `=`를 보존하고 빈 코드·경로 구분자·초과 개수는 요청 전에 거부합니다. 코드 형식 통과가 해당 지표의 가용성을 보증하지 않습니다.
 
 `--include-breadth`와 `--include-trend`는 각각 true, `--no-include-breadth`와 `--no-include-trend`는 false를 보냅니다. 옵션을 생략하면 해당 query도 생략하여 서버 기본 동작을 유지합니다. 한 번의 GET만 수행하며 자동 페이징·재시도·다른 API로의 전환은 없습니다.
 
-응답은 `domesticIndex`, `foreignIndex`, `foreignFutures`, `commodity`, `interestRate`, `exchangeRate`, `governmentBond`, `crypto` 그룹 객체입니다. 기존 `indicators`의 배열 응답과 다릅니다. KOSPI와 .IXIC 표본에서 두 부가 옵션을 함께 true로 보내면 KOSPI의 `breadth`, `investorTrends`, `programTrend`, 수급 기준일·거래소와 .IXIC의 `breadth`가 추가됐습니다. 함께 false로 보내면 두 종목 모두 `itemCode`, `group`, `price`, `meta`만 남았습니다. 두 옵션의 독립 조합·생략 시 서버 기본값과 다른 지표는 실검증하지 않았습니다.
+응답은 `domesticIndex`, `foreignIndex`, `foreignFutures`, `commodity`, `interestRate`, `exchangeRate`, `governmentBond`, `crypto` 그룹 객체입니다. 기존 `indicators`의 배열 응답과 다릅니다. KOSPI와 .IXIC 표본에서 두 부가 옵션을 함께 true로 보내면 KOSPI의 `breadth`, `investorTrends`, `programTrend`, 수급 기준일·거래소와 .IXIC의 `breadth`가 추가됐습니다. 함께 false로 보내면 두 종목 모두 `itemCode`, `group`, `price`, `meta`만 남았습니다. 환율·채권·원자재 후속 표본은 두 옵션을 생략했습니다. 두 옵션의 독립 조합·모든 지표의 기본값은 미검증입니다.
 
 정상 빈 그룹과 null은 원본 그대로 반환하며 ‘해당 상품군 전체 지원’이나 API 오류로 확대 해석하지 않습니다. 금액 단위와 수치 정확성은 독립 원천과 대조하지 않았습니다. 기존 `integration/price`의 .IXIC 빈 응답 제한은 다른 API인 이 명령의 성공으로 해제하지 않습니다. 실행 예제는 [홈·검색 쿡북](script-cookbook.md#홈과-통합-검색)을 확인하세요.
 

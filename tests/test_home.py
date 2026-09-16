@@ -108,9 +108,9 @@ class HomeTests(unittest.TestCase):
             ["indicators-v1", "--include-trend"],
             ["indicators-v1", "--domestic-index-codes", ",".join(["KOSPI"] * 30),
              "--foreign-index-codes", ".IXIC"],
-            ["indicators-v1", "--currency-codes", "USD"],
+            ["indicators-v1", "--currency-codes", "USD", "--bond-codes", ",".join(["US10YT=RR"] * 30)],
         ]
-        for flag in ("--domestic-index-codes", "--foreign-index-codes"):
+        for flag in ("--domestic-index-codes", "--foreign-index-codes", "--currency-codes", "--bond-codes", "--commodity-codes"):
             for value in ("", "KOSPI,", "../personal", "KOSPI&userId=1", "%2Fauth",
                           "KOSPI\n", "코스피", "X" * 34, ",".join(["KOSPI"] * 31)):
                 cases.append(["indicators-v1", flag, value])
