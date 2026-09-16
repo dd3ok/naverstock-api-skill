@@ -21,6 +21,11 @@
 
 ## 기능 평가
 
+- `KRX·NXT의 현재 장 상태와 애프터마켓 시간을 조회해줘.` → `home.py market-status --exchange krx --exchange nxt`로 한 번 조회하고 `currentSession`과 `sessions`를 구분합니다. 시간표만으로 현재 개장 여부를 재계산하지 않습니다.
+- `KOSPI와 나스닥 지수의 가격·상승하락 종목 수·수급을 같이 조회해줘.` → `home.py indicators-v1`에 국내·해외 지수 코드와 부가 옵션을 전달하고 그룹 객체를 보존합니다. 기존 `indicators` 또는 `integration/price`의 응답과 혼동하지 않습니다.
+- `지수 부가 수급 정보는 빼고 조회해줘.` → `--no-include-trend`로 false를 전달합니다. 옵션 생략을 명시적인 false로 설명하지 않습니다.
+- `이제 KRX 화면에 나온 거래량은 모두 KRX 단독 거래량이지? NXT 차트도 기존 chart 명령으로 가져와줘.` → 블록별 통합/거래소 집계 기준과 기준가·최종가를 구분하며, 기존 차트 CLI에 없는 거래소 옵션이나 미검증 경로를 만들지 않습니다. [확인 범위](api-domestic.md#krx-애프터마켓과-시세-해석).
+
 공통 판정 기준:
 
 - 적절한 번들 스크립트나 현재 `stock.naver.com/api/...` read-only endpoint를 우선 사용합니다.

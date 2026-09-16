@@ -20,6 +20,7 @@ from naverstock_api import (
 
 
 DEFAULT_INDICATORS = "KOSPI,KOSDAQ,.DJI,.IXIC,.INX,FX_USDKRW,GCcv1,CLcv1"
+MARKET_STATUS_EXCHANGES = ("krx", "nxt", "nasdaq", "shanghai", "hongkong", "tokyo", "hanoi")
 DOMESTIC_NOTABLE_ETF_ORDER_TYPES = (
     "amount_etf",
     "up_etf",
@@ -97,6 +98,19 @@ def fetch_market_info(args: argparse.Namespace) -> Any:
     return request_json(f"/api/domestic/market/{args.trade_type}/info")
 
 
+def fetch_market_status(args: argparse.Namespace) -> Any:
+    exchanges = list(MARKET_STATUS_EXCHANGES) if args.exchange is None else args.exchange
+    if (
+        not isinstance(exchanges, (list, tuple))
+        or not 1 <= len(exchanges) <= len(MARKET_STATUS_EXCHANGES)
+        or any(exchange not in MARKET_STATUS_EXCHANGES for exchange in exchanges)
+    ):
+        raise ValueError("market-status accepts 1-7 supported --exchange values")
+    return request_json(
+        build_path("/api/stockSecurity/market-status/current", {"exchanges": exchanges})
+    )
+
+
 def fetch_operating_time(args: argparse.Namespace) -> Any:
     return request_json(f"/api/foreign/operatingTime/exchange/{args.exchange}")
 
@@ -159,6 +173,25 @@ def fetch_indicators(args: argparse.Namespace) -> Any:
             {"indicatorCodes": args.indicator_codes},
         )
     )
+
+
+def fetch_indicators_v1(args: argparse.Namespace) -> Any:
+    params = {}
+    for name, value in (
+        ("domesticIndexCodes", args.domestic_index_codes),
+        ("foreignIndexCodes", args.foreign_index_codes),
+    ):
+        if value is not None:
+            params[name] = _indicator_codes(value)
+    if not params:
+        raise ValueError("provide --domestic-index-codes or --foreign-index-codes (or both)")
+    if sum(len(value.split(",")) for value in params.values()) > 30:
+        raise ValueError("indicators-v1 accepts at most 30 codes across both index groups")
+    for name, value in (("includeBreadth", args.include_breadth), ("includeTrend", args.include_trend)):
+        if value is not None and not isinstance(value, bool):
+            raise ValueError(f"{name} must be a boolean or omitted")
+        params[name] = value
+    return request_json(build_path("/api/securityService/integration/v1/indicators", params))
 
 
 def fetch_notable_etf(args: argparse.Namespace) -> Any:
@@ -228,6 +261,14 @@ def main() -> None:
     add_output(market_info)
     market_info.set_defaults(func=fetch_market_info)
 
+    market_status = sub.add_parser("market-status", help="Exchange sessions and current market status")
+    market_status.add_argument(
+        "--exchange", choices=MARKET_STATUS_EXCHANGES, action="append",
+        help="Repeat for multiple exchanges (max 7); omitted selects all seven",
+    )
+    add_output(market_status)
+    market_status.set_defaults(func=fetch_market_status)
+
     operating_time = sub.add_parser("operating-time", help="Foreign exchange operating time")
     operating_time.add_argument(
         "--exchange",
@@ -288,6 +329,22 @@ def main() -> None:
     add_output(indicators)
     indicators.set_defaults(func=fetch_indicators)
 
+    indicators_v1 = sub.add_parser(
+        "indicators-v1", help="Grouped domestic/foreign indices with optional breadth and investor trends"
+    )
+    indicators_v1.add_argument("--domestic-index-codes", type=_indicator_codes, help="Comma-separated codes")
+    indicators_v1.add_argument("--foreign-index-codes", type=_indicator_codes, help="Comma-separated codes")
+    indicators_v1.add_argument(
+        "--include-breadth", action=argparse.BooleanOptionalAction, default=None,
+        help="Request or exclude market breadth; omitted leaves the server default",
+    )
+    indicators_v1.add_argument(
+        "--include-trend", action=argparse.BooleanOptionalAction, default=None,
+        help="Request or exclude investor/program trends; omitted leaves the server default",
+    )
+    add_output(indicators_v1)
+    indicators_v1.set_defaults(func=fetch_indicators_v1)
+
     notable_etf = sub.add_parser("notable-etf", help="Domestic or foreign notable ETFs")
     notable_etf.add_argument("--nation", choices=["domestic", "foreign"], default="domestic")
     notable_etf.add_argument(
@@ -347,7 +404,14 @@ def main() -> None:
     if args.command == "notable-etf" and args.nation == "domestic":
         if args.large_code is not None or args.middle_code is not None:
             parser.error("--large-code and --middle-code require --nation foreign")
-    emit_output(render_json(args.func(args)), args.output)
+    if args.command in ("market-status", "indicators-v1"):
+        try:
+            result = args.func(args)
+        except (ValueError, argparse.ArgumentTypeError) as exc:
+            parser.error(str(exc))
+    else:
+        result = args.func(args)
+    emit_output(render_json(result), args.output)
 
 
 if __name__ == "__main__":

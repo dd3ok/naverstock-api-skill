@@ -21,6 +21,7 @@ sys.path.insert(0, str(SCRIPTS))
 import discussion  # noqa: E402
 import crypto  # noqa: E402
 import domestic_etf  # noqa: E402
+import home  # noqa: E402
 import market_stock  # noqa: E402
 import market_trend  # noqa: E402
 import marketindex  # noqa: E402
@@ -34,6 +35,36 @@ import stock_summary  # noqa: E402
 
 
 class OutputTests(unittest.TestCase):
+    def test_new_home_commands_use_the_public_get_helper_without_credentials(self) -> None:
+        cases = (
+            (["market-status", "--exchange", "krx", "--exchange", "nxt"],
+             "/api/stockSecurity/market-status/current?exchanges=krx&exchanges=nxt",
+             {"serverTime": "2026-09-16T12:00:00+09:00", "statuses": []}),
+            (["indicators-v1", "--domestic-index-codes", "KOSPI", "--foreign-index-codes", ".IXIC",
+              "--include-breadth", "--no-include-trend"],
+             "/api/securityService/integration/v1/indicators?domesticIndexCodes=KOSPI&foreignIndexCodes=.IXIC"
+             "&includeBreadth=true&includeTrend=false", {"domesticIndex": {}, "foreignIndex": {}}),
+        )
+        for options, expected_path, payload in cases:
+            with (
+                self.subTest(command=options[0]),
+                patch.object(sys, "argv", ["home.py", *options]),
+                patch.object(naverstock_api, "open_public_url",
+                             return_value=BytesIO(json.dumps(payload).encode())) as open_url,
+                patch("sys.stdout", new_callable=StringIO) as stdout,
+            ):
+                home.main()
+            open_url.assert_called_once()
+            request = open_url.call_args.args[0]
+            self.assertEqual(request.full_url, "https://stock.naver.com" + expected_path)
+            self.assertEqual(request.get_method(), "GET")
+            self.assertIsNone(request.data)
+            headers = {name.lower(): value for name, value in request.header_items()}
+            self.assertNotIn("cookie", headers)
+            self.assertNotIn("authorization", headers)
+            self.assertEqual(headers["referer"], "https://stock.naver.com/")
+            self.assertEqual(json.loads(stdout.getvalue()), payload)
+
     def test_build_path_preserves_repeated_query_params(self) -> None:
         self.assertEqual(
             naverstock_api.build_path("/x", {"causeCode": ["A", "B"]}),

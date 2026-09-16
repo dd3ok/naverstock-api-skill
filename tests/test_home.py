@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from io import StringIO
 import sys
 import unittest
@@ -13,9 +14,175 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import home  # noqa: E402
+import naverstock_api  # noqa: E402
 
 
 class HomeTests(unittest.TestCase):
+    def run_cli(self, options: list[str], payload: object) -> tuple[str, object]:
+        with (
+            patch.object(sys, "argv", ["home.py", *options]),
+            patch.object(home, "request_json", return_value=payload) as request,
+            patch("sys.stdout", new_callable=StringIO) as stdout,
+        ):
+            home.main()
+        request.assert_called_once()
+        return request.call_args.args[0], json.loads(stdout.getvalue())
+
+    def test_market_status_default_and_explicit_exchanges_preserve_sessions(self) -> None:
+        payload = {
+            "serverTime": "2026-09-16T20:00:00+09:00",
+            "statuses": [{
+                "exchange": "krx", "isHoliday": False,
+                "currentSession": {"marketSessionType": "afterMarket", "marketState": "CLOSE"},
+                "sessions": [{"openTimeKst": "20:00:00", "closeTimeKst": "08:00:00"}],
+                "indexCode": None,
+            }],
+        }
+        for options, expected in (
+            ([], ["krx", "nxt", "nasdaq", "shanghai", "hongkong", "tokyo", "hanoi"]),
+            (["--exchange", "nxt", "--exchange", "krx"], ["nxt", "krx"]),
+            (["--exchange", "hongkong"], ["hongkong"]),
+        ):
+            with self.subTest(options=options):
+                path, result = self.run_cli(["market-status", *options], payload)
+                self.assertEqual(urlsplit(path).path, "/api/stockSecurity/market-status/current")
+                self.assertEqual(parse_qs(urlsplit(path).query), {"exchanges": expected})
+                self.assertEqual(result, payload)
+
+    def test_market_status_direct_calls_reject_invalid_exchange_lists(self) -> None:
+        for exchanges in ([], "krx", ["KRX"], ["krx,nxt"], ["../personal"], ["krx"] * 8):
+            with (
+                self.subTest(exchanges=exchanges),
+                patch.object(home, "request_json") as request,
+                self.assertRaises(ValueError),
+            ):
+                home.fetch_market_status(argparse.Namespace(exchange=exchanges))
+            request.assert_not_called()
+
+    def test_indicators_v1_groups_and_case_are_preserved(self) -> None:
+        payload = {"domesticIndex": {"KOSPI": {"price": {"currentPrice": "6000.01"}}},
+                   "foreignIndex": {".IXIC": {"breadth": {"risingCount": "12"}}}, "crypto": {}}
+        options = ["indicators-v1", "--domestic-index-codes", "KOSPI,KOSDAQ",
+                   "--foreign-index-codes", ".IXIC,.DJI"]
+        path, result = self.run_cli(options, payload)
+        self.assertEqual(urlsplit(path).path, "/api/securityService/integration/v1/indicators")
+        self.assertEqual(parse_qs(urlsplit(path).query), {
+            "domesticIndexCodes": ["KOSPI,KOSDAQ"], "foreignIndexCodes": [".IXIC,.DJI"],
+        })
+        self.assertEqual(result, payload)
+        for flag, query in (("--domestic-index-codes", "domesticIndexCodes"),
+                            ("--foreign-index-codes", "foreignIndexCodes")):
+            with self.subTest(flag=flag):
+                path, _ = self.run_cli(["indicators-v1", flag, "CaseSensitive"], {})
+                self.assertEqual(parse_qs(urlsplit(path).query), {query: ["CaseSensitive"]})
+
+    def test_indicators_v1_boolean_options_distinguish_omitted_true_false(self) -> None:
+        for breadth in (None, True, False):
+            for trend in (None, True, False):
+                options = ["indicators-v1", "--domestic-index-codes", "KOSPI"]
+                expected = {"domesticIndexCodes": ["KOSPI"]}
+                for flag, key, value in (("breadth", "includeBreadth", breadth),
+                                         ("trend", "includeTrend", trend)):
+                    if value is not None:
+                        options.append(f"--{'include' if value else 'no-include'}-{flag}")
+                        expected[key] = [str(value).lower()]
+                with self.subTest(breadth=breadth, trend=trend):
+                    path, _ = self.run_cli(options, {})
+                    self.assertEqual(parse_qs(urlsplit(path).query), expected)
+
+    def test_indicators_v1_accepts_thirty_codes_across_groups(self) -> None:
+        domestic = ",".join(f"D{i}" for i in range(15))
+        foreign = ",".join(f"F{i}" for i in range(15))
+        path, _ = self.run_cli(["indicators-v1", "--domestic-index-codes", domestic,
+                                "--foreign-index-codes", foreign], {})
+        self.assertEqual(parse_qs(urlsplit(path).query), {
+            "domesticIndexCodes": [domestic], "foreignIndexCodes": [foreign],
+        })
+
+    def test_new_home_commands_reject_invalid_input_before_network(self) -> None:
+        cases = [
+            ["market-status", "--exchange", "KRX"],
+            ["market-status", "--exchange", "krx,nxt"],
+            ["market-status", *(["--exchange", "krx"] * 8)],
+            ["indicators-v1"],
+            ["indicators-v1", "--include-trend"],
+            ["indicators-v1", "--domestic-index-codes", ",".join(["KOSPI"] * 30),
+             "--foreign-index-codes", ".IXIC"],
+            ["indicators-v1", "--currency-codes", "USD"],
+        ]
+        for flag in ("--domestic-index-codes", "--foreign-index-codes"):
+            for value in ("", "KOSPI,", "../personal", "KOSPI&userId=1", "%2Fauth",
+                          "KOSPI\n", "코스피", "X" * 34, ",".join(["KOSPI"] * 31)):
+                cases.append(["indicators-v1", flag, value])
+        for options in cases:
+            with (
+                self.subTest(options=options), patch.object(sys, "argv", ["home.py", *options]),
+                patch.object(home, "request_json") as request,
+                patch("sys.stderr", new_callable=StringIO), self.assertRaises(SystemExit) as exited,
+            ):
+                home.main()
+            self.assertEqual(exited.exception.code, 2)
+            request.assert_not_called()
+
+    def test_indicators_v1_direct_call_rejects_non_boolean_flags(self) -> None:
+        for flag in ("include_breadth", "include_trend"):
+            for value in ("false", 0, 1):
+                args = argparse.Namespace(domestic_index_codes="KOSPI", foreign_index_codes=None,
+                                          include_breadth=None, include_trend=None)
+                setattr(args, flag, value)
+                with (
+                    self.subTest(flag=flag, value=value),
+                    patch.object(home, "request_json") as request, self.assertRaises(ValueError),
+                ):
+                    home.fetch_indicators_v1(args)
+                request.assert_not_called()
+
+    def test_new_home_commands_preserve_empty_payloads_and_output_option(self) -> None:
+        for options, payload in (
+            (["market-status"], {"serverTime": "2026-09-16T00:00:00+09:00", "statuses": []}),
+            (["indicators-v1", "--foreign-index-codes", ".IXIC"], {"foreignIndex": {}, "crypto": {}}),
+        ):
+            with (
+                self.subTest(command=options[0]),
+                patch.object(sys, "argv", ["home.py", *options, "--output", "result.json"]),
+                patch.object(home, "request_json", return_value=payload) as request,
+                patch.object(home, "emit_output") as emit,
+            ):
+                home.main()
+            request.assert_called_once()
+            self.assertEqual(json.loads(emit.call_args.args[0]), payload)
+            self.assertEqual(emit.call_args.args[1], "result.json")
+
+    def test_new_home_commands_do_not_retry_or_fallback_on_remote_failure(self) -> None:
+        for options in (["market-status"], ["indicators-v1", "--domestic-index-codes", "KOSPI"]):
+            for status in (403, 429, 404, 500, 307):
+                error = naverstock_api.NaverStockAPIError("upstream failure", path="/original",
+                                                        status_code=status, kind="http")
+                with (
+                    self.subTest(command=options[0], status=status),
+                    patch.object(sys, "argv", ["home.py", *options]),
+                    patch.object(home, "request_json", side_effect=error) as request,
+                    patch.object(home, "emit_output") as emit,
+                    self.assertRaises(naverstock_api.NaverStockAPIError) as raised,
+                ):
+                    home.main()
+                self.assertIs(raised.exception, error)
+                request.assert_called_once()
+                emit.assert_not_called()
+
+    def test_legacy_market_info_and_indicators_keep_default_contracts(self) -> None:
+        for options, payload, expected in (
+            (["market-info"], {"afterMarketClosingTime": "2026-09-16T20:00:00+09:00"},
+             "/api/domestic/market/KRX/info"),
+            (["indicators"], [{"itemCode": "KOSPI", "currentPrice": "6000.01"}],
+             "/api/securityService/integration/indicators?indicatorCodes="
+             "KOSPI%2CKOSDAQ%2C.DJI%2C.IXIC%2C.INX%2CFX_USDKRW%2CGCcv1%2CCLcv1"),
+        ):
+            with self.subTest(command=options[0]):
+                path, result = self.run_cli(options, payload)
+                self.assertEqual(path, expected)
+                self.assertEqual(result, payload)
+
     def test_public_aggregate_rankings_stay_on_all_segment(self) -> None:
         args = argparse.Namespace(ranking_type="earning", start_idx=0, page_size=20)
 

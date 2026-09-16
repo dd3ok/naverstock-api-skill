@@ -113,10 +113,14 @@ python3 scripts/fund.py daily-prices --code K55105B00244 --date 2026-08-13 --siz
 
 ```bash
 python3 scripts/home.py market-info --trade-type KRX
+python3 scripts/home.py market-status
+python3 scripts/home.py market-status --exchange krx --exchange nxt
 python3 scripts/home.py operating-time --exchange NASDAQ
 python3 scripts/home.py market-briefing
 python3 scripts/home.py market-briefing-list --api-version v2 --date 2026-09-04 --size 10
 python3 scripts/home.py indicators
+python3 scripts/home.py indicators-v1 --domestic-index-codes KOSPI --foreign-index-codes .IXIC --include-breadth --include-trend
+python3 scripts/home.py indicators-v1 --foreign-index-codes .IXIC --no-include-breadth --no-include-trend --output indicators.json
 python3 scripts/home.py notable-etf --nation foreign --page-size 10
 python3 scripts/home.py notable-etf --nation foreign --order-type return1Month --middle-code 0101 --page-size 2
 python3 scripts/search.py autocomplete --query 삼성전자
@@ -124,6 +128,8 @@ python3 scripts/search.py search --query 나스닥 --target index --page 1 --siz
 ```
 
 브리핑 목록의 날짜는 조회할 한국 날짜로 바꿉니다. 다음 페이지는 `hasMore`와 `nextPageToken`을 확인한 뒤 같은 명령에 `--page-token`으로 서버 값을 그대로 전달합니다. 상세는 목록에서 받은 ID로 `home.py market-briefing-detail --api-version v2 --briefing-id ID`를 사용합니다. 버전 옵션을 생략하면 호환용 기존 unversioned 경로를 유지하며, 현재 화면 계약은 v2입니다.
+
+`market-status`는 `--exchange` 생략 시 7개 거래소를 한 번에 조회합니다. 명시할 때는 소문자 거래소를 최대 7번 반복합니다. `indicators-v1`는 국내·해외 지수 중 적어도 한 그룹을 지정하고 두 그룹 합계 30개 이내의 쉼표 구분 코드를 받습니다. 부가정보 옵션은 생략하면 query에서 빠지고, `--no-include-*`는 명시적인 false를 보냅니다. 기존 `market-info`와 `indicators`의 경로·기본값·응답은 유지됩니다. 새 명령의 구조·세션 의미·검증 한계는 [홈 API 계약](api-home-market-fund.md#거래소-통합-장-상태)을 확인하세요.
 
 ## 시장 지수와 지표
 
