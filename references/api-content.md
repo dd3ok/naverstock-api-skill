@@ -25,6 +25,8 @@
 
 ## 뉴스 API
 
+`news.py ipo-news`는 공모주 상세의 뉴스 탭을 재현합니다. `/api/domestic/news/search`에 `query=`(빈 문자열), `IPO=true`, page1/pageSize15와 선택 startDate/endDate를 전달합니다. 특정 기업 뉴스가 아닙니다. page1→2 크기2 표본에서 중복 없는 응답을 확인했으며, 누적 items 수와 숫자로 변환한 total로 종료를 판단합니다.
+
 | 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
 | 뉴스 목록 | `script-backed` | GET | `/api/domestic/news/list?category=MAINNEWS&page=1&pageSize=15` |
@@ -54,7 +56,7 @@
 | 카테고리 상세 | `script-backed` | GET | `/api/stockSecurity/researches/v2/{researchType}/{researchId}` |
 | 종목 리포트 목록 | `script-backed` | GET | `/api/stockSecurity/researches/v2/company?itemCodes={itemCode}&index=0&size=16` |
 | 여러 종목별 최근 리포트 | `script-backed` | GET | `/api/stockSecurity/researches/v2/company/by-items?itemCodes={code}&size=3`. `itemCodes`는 반복 query입니다. |
-| 상세 페이지 인접 리포트 | `observed` | GET | `/api/stockSecurity/researches/v2/{researchType}/{researchId}/detail-page?itemCode={itemCode}&size=1` |
+| 상세 페이지 인접 리포트 | `script-backed` | GET | `/api/stockSecurity/researches/v2/{researchType}/{researchId}/detail-page?itemCode={itemCode}&size=1`. `research.py detail-page`, researchContent와 researchSummaries.prev/next 객체 보존 |
 | 주간 인기 | `script-backed` | GET | `/api/stockSecurity/researches/v2/weekly-hot?startDate={yyyy-MM-dd}&size=10`. `startDate` 생략은 400이며 CLI 기본은 현재 UI처럼 7일 전 |
 | 카테고리별 최신 | `script-backed` | GET | `/api/stockSecurity/researches/v2/latestResearch?size=3` |
 | 목표주가 변경 | `script-backed` | GET | `/api/stockSecurity/researches/v2/company/goal-price-changed?direction={up\|down}&size=10` |
@@ -78,6 +80,8 @@ v1 8개 경로는 CLI 명령이 남아 있어 `script-backed`로 표시하지만
 2026-07-20 확인에서 기존 `/api/domestic/research/category`, 종목별 `/api/domestic/research/{itemCode}/research`, `recent-popular`, `category-lastest`, `industry-research`, `broker-list`, `/api/domestic/home/researchaggregate/static`은 route 자체가 404였습니다. 이 404는 자료 없음이 아니라 제거된 route이므로 빈 목록으로 해석하지 않습니다. 랭킹 `/api/domestic/research/ranking`은 같은 날 200을 반환해 유지했습니다.
 
 ## 종목토론 API
+
+`discussion.py item-posts --discussion-type IPO --item-code A250030`도 지원합니다. 공모주 코드는 A+숫자6자리를 그대로 유지하며 일반 국내 종목의 A 제거 규칙을 적용하지 않습니다. pageSize30, 네 boolean 기본false, 반환 offset(음수 가능)을 그대로 전달하고 기존 개인정보 sanitizer를 거쳐 출력합니다. [공모주 및 인접 페이지 점검](page-audit-2026-09-16.md)
 
 | 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |

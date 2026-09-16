@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 from typing import Any
 
-from naverstock_api import build_path, emit_output, render_json, request_json
+from naverstock_api import bounded_int, build_path, emit_output, render_json, request_json, validate_page_cursor
 
 
 LISTING_TYPES = {
@@ -39,7 +39,7 @@ ETN_ORDER_TYPES = {
 def fetch_list(args: argparse.Namespace) -> Any:
     return request_json(
         build_path(
-            "/api/stockSecurity/etfs/v2/domestic",
+            f"/api/stockSecurity/etfs/{getattr(args, 'api_version', 'v2')}/domestic",
             {
                 "listingType": LISTING_TYPES.get(args.listing_type, args.listing_type),
                 "size": args.size,
@@ -50,6 +50,16 @@ def fetch_list(args: argparse.Namespace) -> Any:
             },
         )
     )
+
+
+def fetch_popular(args: argparse.Namespace) -> Any:
+    return request_json(build_path("/api/stockSecurity/rankings/v2/domestic/popular-etf", {
+        "size": args.size, "cursor": args.cursor,
+    }))
+
+
+def fetch_popular_summary(args: argparse.Namespace) -> Any:
+    return request_json(build_path("/api/stockSecurity/aggregate/domesticPopularEtf", {"size": args.size}))
 
 
 def fetch_themes(args: argparse.Namespace) -> Any:
@@ -81,6 +91,7 @@ def main() -> None:
 
     listing = sub.add_parser("list", help="Domestic ETF list")
     listing.add_argument("--listing-type", default="priceTop")
+    listing.add_argument("--api-version", choices=("v2", "v3"), default="v2")
     listing.add_argument("--size", type=int, default=20)
     listing.add_argument("--index", type=int, default=0)
     listing.add_argument("--large-category-code")
@@ -88,6 +99,14 @@ def main() -> None:
     listing.add_argument("--leverage-type")
     listing.add_argument("--output")
     listing.set_defaults(func=fetch_list)
+
+    for name, func in (("popular", fetch_popular), ("popular-summary", fetch_popular_summary)):
+        popular = sub.add_parser(name, help="Popular ETF ranking cursor or fixed aggregate summary")
+        popular.add_argument("--size", type=lambda v: bounded_int(v, name="size", minimum=1, maximum=100), default=10)
+        if name == "popular":
+            popular.add_argument("--cursor", type=validate_page_cursor)
+        popular.add_argument("--output")
+        popular.set_defaults(func=func)
 
     themes = sub.add_parser("themes", help="ETF large and middle category metadata")
     themes.add_argument("--output")

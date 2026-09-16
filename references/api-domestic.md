@@ -12,6 +12,10 @@
 
 | 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
+| 국내 주식 v3 목록 | `script-backed` | GET | `/api/stockSecurity/individual-stocks/v3/domestic?listingType=tradingValueDesc&exchangeType=consolidated&index=0&size=20`. `market_stock.py list-v3`, KRX/NXT 필드 보존 |
+| 국내 가격 스냅샷·일별 v2 | `script-backed` | GET | `/api/stockSecurity/items/v2/domestic/{code}/price-snapshot`, `/daily-prices?size=20&cursor={cursor}`. `stock_detail_pages.py price-snapshot`, `daily-prices-v2` |
+| 공모주 상세·정보 | `script-backed` | GET | `/api/domestic/ipo/{ipoCode}/detail`, `/detail/info`. `market_stock.py ipo-detail`, `ipo-info`. A접두사 유지 |
+| 종목 profile v2 | `needs-recheck` | GET | `/api/stockSecurity/items/v2/domestic/{code}/profile`. 정적 관찰만, 공통 profile 경계로 요청 전 차단. CLI 미지원 |
 | 종목 상세 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/detail?codeType=KRX` 또는 `NXT` |
 | 종목 가격 탭 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/price` |
 | 종목 호가 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/hoga` |
@@ -59,8 +63,8 @@
 | 업종 전체 시가총액 | `observed` | GET | `/api/domestic/market/home/upjong/totalMarketSum?type=upjong` |
 | ETF 테마 | `observed` | GET | `/api/domestic/market/etf/themes` |
 | 국내 ETF 목록 | `script-backed` | GET | `/api/stockSecurity/etfs/v2/domestic?listingType=tradingValueDesc&size=20&index=0`. CLI 저용량 기본은 20, 현재 전체 목록 UI는 `size=100` |
-| 홈 국내 ETF v3 목록 | `observed` | GET | `/api/stockSecurity/etfs/v3/domestic?listingType=tradingValueDesc&size=2&index=0` 직접 응답 200 확인. 선택적 카테고리·배율 필터가 있으며 홈 UI는 크기 10 또는 3을 사용. 전체 목록 v2를 대체하지 않음 |
-| 국내 인기 ETF | `observed` | GET | `/api/stockSecurity/rankings/v2/domestic/popular-etf?size=10&cursor={cursor}` 및 홈 `/api/stockSecurity/aggregate/domesticPopularEtf?size=10`. 첫 요청은 cursor 생략. 2026-09-07 크기 2의 첫·다음 cursor 응답 200 확인; 전체 끝까지의 순회는 수행하지 않음 |
+| 홈 국내 ETF v3 목록 | `script-backed` | GET | `/api/stockSecurity/etfs/v3/domestic?listingType=tradingValueDesc&size=2&index=0`. `domestic_etf.py list --api-version v3`, 기본은 기존v2. 9/16 첫 응답200 |
+| 국내 인기 ETF | `script-backed` | GET | `/api/stockSecurity/rankings/v2/domestic/popular-etf?size=10&cursor={cursor}` 및 `/api/stockSecurity/aggregate/domesticPopularEtf?size=10`. `popular`는 cursor, `popular-summary`는 size만. 9/16 첫·다음 순위 및 집계 배열 확인 |
 | 국내 종목 가격 보강 | `observed` | GET | `/api/stockSecurity/items/v2/domestic/prices?itemCodes={code}&itemCodes={code}&recurring={true\|false}`. 홈 인기 ETF는 `recurring=true`, 함수 기본은 false |
 | 홈 국내 종목 집계 | `observed` | GET | `/api/stockSecurity/aggregate/domesticStock`의 공통 query는 `type={listing\|popular}`, `exchangeType={KRX\|NXT}`, `size`. listing은 `index`, `listingType`와 선택적 `marketType`; popular는 선택적 `cursor`, `ageGroup`. 현재 홈 기본 호출은 `marketType`·`ageGroup`·첫 cursor를 생략하며 두 type 모두 크기 2의 응답 200 확인 |
 | 국내 ETF 카테고리 메타데이터 | `script-backed` | GET | `/api/stockSecurity/etfs/v2/domestic/themes` |

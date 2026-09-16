@@ -13,6 +13,7 @@ from naverstock_api import (
     normalize_reuters_code_case,
     render_json,
     request_json,
+    validate_page_cursor,
 )
 
 
@@ -22,6 +23,11 @@ TRADE_TYPES = ("ALL", "NSQ", "NYS", "AMX", "SHH", "SHZ", "HKG", "TYO", "HSX", "H
 STOCK_ORDER_TYPES = ("quantTop", "priceTop", "up", "down", "marketValue", "dividend")
 ETF_ORDER_TYPES = ("quantTop", "priceTop", "up", "down", "marketValue", "dividend")
 NOTABLE_ETF_ORDER_TYPES = ("priceTop", "up", "return1Month", "dividend")
+ETF_V2_SORTS = {
+    "priceTop": ("tradingValue", "desc"), "marketValue": ("marketCap", "desc"),
+    "up": ("changeRate", "desc"), "down": ("changeRate", "asc"),
+    "trading": ("tradingVolume", "desc"), "dividend": ("dividend", "desc"),
+}
 POLL_TYPES = ("stock", "etf", "index", "futures")
 EXCHANGES = ("NASDAQ", "NYSE", "AMEX")
 
@@ -118,6 +124,29 @@ def fetch_sector_detail(args: argparse.Namespace) -> Any:
     return request_json(
         f"/api/stockSecurity/sectors/v2/foreign/{NATION_API_NAMES[args.nation]}/{args.industry_code}"
     )
+
+
+def fetch_etfs_v2(args: argparse.Namespace) -> Any:
+    sort_type, direction = ETF_V2_SORTS[args.order_type]
+    return request_json(build_path("/api/stockSecurity/etfs/v2/foreign", {
+        "sortType": sort_type, "sortDirection": direction, "index": args.index, "size": args.size,
+        "largeCategoryCode": None if args.large_category_code == "all" else args.large_category_code,
+        "middleCategoryCode": None if args.middle_category_code == "all" else args.middle_category_code,
+    }))
+
+
+def fetch_etf_themes_v2(_: argparse.Namespace) -> Any:
+    return request_json("/api/stockSecurity/etfs/v2/foreign/themes")
+
+
+def fetch_popular_etfs(args: argparse.Namespace) -> Any:
+    return request_json(build_path("/api/stockSecurity/rankings/v2/foreign/popular-etf", {
+        "nationType": "USA", "size": args.size, "cursor": args.cursor,
+    }))
+
+
+def fetch_popular_etf_summary(args: argparse.Namespace) -> Any:
+    return request_json(build_path("/api/stockSecurity/aggregate/foreignPopularEtf", {"size": args.size}))
 
 
 def fetch_etf_themes(_: argparse.Namespace) -> Any:
@@ -304,6 +333,25 @@ def add_code(parser: argparse.ArgumentParser, help_text: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
+
+    v2 = sub.add_parser("etfs-v2", help="Current US ETF list with index/hasNext paging")
+    v2.add_argument("--order-type", choices=tuple(ETF_V2_SORTS), default="priceTop")
+    v2.add_argument("--index", type=bounded_int("index", 0, 10_000), default=0)
+    v2.add_argument("--size", type=bounded_int("size", 1, 100), default=20)
+    v2.add_argument("--large-category-code", type=theme_code)
+    v2.add_argument("--middle-category-code", type=theme_code)
+    v2.add_argument("--output")
+    v2.set_defaults(func=fetch_etfs_v2)
+    themes_v2 = sub.add_parser("etf-themes-v2", help="Current US ETF large/middle category metadata")
+    themes_v2.add_argument("--output")
+    themes_v2.set_defaults(func=fetch_etf_themes_v2)
+    for name, func in (("popular-etfs", fetch_popular_etfs), ("popular-etf-summary", fetch_popular_etf_summary)):
+        popular = sub.add_parser(name, help="US popular ETF cursor ranking or fixed aggregate summary")
+        popular.add_argument("--size", type=bounded_int("size", 1, 100), default=10)
+        if name == "popular-etfs":
+            popular.add_argument("--cursor", type=validate_page_cursor)
+        popular.add_argument("--output")
+        popular.set_defaults(func=func)
 
     stocks = sub.add_parser("stocks", help="Foreign country stock ranking/list")
     stocks.add_argument("--nation", choices=NATIONS, default="usa")

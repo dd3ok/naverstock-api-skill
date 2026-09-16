@@ -206,6 +206,20 @@ def normalize_item_code(code: str) -> str:
     return value
 
 
+def validate_page_cursor(value: str) -> str:
+    """Validate a returned opaque cursor without interpreting its contents."""
+    if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9._~+=:/-]{1,512}", value):
+        raise ValueError("cursor must contain 1-512 URL-safe characters")
+    return value
+
+
+def normalize_ipo_code(code: str) -> str:
+    """Keep the IPO namespace prefix, unlike listed domestic stock codes."""
+    if not isinstance(code, str) or not re.fullmatch(r"A[0-9]{6}", code.strip()):
+        raise ValueError("IPO code must be A followed by six ASCII digits (for example A250030)")
+    return code.strip()
+
+
 def normalize_reuters_code_case(code: str) -> str:
     """Normalize a validated code's base/exchange, preserving an underscore suffix.
 

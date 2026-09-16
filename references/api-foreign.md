@@ -16,6 +16,7 @@
 
 | 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
+| 미국 ETF v2 목록·분류 | `script-backed` | GET | `/api/stockSecurity/etfs/v2/foreign?sortType=tradingValue&sortDirection=desc&index=0&size=20`, `/themes`. `foreign_stock.py etfs-v2`, `etf-themes-v2`. down은changeRate/asc, 배당은dividend/desc, filterType 없음 |
 | 국가별 종목 목록 | `script-backed` | GET | `/api/foreign/market/stock/global?nation={usa\|chn\|hkg\|jpn\|vnm}&tradeType={type}&orderType={type}&startIdx=0&pageSize=20` |
 | 국가별 업종 | `script-backed` | GET | `/api/foreign/market/{USA\|CHN\|HKG\|JPN\|VNM}/upjong/list` |
 | 해외 업종 구성 종목 | `script-backed` | GET | `/api/foreign/market/{nation}/upjong/{industryCode}/list?orderType=marketValue&startIdx=0&pageSize=20` |
@@ -37,7 +38,7 @@
 | 해외 주식·ETF·지수 차트 메타 | `script-backed` | GET | `/api/securityFe/api/fchart/foreign/{stock\|index}/{reutersCode}`. ETF는 `stock` family 사용 |
 | 해외 종목·선물 폴링 | `script-backed` | GET | `/api/polling/worldstock/{stock\|etf\|index\|futures}?reutersCodes={codes}` |
 | 해외 거래소 운영시간 | `script-backed` | GET | `/api/foreign/operatingTime/exchange/{NASDAQ\|NYSE\|AMEX}` |
-| 해외 인기 ETF | `observed` | GET | `/api/stockSecurity/rankings/v2/foreign/popular-etf?size={size}&nationType={nation}&cursor={cursor}`. 첫 요청은 cursor 생략, 이후 응답값을 그대로 전달. 2026-09-07 `nationType=USA&size=2` 첫·다음 응답 200 확인, CLI 미노출. 홈 집계 `/api/stockSecurity/aggregate/foreignPopularEtf?size={size}`와 구분 |
+| 해외 인기 ETF | `script-backed` | GET | `/api/stockSecurity/rankings/v2/foreign/popular-etf?size={size}&nationType=USA&cursor={cursor}`. `popular-etfs`, 첫 cursor 생략·반환값 전달. `popular-etf-summary`의 `/api/stockSecurity/aggregate/foreignPopularEtf?size={size}` 배열과 구분. 9/16 첫·다음 및 집계 확인 |
 | 해외 인기 종목 집계 | `observed` | GET | `/api/stockSecurity/aggregate/foreignPopularStock?size={size}`. 미국 전체 목록 인기 탭은 `size=100`, 응답의 `type=popular`일 때 `items` 사용. 일반 목록 `orderType=top`이 아님 |
 | 해외 종목 가격 보강 | `observed` | GET | `/api/stockSecurity/items/v1/foreign/prices?itemCodes={code}&itemCodes={code}`. 2026-09-07 NVDA.O·AAPL.O 반복 query는 종목 코드를 키로 한 객체와 200 반환. 국내 v2의 `recurring` query를 그대로 복사하지 않음 |
 | 홈 해외 종목 집계 | `observed` | GET | `/api/stockSecurity/aggregate/foreignStock`: `type`, `nationType`(기본 USA), `size`; listing은 `index`, `sortType`, `sortDirection`, `exchangeType`, `filterType`, `includeOverMarket`; popular는 `cursor`, `ageGroup`. 2026-09-07 아래 listing 5조합과 popular 첫 요청을 `size=2`로 200 확인, CLI 미노출 |
