@@ -49,10 +49,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          target="$(mktemp -d)/naverstock-web-api"
-          mkdir -p "$target"
+          task_root="$(mktemp -d)"
+          target="$task_root/naverstock-web-api"
+          work="$task_root/user-workspace"
+          mkdir -p "$target" "$work"
           cp -R SKILL.md LICENSE agents references scripts "$target/"
+          cd "$work"
           python "$target/scripts/home.py" --help >/dev/null
           python "$target/scripts/foreign_stock.py" --help >/dev/null
           python "$target/scripts/search.py" --help >/dev/null
-          python "$target/scripts/research_check.py" >/dev/null
+          python "$target/scripts/research_check.py" --output plan.json
+          test -s plan.json
+          test ! -e "$target/plan.json"

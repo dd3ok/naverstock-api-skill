@@ -29,7 +29,7 @@ Use this checklist when changing endpoints, scripts, safety rules, or vendor-fac
 7. Update [eval-prompts.md](eval-prompts.md) when scope, trigger behavior, refusal behavior, or safety boundaries change. Every prompt or explicit prompt group must have a checkable pass/fail criterion.
 8. Update README only when user-facing scope, examples, install paths, repository layout, or validation commands change.
 9. Regenerate or verify `agents/openai.yaml`; `default_prompt` must explicitly include `$naverstock-web-api`.
-10. Verify a lightweight installed copy containing only `SKILL.md`, `LICENSE`, `agents/`, `references/`, and `scripts/` can run representative `--help` commands.
+10. Verify a lightweight installed copy containing only `SKILL.md`, `LICENSE`, `agents/`, `references/`, and `scripts/` can run representative `--help` commands from an unrelated working directory. Run `research_check.py --output plan.json` without `--live` there; confirm the plan is saved in that working directory, not the installed skill. This checks CLI layout, not discovery or invocation in every agent host.
 11. Before any tagged release, require all of the following:
 
     - tests, Ruff, compile, all-script help, diff check, skill validator, and install-layout smoke pass;

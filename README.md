@@ -52,7 +52,7 @@
 
 ## 설치
 
-스킬 폴더명은 `naverstock-web-api`를 권장합니다.
+스킬 폴더명은 `SKILL.md`의 이름과 같은 `naverstock-web-api`로 지정하세요. 아래 셸 예시는 Bash 기준입니다.
 
 아래 Git clone 예시는 `main`을 설치합니다. 발행된 버전을 고정하려면 `git clone`에 `--branch <태그>`를 추가하고 `<태그>`를 [릴리스 목록](https://github.com/dd3ok/naverstock-api-skill/releases)의 실제 태그로 바꾸세요.
 
@@ -80,7 +80,7 @@ mkdir -p ~/.claude/skills
 git clone --depth 1 https://github.com/dd3ok/naverstock-api-skill.git ~/.claude/skills/naverstock-web-api
 ```
 
-프로젝트 전용 설치 경로는 `.claude/skills/naverstock-web-api`입니다.
+프로젝트 전용 설치 경로는 `.claude/skills/naverstock-web-api`입니다. [공식 Skills 안내](https://code.claude.com/docs/en/skills)
 
 ### Gemini CLI
 
@@ -90,18 +90,48 @@ gemini skills install https://github.com/dd3ok/naverstock-api-skill.git
 
 프로젝트 전용 설치에는 `--scope workspace`를 추가하세요. 자세한 내용은 [Gemini CLI Agent Skills 문서](https://geminicli.com/docs/cli/using-agent-skills/)를 참고하세요.
 
-### Antigravity CLI
+### Antigravity
+
+프로젝트 루트에서 설치합니다. IDE와 CLI의 개인 경로가 다르므로 아래는 프로젝트 경로를 사용합니다.
 
 ```bash
 mkdir -p .agents/skills
 git clone --depth 1 https://github.com/dd3ok/naverstock-api-skill.git .agents/skills/naverstock-web-api
 ```
 
-`agy`를 실행한 뒤 `/skills`에서 설치 여부를 확인할 수 있습니다.
+CLI에서는 `agy`를 실행한 뒤 `/skills`에서 설치 여부를 확인할 수 있습니다. [공식 Skills 안내](https://antigravity.google/docs/skills)
+
+### Hermes Agent
+
+```bash
+mkdir -p ~/.hermes/skills
+git clone --depth 1 https://github.com/dd3ok/naverstock-api-skill.git ~/.hermes/skills/naverstock-web-api
+```
+
+기본 개인 경로를 사용한 예시입니다. 프로젝트의 `.hermes/skills` 또는 `.agents/skills`를 쓰려면 해당 프로젝트가 신뢰된 상태인지 확인하세요. [공식 Skills 안내](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills/)
+
+### OpenClaw
+
+OpenClaw에 설정한 에이전트 workspace에서 설치합니다.
+
+```bash
+mkdir -p skills
+git clone --depth 1 https://github.com/dd3ok/naverstock-api-skill.git skills/naverstock-web-api
+```
+
+`openclaw skills list --eligible`과 `openclaw skills info naverstock-web-api`로 발견 여부를 확인하세요. workspace와 설치 버전에 따른 탐색 경로는 [공식 Skills 안내](https://docs.openclaw.ai/tools/skills)를 참고하세요. Python은 실제 명령을 실행하는 호스트 또는 샌드박스에도 있어야 합니다.
 
 ## 빠른 시작
 
-설치 후 자연어로 요청하거나 `$naverstock-web-api`를 명시하세요.
+설치 후 새 대화에서 자연어로 요청하세요. 명시 호출은 제품별로 다릅니다.
+
+| 실행기 | 명시 호출 |
+| --- | --- |
+| Codex CLI/IDE | `$naverstock-web-api` 또는 `/skills`에서 선택 |
+| Claude Code · Antigravity CLI · Hermes Agent | `/naverstock-web-api` |
+| OpenClaw | `/skill naverstock-web-api` |
+
+위 경로와 호출법은 공식 문서 기준입니다. 각 제품에서 실제로 스킬이 발견되고 스크립트를 실행할 수 있는지는 설치 환경에서 확인하세요.
 
 ```text
 네이버 증권 기준으로 삼성전자 005930의 종목 요약과 현재 시세를 조회해줘.
@@ -125,7 +155,9 @@ python3 scripts/research.py home
 python3 scripts/discussion.py global-community --ticker BTC
 ```
 
-결과는 JSON으로 출력됩니다. 지원하는 명령은 `--output result.json`으로 저장할 수 있고, 전체 옵션은 `--help`로 확인합니다.
+위 CLI 예시는 저장소 루트에서 실행합니다. 다른 작업 폴더에서는 `python3 "/실제/설치/경로/scripts/search.py" --help`처럼 스크립트의 절대 경로를 사용하세요. Windows에서는 설치 환경에 맞게 `python3`를 `py -3.14` 등으로 바꾸고 Python 버전을 확인하세요.
+
+결과는 JSON으로 출력됩니다. 지원하는 명령은 `--output result.json`으로 저장할 수 있고, 상대 출력 경로는 실행한 작업 폴더 기준입니다. 전체 옵션은 `--help`로 확인합니다.
 
 더 많은 명령은 [스크립트 쿡북](references/script-cookbook.md), 응답 구조와 페이징 주의사항은 [응답 노트](references/response-notes.md)를 참고하세요.
 
@@ -138,7 +170,7 @@ python3 scripts/discussion.py global-community --ticker BTC
 | `SKILL.md` | 에이전트의 작업별 스크립트·문서 선택과 안전 규칙 |
 | `scripts/` | 공개 데이터 조회와 소량 검증용 Python CLI |
 | `references/` | 분야별 API, 실행 예제, 응답 해석, 확인 상태와 유지보수 절차 |
-| `agents/openai.yaml` | 스킬 표시 이름·설명·기본 프롬프트 |
+| `agents/openai.yaml` | Codex용 표시 이름·설명·기본 프롬프트 |
 | `tests/` | 요청·오류·개인정보 정제·CLI·문서·설치 구성 회귀 검사 |
 | `.github/workflows/ci.yml` | Python 검사와 가벼운 설치본 검증 |
 | `CHANGELOG.md` | 미출시 변경, 호환성 변경과 과거 릴리스 안내 |

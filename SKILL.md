@@ -1,6 +1,6 @@
 ---
 name: naverstock-web-api
-description: Safely queries and audits unofficial read-only Naver Stock (네이버증권·네이버페이 증권/Npay) web data, WiseReport v3 company analysis, and allowlisted legacy Naver Finance screeners. Use for Korean or foreign stocks, ETFs, funds, indices, crypto, search, news, research, rankings, IPOs, charts, exchange rates, company analysis, screeners, or requests that cross account, personal-data, mutation, or scraping safety boundaries.
+description: Read public Naver Stock (네이버증권/Npay) data and audit APIs.
 ---
 
 # NaverStock Web API
@@ -74,7 +74,11 @@ description: Safely queries and audits unofficial read-only Naver Stock (네이�
 
 ## 스크립트 사용
 
-작업 라우팅 표에서 스크립트를 고른 뒤 `python3 scripts/<name>.py --help`로 옵션을 확인하세요. 자주 쓰는 명령과 최신 예시는 [references/script-cookbook.md](references/script-cookbook.md)에서 확인하세요.
+이 `SKILL.md`가 있는 폴더를 스킬 루트로 사용하세요. 문서의 `scripts/`와 `references/`는 모두 이 폴더 기준입니다. 사용자 프로젝트의 현재 작업 폴더와 설치된 스킬 폴더가 같다고 가정하지 마세요.
+
+작업 라우팅 표에서 스크립트를 고른 뒤 실제 설치 경로로 `python3 "<스킬 루트>/scripts/<name>.py" --help`를 실행해 옵션을 확인하세요. 실행 환경에서 Python 3.14 최신 패치를 가리키는 명령을 사용하세요(Windows 예: `py -3.14`). 자주 쓰는 명령과 최신 예시는 [references/script-cookbook.md](references/script-cookbook.md)에서 확인하세요.
+
+사용자 작업 폴더에서 스크립트의 절대 경로로 실행하면 상대 `--output` 경로도 사용자 작업 폴더 기준입니다. 답변에는 요청한 결과와 출처·조회 시각을 남기고, 실패·미검증 항목을 정상 빈 데이터와 구분하세요.
 
 자세한 거절 기준과 책임 고지는 [references/safety-rules.md](references/safety-rules.md)를 따르세요.
 
