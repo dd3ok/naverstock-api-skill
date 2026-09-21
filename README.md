@@ -31,19 +31,18 @@ mkdir -p ~/.agents/skills
 git clone --depth 1 https://github.com/dd3ok/naverstock-api-skill.git ~/.agents/skills/naverstock-web-api
 ```
 
-위 `git clone` 명령의 설치 경로를 아래 표에 맞게 바꾸세요. 별도 설치 명령이 있는 호스트는 해당 명령을 사용합니다.
+위 `git clone` 명령의 설치 경로를 아래 표에 맞게 바꾸세요.
 
-| 호스트 | 설치 위치 또는 명령 | 안내 |
+| 호스트 | 설치 위치 | 안내 |
 | --- | --- | --- |
 | <a id="codex"></a>Codex | 개인 `~/.agents/skills/naverstock-web-api` · 프로젝트 `.agents/skills/naverstock-web-api` | [공식 안내](https://learn.chatgpt.com/docs/build-skills) |
 | <a id="claude-code"></a>Claude Code | 개인 `~/.claude/skills/naverstock-web-api` · 프로젝트 `.claude/skills/naverstock-web-api` | [공식 안내](https://code.claude.com/docs/en/skills) |
-| <a id="gemini-cli"></a>Gemini CLI | `gemini skills install https://github.com/dd3ok/naverstock-api-skill.git` | [공식 안내](https://geminicli.com/docs/cli/using-agent-skills/) |
 | <a id="antigravity"></a>Antigravity | 프로젝트 `.agents/skills/naverstock-web-api` | [공식 안내](https://antigravity.google/docs/skills) |
 | <a id="hermes-agent"></a>Hermes Agent | 개인 `~/.hermes/skills/naverstock-web-api` | [공식 안내](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills/) |
 | <a id="openclaw"></a>OpenClaw | 설정한 에이전트 workspace의 `skills/naverstock-web-api` | [공식 안내](https://docs.openclaw.ai/tools/skills) |
 
 위 clone 명령은 `main`을 설치합니다. 버전을 고정하려면 `--branch <태그>`를 추가하고 [릴리스 목록](https://github.com/dd3ok/naverstock-api-skill/releases)의 실제 태그를 사용하세요.
-Gemini CLI의 프로젝트 설치에는 `--scope workspace`를 추가합니다. Antigravity는 IDE·CLI의 개인 경로가 달라 프로젝트 경로를 사용하며, CLI에서는 `agy` 실행 후 `/skills`로 확인합니다.
+Antigravity는 IDE·CLI의 개인 경로가 달라 프로젝트 경로를 사용하며, CLI에서는 `agy` 실행 후 `/skills`로 확인합니다.
 Hermes의 프로젝트 `.hermes/skills` 또는 `.agents/skills`를 사용하려면 해당 프로젝트가 신뢰된 상태여야 합니다.
 OpenClaw에서는 `openclaw skills list --eligible`과 `openclaw skills info naverstock-web-api`로 발견 여부를 확인하세요. Python은 실제 실행 호스트나 샌드박스에도 필요합니다.
 각 환경에서 스킬 발견과 첫 조회를 확인하세요. 설치 안내만으로 모든 호스트의 실행이 검증된 것은 아닙니다.
