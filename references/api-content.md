@@ -40,6 +40,8 @@
 
 관찰된 목록 카테고리는 `MAINNEWS`, `FLASHNEWS`, `RANKNEWS`입니다. CLI는 기존 소문자 입력을 대문자로 정규화하되 현재 UI 값을 전송합니다. `stock`, `market`, `all` 같은 임의 값은 거절합니다.
 
+뉴스 홈 집계의 7개 `*Size` 옵션은 각각 로컬 범위 0–500을 적용하며 음수·초과값은 전송 전에 거절합니다. 기존 0 입력은 보존하지만 섹션 생략 효과나 서버 최대치를 보장하지 않습니다. 실제 필요한 소량만 요청하세요.
+
 2026-05-05 직접 확인에서 뉴스 상단 탭 route는 `/news/flashnews`, `/news/mainnews`, `/news/ranknews`, `/news/section`, `/news/worldnews`였습니다. `/news/worldnews`는 `page`가 1부터 증가하는 목록 API를 사용하고, 날짜 필터는 `date=yyyyMMdd`를 추가합니다. 각 목록 item의 `aid`로 `/news/worldnews/{aid}` 페이지와 `/api/foreign/news/worldNews/{aid}` 상세 API를 조회할 수 있습니다. 상세 응답은 `{ "article": ..., "latestList": [...] }` 형태이며 `article.subcontent`에 HTML 원문/고지 문구가 포함될 수 있습니다.
 
 `/news/section`의 포커스 뉴스는 `/api/domestic/news/focus`를 사용하며, 하위 탭은 query `tab`으로 선택됩니다. 관찰된 탭/섹션 맵은 `market-outlook=401`(시황·전망), `company-analysis=402`(기업·종목분석), `global-market=403`(해외증시), `bond-futures=404`(채권·선물), `disclosure-memo=406`(공시·메모), `exchange-rate=429`(환율)입니다. 최신순 기본 호출은 현재 날짜 `date=yyyyMMdd`와 `enableFallback=true`를 함께 보내 과거 기사로 fallback할 수 있고, 직접 지정 시 `maxDays`는 1-7 범위만 허용됩니다. 날짜별 필터에서는 선택 날짜의 기사만 남기도록 클라이언트가 추가 필터링합니다. `sid=403`은 2026-05-06에는 빈 결과였지만 2026-08-13 재확인에서는 정상 데이터를 반환했습니다. 독립 해외뉴스 목록에는 `/api/foreign/news/worldNews`를 사용합니다.

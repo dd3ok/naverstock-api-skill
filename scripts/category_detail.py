@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 from typing import Any
 
-from naverstock_api import build_path, emit_output, render_json, request_json
+from naverstock_api import bounded_int, build_path, emit_output, render_json, request_json
 
 
 CATEGORY_PATHS = {
@@ -64,11 +64,12 @@ def fetch_stocklist(
 def resolve_category_no(args: argparse.Namespace) -> str:
     if args.no:
         return args.no
+    rank = bounded_int(args.rank, name="rank", minimum=1, maximum=500)
     ranking_start_idx = getattr(args, "ranking_start_idx", 0)
-    ranking = fetch_ranking(args.category, ranking_start_idx, max(args.rank, 1), args.sort_type)
-    if len(ranking) < args.rank:
-        raise RuntimeError(f"Rank {args.rank} was not available in {args.category} ranking")
-    return str(ranking[args.rank - 1]["no"])
+    ranking = fetch_ranking(args.category, ranking_start_idx, rank, args.sort_type)
+    if len(ranking) < rank:
+        raise RuntimeError(f"Rank {rank} was not available in {args.category} ranking")
+    return str(ranking[rank - 1]["no"])
 
 
 def fetch_rank(args: argparse.Namespace) -> Any:
@@ -119,7 +120,7 @@ def add_category_args(parser: argparse.ArgumentParser) -> None:
 
 def add_resolver_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--no", help="Use a concrete category no from the list API")
-    parser.add_argument("--rank", type=int, default=1, help="Resolve category no from current ranking position")
+    parser.add_argument("--rank", type=int, default=1, help="1-based ranking position (1-500); unused with --no")
 
 
 def main() -> None:

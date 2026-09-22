@@ -51,7 +51,7 @@
 | 국내 업종·테마 전체 시가총액 | `script-backed` | GET | `/api/stockSecurity/rankings/v2/domestic/{industries\|themes}/total-market-cap` |
 | 업종/테마/그룹사 상세 정보 | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/{no}/info?marketType=ALL` |
 | 업종/테마/그룹사 구성 종목 | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/{no}/stocklist?marketType=ALL&orderType=quantTop&startIdx=0&pageSize=20` |
-| 시장 집계 투자자 동향 | `script-backed` | POST | `/api/domestic/home/marketaggregate/aggregateInvestor`, JSON body는 `sections`, `tradeType`, `marketType`, `periodType`, 날짜를 포함합니다. 출력 이상 또는 4xx가 있으면 현재 페이지에서 재확인합니다. |
+| 시장 집계 투자자 동향 | `script-backed` | POST | `/api/domestic/home/marketaggregate/aggregateInvestor`, JSON body는 `sections`, `tradeType`, `marketType`, `periodType`, 날짜를 포함합니다. `market_trend.py aggregate`의 `--start-date`·`--end-date`는 함께 지정하거나 모두 생략합니다. 한쪽 날짜·빈 날짜는 요청 전에 거절합니다. 출력 이상 또는 4xx가 있으면 현재 페이지에서 재확인합니다. |
 | 시장 집계 투자자 랭킹 | `observed` | POST | `/api/domestic/home/marketaggregate/aggregateInvestorRanking`. 2026-08-04 현재 페이지가 `Content-Type: application/json`, `credentials: include`로 호출하며 body는 `sections.{investorTrend,programTrend,foreignTop,orgTop}`에 `tradeType`, `marketType`, `periodType`, 날짜, `rankingType`, `side`, `startIdx=0`, `pageSize=10`을 구성합니다. 개인 식별 필드는 없지만 스크립트로는 아직 노출하지 않습니다. |
 | 투자자 예탁금 목록 | `script-backed` | GET | `/api/domestic/market/trendDeposit?startIdx=0&pageSize=20` |
 | 투자자 예탁금 차트 | `script-backed` | GET | `/api/domestic/market/trendDeposit/chart?startDate={yyyyMMdd}&endDate={yyyyMMdd}` |
