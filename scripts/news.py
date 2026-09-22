@@ -213,7 +213,8 @@ def main() -> None:
     world_detail.add_argument("--output")
     world_detail.set_defaults(func=fetch_world_detail)
 
-    aggregate = sub.add_parser("aggregate", help="News home aggregate blocks")
+    aggregate = sub.add_parser("aggregate", help="News home aggregate blocks",
+                               description="News home blocks; each size has a local bound of 0-500.")
     aggregate.add_argument("--flash-news-size", type=int, default=4)
     aggregate.add_argument("--main-news-size", type=int, default=6)
     aggregate.add_argument("--ranking-news-size", type=int, default=5)

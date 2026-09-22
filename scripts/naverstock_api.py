@@ -151,6 +151,13 @@ _PAGINATION_BOUNDS = {
     "pagesize": (1, 500),
     "size": (1, 500),
     "startidx": (0, 100_000),
+    "flashnewssize": (0, 500),
+    "mainnewssize": (0, 500),
+    "rankingnewssize": (0, 500),
+    "overseasnewssize": (0, 500),
+    "focussize": (0, 500),
+    "moneystorysize": (0, 500),
+    "noticesize": (0, 500),
 }
 _SAFE_IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")
 _ENCODED_PATH_CONTROL = re.compile(r"%(?:00|0a|0d|2e|2f|5c)", re.IGNORECASE)

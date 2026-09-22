@@ -22,6 +22,10 @@ def fetch_deposit_chart(args: argparse.Namespace) -> Any:
 
 
 def fetch_aggregate(args: argparse.Namespace) -> Any:
+    if (args.start_date is None) != (args.end_date is None):
+        raise ValueError("--start-date and --end-date must be supplied together")
+    if args.start_date is not None and (not args.start_date or not args.end_date):
+        raise ValueError("--start-date and --end-date must not be empty")
     body = {
         "sections": {
             "investorTrend": {
@@ -134,8 +138,8 @@ def main() -> None:
     aggregate.add_argument("--trade-type", choices=["KRX", "NXT"], default="KRX")
     aggregate.add_argument("--market-type", choices=["ALL", "KOSPI", "KOSDAQ", "FUT"], default="ALL")
     aggregate.add_argument("--period-type", choices=["TIME", "WEEK", "MONTH", "THREE_MONTH"], default="TIME")
-    aggregate.add_argument("--start-date")
-    aggregate.add_argument("--end-date")
+    aggregate.add_argument("--start-date", help="YYYYMMDD; requires --end-date")
+    aggregate.add_argument("--end-date", help="YYYYMMDD; requires --start-date")
     aggregate.add_argument("--output")
     aggregate.set_defaults(func=fetch_aggregate)
 

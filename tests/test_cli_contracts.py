@@ -19,6 +19,7 @@ SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import discussion  # noqa: E402
+import category_detail  # noqa: E402
 import crypto  # noqa: E402
 import domestic_etf  # noqa: E402
 import home  # noqa: E402
@@ -737,6 +738,25 @@ class MarketStockTests(unittest.TestCase):
 
 
 class MarketTrendTests(unittest.TestCase):
+    def test_aggregate_rejects_partial_or_empty_dates_before_request(self) -> None:
+        for start, end in [("20260901", None), (None, "20260921"), ("", ""), ("", "20260921")]:
+            args = argparse.Namespace(start_date=start, end_date=end)
+            with self.subTest(start=start, end=end), patch.object(market_trend, "request_json") as request:
+                with self.assertRaisesRegex(ValueError, "--start-date and --end-date"):
+                    market_trend.fetch_aggregate(args)
+                request.assert_not_called()
+
+    def test_aggregate_preserves_paired_dates(self) -> None:
+        args = argparse.Namespace(trade_type="KRX", market_type="KOSPI", period_type="MONTH",
+                                  start_date="20260901", end_date="20260921")
+        with patch.object(market_trend, "request_json", return_value={}) as request:
+            market_trend.fetch_aggregate(args)
+        body = request.call_args.kwargs["body"]["sections"]["investorTrend"]
+        self.assertEqual(body["startDate"], "20260901")
+        self.assertEqual(body["endDate"], "20260921")
+        naverstock_api.validate_public_request(request.call_args.args[0], method="POST",
+                                              body=request.call_args.kwargs["body"])
+
     def test_trend_foreign_org_uses_read_only_trend_endpoint(self) -> None:
         args = argparse.Namespace(
             investor_type="FOREIGNER",
@@ -934,7 +954,44 @@ class DiscussionTests(unittest.TestCase):
         )
 
 
+class CategoryRankTests(unittest.TestCase):
+    def test_invalid_rank_stops_before_lookup(self) -> None:
+        for rank in (-1, 0, 501):
+            with self.subTest(rank=rank), patch.object(category_detail, "fetch_ranking") as fetch:
+                with self.assertRaises(ValueError):
+                    category_detail.resolve_category_no(argparse.Namespace(no=None, rank=rank))
+                fetch.assert_not_called()
+
+    def test_rank_is_one_based_and_explicit_number_skips_lookup(self) -> None:
+        args = argparse.Namespace(no=None, rank=2, category="industry", sort_type="up", ranking_start_idx=3)
+        with patch.object(category_detail, "fetch_ranking", return_value=[{"no": "10"}, {"no": "20"}]) as fetch:
+            self.assertEqual(category_detail.resolve_category_no(args), "20")
+            fetch.assert_called_once_with("industry", 3, 2, "up")
+            fetch.reset_mock()
+            args.no = "30"
+            self.assertEqual(category_detail.resolve_category_no(args), "30")
+            fetch.assert_not_called()
+
+
 class NewsTests(unittest.TestCase):
+    def test_aggregate_size_options_fail_before_network(self) -> None:
+        for option in ("flash-news", "main-news", "ranking-news", "overseas-news", "focus", "money-story", "notice"):
+            for size in (-1, 501, 1_000_000):
+                with (self.subTest(option=option, size=size),
+                      patch.object(sys, "argv", ["news.py", "aggregate", f"--{option}-size", str(size)]),
+                      patch.object(naverstock_api, "open_public_url") as open_url):
+                    with self.assertRaises(naverstock_api.RequestValidationError):
+                        news.main()
+                    open_url.assert_not_called()
+
+    def test_aggregate_size_boundaries_are_preserved(self) -> None:
+        keys = ("flashNewsSize", "mainNewsSize", "rankingNewsSize", "overseasNewsSize", "focusSize", "moneyStorySize", "noticeSize")
+        for size in (0, 1, 500):
+            with self.subTest(size=size):
+                path = naverstock_api.build_path("/api/domestic/news/aggregate/home", dict.fromkeys(keys, size))
+                self.assertEqual(naverstock_api.validate_public_request(path), path)
+
+
     def test_list_cli_uses_current_uppercase_category_contract(self) -> None:
         cases = (
             (["news.py", "list"], "MAINNEWS"),
