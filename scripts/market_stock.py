@@ -193,6 +193,20 @@ def fetch_list_v3(args: argparse.Namespace) -> Any:
     }))
 
 
+def fetch_low_pbr(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/stockSecurity/items/v2/domestic",
+            {
+                "listingType": "lowPbrListing",
+                "listingExchangeType": args.exchange_type,
+                "index": args.index,
+                "size": args.size,
+            },
+        )
+    )
+
+
 def fetch_ipo_detail(args: argparse.Namespace) -> Any:
     suffix = "/info" if args.command == "ipo-info" else ""
     return request_json(f"/api/domestic/ipo/{normalize_ipo_code(args.code)}/detail{suffix}")
@@ -270,6 +284,13 @@ def main() -> None:
     v3.add_argument("--size", type=_bounded_integer("size", 1, 100), default=20)
     v3.add_argument("--output")
     v3.set_defaults(func=fetch_list_v3)
+
+    low_pbr = sub.add_parser("low-pbr", help="Domestic low-PBR stock list (v2 items listing)")
+    low_pbr.add_argument("--exchange-type", choices=("krx", "nxt", "consolidated"), default="krx")
+    low_pbr.add_argument("--index", type=_bounded_integer("index", 0, 10_000), default=0)
+    low_pbr.add_argument("--size", type=_bounded_integer("size", 1, 100), default=20)
+    low_pbr.add_argument("--output")
+    low_pbr.set_defaults(func=fetch_low_pbr)
     for name in ("ipo-detail", "ipo-info"):
         detail = sub.add_parser(name, help="Public IPO detail; preserve the A-prefixed IPO code")
         detail.add_argument("--code", type=normalize_ipo_code, required=True)

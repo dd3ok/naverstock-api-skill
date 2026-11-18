@@ -33,25 +33,25 @@ description: Read public, read-only Naver Stock (네이버증권/Npay) quotes, c
 | 사용자 의도 | 우선 사용 | 참고 |
 | --- | --- | --- |
 | 국내 종목 상세, 현재가, 컨센서스, 관련 업종 종목 | `scripts/stock_summary.py` | [references/api-domestic.md](references/api-domestic.md) |
-| 종목 상세 하위 페이지: 가격표, 호가, 차트 가격, 뉴스, 공시, IR, 리서치, 투자자 통계, finance v1 메뉴/ESG, ETF 상세 | `scripts/stock_detail_pages.py` | [references/api-domestic.md](references/api-domestic.md) |
+| 종목 상세 하위 페이지: 가격표(cursor/paged), v2 호가·거래원·투자자동향·어닝콜, 차트 가격, 뉴스, 공시, IR, 리서치, 투자자 통계, finance v1 메뉴/ESG, ETF 상세 | `scripts/stock_detail_pages.py` | [references/api-domestic.md](references/api-domestic.md) |
 | 종목 인사이트의 공개 보유자 랭킹·가상 투자 | `scripts/stock_insights.py` | [references/api-domestic.md](references/api-domestic.md) |
-| 국내 시장 랭킹, KONEX 거래량, 관리/정지/투자경고, 배당, IPO, 업종/테마 랭킹 | `scripts/market_stock.py` | [references/api-domestic.md](references/api-domestic.md) |
+| 국내 시장 랭킹, 저PBR, KONEX 거래량, 관리/정지/투자경고, 배당, IPO, 업종/테마 랭킹 | `scripts/market_stock.py` | [references/api-domestic.md](references/api-domestic.md) |
 | WiseReport v3 기업현황·재무분석·투자지표·컨센서스·업종/섹터·주주현황 | `scripts/wisereport.py` | [references/external-sources.md](references/external-sources.md) |
 | 신버전에 없는 골든크로스 등 기술적 5종과 저가/고가 대비 2종 | `scripts/legacy_screeners.py` | [references/external-sources.md](references/external-sources.md) |
-| 미국·중국·홍콩·일본·베트남 주식, 해외 업종, 재무·뉴스, 미국 ETF 구성, 해외 주식·지수 시세·차트 메타와 폴링 | `scripts/foreign_stock.py` | [references/api-foreign.md](references/api-foreign.md) |
-| 검색에서 연결되는 공개 국내 펀드 상세·가격·성과·배분 | `scripts/fund.py` | [references/api-home-market-fund.md](references/api-home-market-fund.md) |
+| 미국·중국·홍콩·일본·베트남 주식, 해외 업종 v2, 재무·뉴스, 미국 ETF 구성, 해외 주식·지수·선물 시세·차트 메타와 폴링 | `scripts/foreign_stock.py` | [references/api-foreign.md](references/api-foreign.md) |
+| 검색에서 연결되는 공개 국내 펀드 상세·일괄/일별 가격·성과·배분 | `scripts/fund.py` | [references/api-home-market-fund.md](references/api-home-market-fund.md) |
 | 업종/테마/그룹사 상세 페이지와 구성 종목 | `scripts/category_detail.py` | [references/api-domestic.md](references/api-domestic.md) |
 | 국내 ETF/ETN 목록과 ETF 필터 | `scripts/domestic_etf.py` | [references/api-domestic.md](references/api-domestic.md) |
 | 예탁금, 국내 투자자 동향 집계/차트, 외국인/기관, 프로그램 동향 | `scripts/market_trend.py` | [references/api-domestic.md](references/api-domestic.md) |
-| KOSPI/KOSDAQ/KPI200 상세·페이징, 주요 시장지표 블록, 원자재, 운임, 금리, 환율, 지수·지표 차트 | `scripts/marketindex.py` | [references/api-home-market-fund.md](references/api-home-market-fund.md) |
-| 가상자산 랭킹, 주요 코인, 기간별 등락률, 폴링 가격, 분봉·일봉, 비교 차트, 뉴스, 공개 코인 프로필, 카테고리, AI 브리핑 | `scripts/crypto.py` | [references/api-crypto.md](references/api-crypto.md) |
-| 거래소 장 상태·상품별 세션, 해외 거래시간, AI 시장 브리핑(현재 목록·상세는 `--api-version v2`), 공개 콘텐츠, 통합 지표·지수 수급과 주목 ETF | `scripts/home.py` (`market-status`, `exchange-sessions`, `indicators-v1` 등) | [references/api-home-market-fund.md](references/api-home-market-fund.md) |
+| KOSPI/KOSDAQ/KPI200 상세·페이징, 주요 시장지표 블록, 원자재, 운임, 금리, 국채·환율 v2, 지수·환율·국채 차트 | `scripts/marketindex.py` | [references/api-home-market-fund.md](references/api-home-market-fund.md) |
+| 가상자산 랭킹·검색순위, 주요 코인, 기간별 등락률, 폴링 가격, 분봉·일봉, 비교 차트, 뉴스, 공개 코인 프로필, 카테고리, AI 브리핑/시장브리핑 | `scripts/crypto.py` | [references/api-crypto.md](references/api-crypto.md) |
+| 거래소 장 상태·상품별 세션, 오늘 증시캘린더·뉴스홈, 해외 거래시간, AI 시장 브리핑(현재 목록·상세는 `--api-version v2`), 공개 콘텐츠, 통합 지표·지수 수급과 주목 ETF | `scripts/home.py` (`market-status`, `exchange-sessions`, `trading-sessions`, `calendar-today`, `news-home`, `indicators-v1` 등) | [references/api-home-market-fund.md](references/api-home-market-fund.md) |
 | 헤더 자동완성과 전체 상품 검색 | `scripts/search.py` | [references/api-home-market-fund.md](references/api-home-market-fund.md) |
-| 시장 뉴스, 뉴스포커스 하위 탭, 해외뉴스 목록/상세, 키워드 검색 | `scripts/news.py` | [references/api-content.md](references/api-content.md) |
+| 시장 뉴스·뉴스홈, 뉴스포커스 하위 탭, 해외뉴스 v1/상세, 키워드 검색 | `scripts/news.py` | [references/api-content.md](references/api-content.md) |
 | 서비스 공지 목록/상세/배너 | `scripts/notices.py` | [references/api-content.md](references/api-content.md) |
-| 리서치 v2 카테고리/상세/종목별 목록, 랭킹, 최신/주간 인기, 증권사 목록, best-effort 홈과 명시적 v1 호환 조회 | `scripts/research.py` | [references/api-content.md](references/api-content.md) |
+| 리서치 v2 카테고리/상세/종목별 목록, 랭킹, 최신/주간 인기, 산업 목록, 증권사 목록, best-effort 홈과 명시적 v1 호환 조회 | `scripts/research.py` | [references/api-content.md](references/api-content.md) |
 | 리서치 업데이트 후 첫·다음 페이지의 구조와 진행 재검증 | `scripts/research_check.py` (기본은 요청 계획, 실행은 `--live`) | [검증 범위와 결과 해석](references/script-cookbook.md#리서치-소량-검증) |
-| 종목토론 feed, 시장 feed, 인기 글, 상세/이전다음/관련 글, 종목·코인 Npay/CMC 토론, 랭킹·통계 | `scripts/discussion.py` | [references/api-content.md](references/api-content.md), [references/api-crypto.md](references/api-crypto.md) |
+| 종목토론 feed, 토픽·추천 글, 시장 feed, 인기 글, 상세/이전다음/관련 글, 종목·코인 Npay/CMC 토론, 랭킹·통계 랭킹 | `scripts/discussion.py` | [references/api-content.md](references/api-content.md), [references/api-crypto.md](references/api-crypto.md) |
 | 새 엔드포인트 캡처 또는 문서화되지 않은 페이지 분석 | 브라우저 네트워크 캡처와 chunk 검사 | [references/capture-workflow.md](references/capture-workflow.md), [references/safety-rules.md](references/safety-rules.md) |
 
 ## 기본 절차

@@ -6,7 +6,7 @@
 - 검증 오류는 `detailCode`와 `message`를 반환하는 경우가 많습니다. 스크립트는 HTTP 상태만으로 충분하지 않을 때 이 값을 실패로 처리합니다.
 - 국내 종목 상세 필드는 `itemcode`, `itemname`, `nowPrice`, `prevChangeRate`, `marketSum`처럼 기존 lowercase 키를 사용합니다.
 - 폴링 엔드포인트는 `{ "pollingInterval": ..., "datas": [...] }` 형태를 반환합니다.
-- 공개 가격 갱신은 현재 `/api/polling/*` REST 응답을 사용합니다. 로그인 보유종목 refresh용 Socket.IO는 공개 시세 transport가 아니며, 공개 증권 SSE endpoint도 확인되지 않았습니다.
+- 공개 가격 갱신은 현재 `/api/polling/*` REST 응답을 사용하며, 2026-11-18 live 프론트엔드는 별도 `polling.finance.naver.com/api/realtime/*`(국내 v2 주식 포함)도 병행 호출합니다(동일 호스트 `/api/polling/*`는 계속 200 유지). 로그인 보유종목 refresh용 Socket.IO는 공개 시세 transport가 아니며, 공개 증권 SSE endpoint도 확인되지 않았습니다.
 - 리서치 v2 카테고리 응답은 `{ "hasNext": ..., "totalCount": ..., "items": [...] }` 형태를 반환합니다. `index`는 0부터 증가합니다.
 - 리서치 주간 인기 `/api/stockSecurity/researches/v2/weekly-hot`은 현재 `startDate`가 필수입니다. 생략하면 400이므로 `research.py`는 명시값이 없을 때 현재 화면과 같은 7일 전 날짜를 넣습니다.
 - `research.py home`은 각 섹션을 `{ "status": "ok", "data": ... }` 또는 `{ "status": "unavailable", "error": ... }`로 감쌉니다. 403·429·3xx·비정상 JSON에서는 후속 섹션을 `not_run`으로 남기고 중단합니다. `partial: true`는 실패나 미실행이 있다는 뜻이며 자료가 없다는 뜻은 아닙니다.
@@ -37,9 +37,9 @@
 - 시장 공시 뉴스는 현재 화면처럼 생략 시 오늘까지 최근 3개월을 `startDate`/`endDate`로 보냅니다.
 - 시장지표 카테고리 목록 호출: `energy`, `metals`, `agricultural`, `transport`, `domesticInterest`. 상세 호출에는 `exchange`, `standardInterest`, `bond` 같은 추가 category가 있습니다.
 - 토론 랭킹 `postType`: 확인된 기본값은 `HOT`입니다. `LATEST`는 chunk enum으로 관찰했지만 중요한 사용 전 재검증합니다.
-- 카테고리 페이지 타입: `industry`, `theme`, `groups`; API path 타입: `upjong`, `theme`, `group`.
-- 카테고리 종목 목록 chip alias: `accQuant -> quantTop`, `accAmount -> priceTop`, 그리고 `up`, `down`, `marketSum`, `sales`, `operatingProfit`.
-- 국내 기본 종목 목록의 호환 입력 `accAmount`, `steady`는 각각 `priceTop`, `flat`으로 변환합니다. 카테고리 구성 종목의 `sales`, `operatingProfit`은 기존 입력을 유지하지만 2026-09-07 업종·테마·그룹사 표본 모두 500이었고 현재 화면 정렬 탭에는 없습니다.
+- 카테고리 페이지 타입: `industry`, `theme`, `groups`; 랭킹 v2 path: `industries`, `themes`, `groups`; 상세/종목 목록 path: `upjong`, `theme`, `group`.
+- 카테고리 종목 목록 정렬: UI chip `accQuant/tradingVolume`, `accAmount/tradingValue`, `up/changeRate(desc)`, `down(changeRate/asc)`, `marketSum/marketCap`. `2026-11-18` 현재 `/stocklist`는 `sortType`/`sortDirection`/`size`와 `KOSPI`/`KOSDAQ` 전용 `marketType`(`ALL` 생략)을 사용하고 `{hasNext, items, cursor}`를 반환합니다.
+- 국내 기본 종목 목록의 호환 입력 `accAmount`, `steady`는 각각 `priceTop`, `flat`으로 변환합니다. 카테고리 구성 종목의 `sales`, `operatingProfit`은 기존 입력을 유지하지만 2026-11-18 Zod `sortType` enum에서 제외되어 400(이전 500)을 반환합니다.
 - ETF 목록 alias: `priceTop -> tradingValueDesc`, `capitalization -> aumDesc`, `upper -> changeRateDescUpAll`, `lower -> changeRateDescDownAll`, `trading -> tradingVolumeDesc`.
 - ETN 목록 alias: `priceTop -> AMOUNT_ETN`, `marketSum -> MARKET_SUM_ETN`, `trading -> QUANT_ETN`, `upper -> UP_ETN`, `lower -> DOWN_ETN`.
 
@@ -63,7 +63,7 @@
 
 - 현재 JSON API를 우선하며 테마나 업종 구성 종목을 추론하기 위해 `finance.naver.com` 그룹 상세 HTML을 사용하지 않습니다. 외부 HTML은 [external-sources.md](external-sources.md)의 WiseReport v3와 조건검색 7종만 허용합니다.
 - WiseReport 표는 행 순서를 보존하지만 병합 머리글을 추정하지 않습니다. 레거시 가격 위치 표는 첫 지표를 `저가대비등락률` 또는 `고가대비등락률`로 구분합니다.
-- `/market/stock/kr/{industry|theme|groups}/{rank}` route의 path 값은 카테고리 ID가 아니라 화면 랭킹 순번입니다. `info` 또는 `stocklist` 호출 전에 `/api/domestic/market/{upjong|theme|group}/list`로 현재 카테고리 `no`를 찾아야 합니다.
+- `/market/stock/kr/{industry|theme|groups}/{rank}` route의 path 값은 카테고리 ID가 아니라 화면 랭킹 순번입니다. `info` 또는 `stocklist` 호출 전에 `/api/stockSecurity/rankings/v2/domestic/{industries|themes|groups}`로 현재 카테고리 `code`/`no`를 찾아야 합니다(기존 `/api/domestic/market/{upjong|theme|group}/list`는 2026-11-18 404).
 - 종목 공시/IR 엔드포인트는 `startIdx`를 사용하고, 종목 뉴스는 1-based `page`, 종목 리서치는 0-based `index`를 사용합니다. 현재 화면 기본 크기는 각각 공시 30, IR 60, 뉴스 15, 리서치 16입니다. 상세 하위 페이지 전체에 하나의 페이징 방식을 가정하지 않습니다.
 - 가격 탭 엔드포인트는 페이징 방식이 섞여 있습니다. `siseDay`는 `pageSize`와 선택적 `bizdate`, `siseTick`과 투자자 `trend`는 `startIdx`와 `pageSize`를 사용합니다.
 - `/api/domestic/market/trend/daily`와 `/api/domestic/market/trendDeposit`은 화면의 1·2페이지가 각각 `startIdx=0`, `startIdx=1`을 사용하므로 여기서 `startIdx`는 row offset이 아니라 0-based page index입니다.

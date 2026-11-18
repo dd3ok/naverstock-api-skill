@@ -17,10 +17,13 @@
 | KRX/NXT 시장 상태 | `script-backed` | GET | `/api/domestic/market/{KRX|NXT}/info` |
 | 거래소 통합 장 상태·세션 | `script-backed` | GET | `/api/stockSecurity/market-status/current?exchanges=krx&exchanges=nxt`. 소문자 `exchanges` 반복. `home.py market-status`; [계약과 검증 범위](#거래소-통합-장-상태) |
 | 거래소 상품별 상태 | `script-backed` | GET | `/api/stockSecurity/exchanges/market-status?exchanges=krx&exchanges=nxt`. `home.py exchange-sessions`; 최대9개 반복, 기본krx/nxt, 기존 market-status와 다른 응답 |
-| 해외 거래소 운영시간 | `script-backed` | GET | `/api/foreign/operatingTime/exchange/{NASDAQ|SHANGHAI|HONG_KONG|TOKYO|HANOI}` |
+| 거래소 세션 메타데이터 | `script-backed` | GET | `/api/stockSecurity/exchanges/sessions?exchanges=krx&exchanges=nxt`. `home.py trading-sessions` (`exchanges[].zoneId`, `markets[]`) |
+| 오늘 증시 캘린더·뉴스홈 | `script-backed` | GET | `/api/marketCalendars/v1/events/today` (`home.py calendar-today`), `/api/news/home` (`home.py news-home`) |
+| 증시 캘린더 조회 (주간/개요/검색) | `observed` | POST | `/api/marketCalendars/v1/{weekly-summary\|overview\|events/search}` (`READ_ONLY_POST_PATHS` 허용) |
+| 해외 거래소 운영시간 | `script-backed` | GET | `/api/foreign/operatingTime/exchange/{NASDAQ\|SHANGHAI|HONG_KONG|TOKYO|HANOI}` |
 | 홈 공개 숏텐츠 | `script-backed` | GET | `/api/shorttents?source=pc.npay_finhome&type=compact&category_first=증권&nscs=0` |
-| 머니스토리 | `script-backed` | GET | `/api/content/moneyStory?mainCategoryIdList={id}&subCategoryIdList={id}&sort=id%2Cdesc&size={size}`. `subCategoryIdList`와 `sort`는 선택적이며 가상자산 홈에서 각각 `97`, `id,desc`를 사용 |
-| 통합 지표 | `script-backed` | GET | `/api/securityService/integration/indicators?indicatorCodes={codes}` |
+| 머니스토리 | `script-backed` | GET | `/api/content/moneyStory?mainCategoryIdList={id}&subCategoryIdList={id}&sort=displayAt%2Cdesc&size={size}`. `subCategoryIdList`와 `--sort`는 선택적 |
+| 통합 지표 | `script-backed` | GET | `/api/securityService/integration/indicators?indicatorCodes={codes}` (선택 `additionalInfo=KOSPI_KOSDAQ`) |
 | 유형별 통합 지표 v1 | `script-backed` | GET | `/api/securityService/integration/v1/indicators?domesticIndexCodes=KOSPI&foreignIndexCodes=.IXIC&includeBreadth=true&includeTrend=true`. `home.py indicators-v1`; [계약과 검증 범위](#유형별-통합-지표-v1) |
 | 국내·해외 주목 ETF | `script-backed` | GET | `/api/{domestic|foreign}/market/home/notableETF?orderType={type}&startIdx=0&pageSize=10`. 현재 UI enum은 국내 `amount_etf`, `up_etf`, `1week_earn_rate`, `dividend_earn_rate`, 해외 `priceTop`, `up`, `return1Month`, `dividend`입니다. 기본값은 각각 `amount_etf`, `up`이며 다른 국가의 enum은 보내지 않습니다. |
 | 중요 경제지표 | `script-backed` | GET | `/api/securityService/economic/indicator/nations/upcoming?gteImportance=3&limit=3&nationTypeList=KOR&nationTypeList=USA` |
@@ -85,19 +88,20 @@ KRX는 개장전 08:00~09:00, 정규장 09:00~15:30, 정규장 마감 15:30~16:0
 | 국내 지수 차트 메타 | `script-backed` | GET | `/api/securityFe/api/fchart/domestic/index/{reutersCode}` |
 | 국내 지수 폴링 | `script-backed` | GET | `/api/polling/domestic/index?itemCodes=KOSPI,KOSDAQ,KPI200` |
 | 지수 차트 | `script-backed` | GET | `/api/securityService/chart/domestic/index/{code}?periodType={day\|week\|month\|year}` |
+| 환율·국채 지표 차트 | `script-backed` | GET | `/api/securityService/chart/domestic/exchange/{code}?periodType=day`, `/api/securityService/chart/foreign/governmentBond/{code}?periodType=day` (`marketindex.py indicator-chart`) |
 | 해외 지수/선물 차트 | `script-backed` | GET | `/api/securityService/chart/foreign/{index\|futures}/{code}?periodType=day` |
 | 원자재/운임 지표 | `script-backed` | GET | `/api/securityService/marketindex/energy`, `/metals`, `/agricultural`, `/transport` |
 | 국내 금리 | `script-backed` | GET | `/api/securityService/marketindex/domesticInterest` |
-| 기타 지표 카테고리 | `script-backed` | GET | `/api/securityService/marketindex/exchange`, `/exchangeWorld`, `/bond`, `/standardInterest` 및 각 카테고리 상세 path. 2026-09-07 bare `/exchange`, `/bond`는 404; 아래 대안과 상세 경로를 구분 |
+| 기타 지표 카테고리 | `script-backed` | GET | `/api/securityService/marketindex/{exchangeWorld\|standardInterest}`(2026-11-18 bare `/standardInterest` 17건 200 복귀). bare `/exchange`, `/bond`는 여전히 404 |
 | 지표 상세 | `script-backed` | GET | `/api/securityService/marketindex/{energy\|metals\|agricultural\|transport\|domesticInterest\|exchange}/{reutersCode}` |
 | 지표 가격 이력 | `script-backed` | GET | `/api/securityService/marketindex/{energy\|metals\|agricultural\|transport\|exchange}/{reutersCode}/prices?page=1&pageSize=20` |
 | 지표 차트 메타 | `script-backed` | GET | `/api/securityFe/api/fchart/marketindex/{energy\|metals\|agricultural\|transport\|exchange}/{reutersCode}` |
-| 국가별 채권 | `script-backed` | GET | `/api/securityService/marketindex/bond/nation/{nationType}?sortType={sortType}` |
+| 국채 지원 국가·국가별 채권 | `script-backed` | GET | `/api/securityService/economic/bond/nations` (`marketindex.py bond-nations`), `/api/securityService/marketindex/bond/nation/{nationType}?sortType={sortType}` |
 | 기준금리 상세 | `script-backed` | GET | `/api/securityService/marketindex/standardInterest/{nationType}` |
 | 기준금리 달력 | `script-backed` | GET | `/api/securityService/marketindex/standardInterest/{nationType}/calendars?page=1&pageSize=20` |
 | 예정 경제지표 | `script-backed` | GET | `/api/securityService/economic/indicator/nations/upcoming?limit=10&nationTypeList=USA&nationTypeList=KOR`. 2026-07-09 재점검에서 파라미터 생략 또는 반복 `nationTypeList`는 동작했고, 단일 `nationTypeList=USA`는 400을 반환했습니다. |
 | 발표일별 경제지표 | `script-backed` | GET | `/api/securityService/economic/indicator/nations/releaseDate?page=1&pageSize=20&releaseDate={yyyyMMdd}` |
-| 환율 helper | `script-backed` | GET | `/api/stockDomestic/exchangeRates/list?currencies=USD,JPY` |
+| 환율 helper·환율 v2 최신 | `script-backed` | GET | `/api/stockDomestic/exchangeRates/list?currencies=USD,JPY`, `/api/stockSecurity/exchange-rates/v2/latest` (`marketindex.py exchange-rates-v2`, 57개 통화) |
 | 환율 목록 | `script-backed` | GET | `/api/domestic/exchange/List` |
 | 통화별 환율 시세 | `script-backed` | GET | `/api/domestic/exchange/{currency}/list?startIdx=0&pageSize=20` |
 | 은행 환율 요약 | `script-backed` | GET | `/api/securityService/marketindex/exchange/banksExchanges?bankType=HNB` |
@@ -123,7 +127,7 @@ KRX는 개장전 08:00~09:00, 정규장 09:00~15:30, 정규장 마감 15:30~16:0
 | --- | --- | ---: | --- |
 | 펀드 공통 상세 | `script-backed` | GET | `/api/fund/funds/{fundCode}/{left-panel\|chart-price-panel\|fund-performance\|fund-allocation}` |
 | 펀드 클래스 수익률·지표 | `script-backed` | GET | `/api/fund/funds/{fundCode}/classes/returns`, `/metrics/detail?term=1y` |
-| 펀드 가격·차트 | `script-backed` | GET | `/api/fund/funds/{fundCode}/prices/daily?date={yyyy-MM-dd}&size=10`, `/base-price/chart?term=3m` |
+| 펀드 가격·차트 | `script-backed` | GET | `/api/fund/funds/prices?fundCodes={codes}`(`fund.py prices`), `/api/fund/funds/{fundCode}/prices/daily?date={yyyy-MM-dd}&size=10`, `/base-price/chart?term=3m` |
 | 펀드 목록·테마 후보 | `needs-recheck` | GET | `/api/fund/funds?sort={sort}&page={page}&size={size}`, `/api/fund/funds/themes/{theme}?size={size}`. UI enum 미확정으로 스크립트 미노출 |
 
 실제 펀드 일별 가격의 첫 두 거래일 `2026-09-04`, `2026-09-03`에서 현재 [펀드 화면 코드](https://ssl.pstatic.net/imgstock/fn/real/pc/_next/static/chunks/app/domestic/fund/%5Bcode%5D/total/page-3048e128e644bdc4.js)대로 마지막 `tradeDate`에서 달력 하루를 빼 `date=2026-09-02&size=2`를 요청했습니다. 응답은 200이며 `09-02`, `09-01`로 전진했습니다. 다른 API의 포함·제외 날짜 경계에 이 계산을 그대로 적용하지 않습니다.

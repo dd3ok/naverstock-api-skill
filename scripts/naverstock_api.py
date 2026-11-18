@@ -33,6 +33,7 @@ PUBLIC_READ_PREFIXES = (
     "/api/content/",
     "/api/domestic/",
     "/api/foreign/",
+    "/api/marketcalendars/",
     "/api/polling/",
     "/api/securityai/",
     "/api/securityfe/",
@@ -42,13 +43,16 @@ PUBLIC_READ_PREFIXES = (
 )
 PUBLIC_READ_EXACT_PATHS = frozenset(
     {
+        "/api/autocomplete/opentalk/channelinfo",
         "/api/autocomplete/search",
         "/api/autocomplete/search/autocomplete",
+        "/api/fund/funds/prices",
         "/api/myasset/resources/invest/stock-floor",
         "/api/myasset/resources/invest/stock-invest-rate",
         "/api/myasset/resources/invest/stock-investor-age",
         "/api/myasset/resources/invest/stock-investor-rank",
         "/api/myasset/resources/invest/stock-trade",
+        "/api/news/home",
         "/api/shorttents",
     }
 )
@@ -67,6 +71,9 @@ _RESEARCH_VIEW_SIDE_EFFECT_PATH = re.compile(
 READ_ONLY_POST_PATHS = frozenset(
     {
         "/api/domestic/home/marketaggregate/aggregateinvestor",
+        "/api/marketcalendars/v1/events/search",
+        "/api/marketcalendars/v1/overview",
+        "/api/marketcalendars/v1/weekly-summary",
     }
 )
 
@@ -327,15 +334,19 @@ def _observed_failure_hint(path: str, status: int) -> str:
                 "It is not the same polling contract; .DXY is a different indicator."
             ),
         }.get(endpoint, "")
-    if status == 500:
+    if status in {400, 500}:
         if (
             re.fullmatch(r"/api/domestic/market/(?:upjong|theme|group)/[0-9]+/stocklist", endpoint)
-            and query.get("orderType") in (["sales"], ["operatingProfit"])
+            and (
+                query.get("orderType") in (["sales"], ["operatingProfit"])
+                or query.get("sortType") in (["sales"], ["operatingProfit"])
+            )
         ):
             return (
                 "This financial sort returned 500 in the 2026-09-07 audit. Current UI sorts are "
                 "marketSum, accAmount, up, down and accQuant. The requested sort was not changed."
             )
+    if status == 500:
         if (
             endpoint == "/api/foreign/market/home/notableETF"
             and query.get("orderType") == ["return1Month"]

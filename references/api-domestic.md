@@ -13,7 +13,9 @@
 | 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
 | 국내 주식 v3 목록 | `script-backed` | GET | `/api/stockSecurity/individual-stocks/v3/domestic?listingType=tradingValueDesc&exchangeType=consolidated&index=0&size=20`. `market_stock.py list-v3`, KRX/NXT 필드 보존 |
-| 국내 가격 스냅샷·일별 v2 | `script-backed` | GET | `/api/stockSecurity/items/v2/domestic/{code}/price-snapshot`, `/daily-prices?size=20&cursor={cursor}`. `stock_detail_pages.py price-snapshot`, `daily-prices-v2` |
+| 국내 저PBR 종목 v2 목록 | `script-backed` | GET | `/api/stockSecurity/items/v2/domestic?listingType=lowPbrListing&listingExchangeType={krx\|nxt\|consolidated}&index=0&size=20`. `market_stock.py low-pbr` |
+| 국내 가격 스냅샷·일별 v2 | `script-backed` | GET | `/api/stockSecurity/items/v2/domestic/{code}/price-snapshot`, `/daily-prices?size=20&cursor={cursor}`, `/daily-prices/paged?index=0&size=20`. `stock_detail_pages.py price-snapshot`, `daily-prices-v2`, `daily-prices-paged` |
+| 종목 v2 호가·거래원·투자자동향·어닝콜 | `script-backed` | GET | `/api/stockSecurity/items/v2/domestic/{code}/{order-book?depth=10\|broker-trades}`, `/api/stockSecurity/investor-trend/v2/domestic/{code}`(`?exchangeType=all&size=20&cursor=`), `/paged?exchangeType=all&index=0&size=10`, `/api/stockSecurity/earning-calls/v1/{code}` |
 | 공모주 상세·정보 | `script-backed` | GET | `/api/domestic/ipo/{ipoCode}/detail`, `/detail/info`. `market_stock.py ipo-detail`, `ipo-info`. A접두사 유지 |
 | 종목 profile v2 | `needs-recheck` | GET | `/api/stockSecurity/items/v2/domestic/{code}/profile`. 정적 관찰만, 공통 profile 경계로 요청 전 차단. CLI 미지원 |
 | 종목 상세 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/detail?codeType=KRX` 또는 `NXT` |
@@ -46,11 +48,11 @@
 | 상장 진행 중 | `script-backed` | GET | `/api/domestic/market/ipo/progress?startIdx=0&pageSize=101` |
 | 상장 완료 | `script-backed` | GET | `/api/domestic/market/ipo/progress?IpoProgressType=LISTING&startIdx=0&pageSize=100` |
 | 업종/테마 랭킹 | `script-backed` | GET | `/api/domestic/home/upjongTheme/ranking?sortType=changeRate` |
-| 업종/테마/그룹사 랭킹 목록 | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/list?startIdx=0&pageSize=100&sortType=changeRate` |
+| 업종/테마/그룹사 랭킹 목록 | `script-backed` | GET | `2026-11-18` 기존 `/api/domestic/market/{upjong\|theme\|group}/list` 404 HTML 전환 → `category_detail.py`가 `/api/stockSecurity/rankings/v2/domestic/{industries\|themes\|groups}` 사용 |
 | 국내 업종·테마·그룹 v2 랭킹 | `script-backed` | GET | `/api/stockSecurity/rankings/v2/domestic/{industries\|themes\|groups}?sortType={changeRate\|marketCap}&size=100&excludeCodes=25&period={daily\|weekly\|monthly}&cursor={cursor}`. `cursor`는 opaque 서버 값 |
 | 국내 업종·테마 전체 시가총액 | `script-backed` | GET | `/api/stockSecurity/rankings/v2/domestic/{industries\|themes}/total-market-cap` |
 | 업종/테마/그룹사 상세 정보 | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/{no}/info?marketType=ALL` |
-| 업종/테마/그룹사 구성 종목 | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/{no}/stocklist?marketType=ALL&orderType=quantTop&startIdx=0&pageSize=20` |
+| 업종/테마/그룹사 구성 종목 | `script-backed` | GET | `/api/domestic/market/{upjong\|theme\|group}/{no}/stocklist?sortType={tradingValue\|changeRate\|tradingVolume\|marketCap}&sortDirection={desc\|asc}&size=100` (`marketType`은 `KOSPI`/`KOSDAQ` 전용, `ALL` 시 생략; 응답 `{hasNext, items, cursor}`) |
 | 시장 집계 투자자 동향 | `script-backed` | POST | `/api/domestic/home/marketaggregate/aggregateInvestor`, JSON body는 `sections`, `tradeType`, `marketType`, `periodType`, 날짜를 포함합니다. `market_trend.py aggregate`의 `--start-date`·`--end-date`는 함께 지정하거나 모두 생략합니다. 한쪽 날짜·빈 날짜는 요청 전에 거절합니다. 출력 이상 또는 4xx가 있으면 현재 페이지에서 재확인합니다. |
 | 시장 집계 투자자 랭킹 | `observed` | POST | `/api/domestic/home/marketaggregate/aggregateInvestorRanking`. 2026-08-04 현재 페이지가 `Content-Type: application/json`, `credentials: include`로 호출하며 body는 `sections.{investorTrend,programTrend,foreignTop,orgTop}`에 `tradeType`, `marketType`, `periodType`, 날짜, `rankingType`, `side`, `startIdx=0`, `pageSize=10`을 구성합니다. 개인 식별 필드는 없지만 스크립트로는 아직 노출하지 않습니다. |
 | 투자자 예탁금 목록 | `script-backed` | GET | `/api/domestic/market/trendDeposit?startIdx=0&pageSize=20` |
@@ -74,7 +76,7 @@
 | ETF 배당 이력 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFDividendHist?startIdx=0&pageSize=20` |
 | ETF 구성 종목 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFComponent?startIdx=0&pageSize=20` |
 | ETF 테마 태그 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFTheme` |
-| ETF 자금 흐름 일/주 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFSumFlowDayList?count=20`, `/ETFSumFlowWeekList?count=20` |
+| ETF 자금 흐름 총괄·일/주 | `script-backed` | GET | `/api/domestic/detail/{itemCode}/ETFSumFlow` (`flow-sum`), `/ETFSumFlowDayList?count=20`, `/ETFSumFlowWeekList?count=20` |
 | 국내 ETN 목록 | `script-backed` | GET | `/api/domestic/market/etn?orderType=AMOUNT_ETN&startIdx=0&pageSize=20` |
 | 종목 인사이트 보유자 랭킹·가상 투자 | `script-backed` | GET | `/api/securityService/home/v3/mystock/ranking/{itemCode}`, `/api/securityService/home/v3/whatIf/{domestic\|worldstock}/{code}?periodType=year&range=5` |
 
@@ -104,6 +106,8 @@ KONEX 화면은 `marketType=KONEX&orderType=quantTop&tradeType=KRX` 조합만 �
 NXT 화면은 `marketSum`, `up`, `down`, `quantTop`, `searchTop`만 사용합니다. `market_stock.py`는 NXT와 그 밖의 랭킹 조합을 거절해 필터가 무시된 KRX 결과를 NXT 데이터로 오인하지 않게 합니다.
 
 `stock.naver.com/market/stock/kr/{industry|theme|groups}/{rank}` 페이지의 path 값은 현재 카테고리 `no`가 아니라 화면의 랭킹 순번입니다. 먼저 list API에서 현재 카테고리 `no`를 찾은 뒤 `info`와 `stocklist`를 호출합니다. API path는 `industry`에 `upjong`, `theme`에 `theme`, `groups`에 `group`을 사용합니다. `/industry/1`의 `1`은 페이지 rank이며 실제 카테고리 `no`와 다를 수 있습니다.
+
+2026-11-18 재점검에서 `/api/domestic/market/{upjong|theme|group}/list`는 404 HTML로 바뀌었고, 현재 화면과 `category_detail.py`는 `/api/stockSecurity/rankings/v2/domestic/{industries|themes|groups}`와 `/stocklist?sortType={tradingValue|changeRate|tradingVolume|marketCap}&sortDirection={desc|asc}&size=...`를 사용합니다(`marketType=ALL` 생략, `sales`/`operatingProfit` 400). 또한 `/market/stock/kr/etf/*` 전체 목록 UI도 v3(`/api/stockSecurity/etfs/v3/domestic`)를 사용합니다.
 
 2026-09-07 현재 업종 화면의 정렬 chip은 `marketSum`, `accAmount`, `up`, `down`, `accQuant` 5개이며 `accQuant -> quantTop`, `accAmount -> priceTop`으로 매핑됩니다. [현재 공통 요청 함수](https://ssl.pstatic.net/imgstock/fn/real/pc/_next/static/chunks/21546-69c5522fc70c96ac.js)는 `sales`, `operatingProfit`도 그대로 매핑하지만 추가 필수 query나 대체 enum은 없습니다. 현재 list에서 얻은 업종·테마·그룹사 `no`로 `marketType=ALL&startIdx=0&pageSize=2`를 사용했을 때 이 두 정렬은 세 유형 모두 500으로 실패했고, 나머지 5개 정렬은 200이었습니다. 금융 항목은 표의 열에도 나타나지만 현재 정렬 chip에는 없으므로 정상 지원 정렬로 권하지 않습니다. `category_detail.py`의 호환 입력은 유지하며 오류를 빈 목록이나 다른 정렬 결과로 바꾸지 않습니다.
 

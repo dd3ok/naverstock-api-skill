@@ -116,11 +116,29 @@ def fetch_operating_time(args: argparse.Namespace) -> Any:
     return request_json(f"/api/foreign/operatingTime/exchange/{args.exchange}")
 
 
-def fetch_exchange_sessions(args: argparse.Namespace) -> Any:
-    exchanges = args.exchange or ["krx", "nxt"]
+def _validated_session_exchanges(raw_exchanges: list[str] | None, *, command: str) -> list[str]:
+    exchanges = raw_exchanges or ["krx", "nxt"]
     if len(exchanges) > len(SESSION_EXCHANGES) or any(x not in SESSION_EXCHANGES for x in exchanges):
-        raise ValueError("exchange-sessions accepts 1-9 supported exchanges")
+        raise ValueError(f"{command} accepts 1-9 supported exchanges")
+    return exchanges
+
+
+def fetch_exchange_sessions(args: argparse.Namespace) -> Any:
+    exchanges = _validated_session_exchanges(args.exchange, command="exchange-sessions")
     return request_json(build_path("/api/stockSecurity/exchanges/market-status", {"exchanges": exchanges}))
+
+
+def fetch_trading_sessions(args: argparse.Namespace) -> Any:
+    exchanges = _validated_session_exchanges(args.exchange, command="trading-sessions")
+    return request_json(build_path("/api/stockSecurity/exchanges/sessions", {"exchanges": exchanges}))
+
+
+def fetch_calendar_today(_: argparse.Namespace) -> Any:
+    return request_json("/api/marketCalendars/v1/events/today")
+
+
+def fetch_news_home(_: argparse.Namespace) -> Any:
+    return request_json("/api/news/home")
 
 
 def fetch_market_briefing(args: argparse.Namespace) -> Any:
@@ -164,12 +182,23 @@ def fetch_shorttents(args: argparse.Namespace) -> Any:
     )
 
 
+def _sort_token(value: str) -> str:
+    clean = value.strip()
+    if not re.fullmatch(r"[A-Za-z0-9_,.-]{1,64}", clean):
+        raise argparse.ArgumentTypeError("sort must be 1-64 safe sort characters")
+    return clean
+
+
 def fetch_money_story(args: argparse.Namespace) -> Any:
     category_ids = args.main_category_id or [1]
     return request_json(
         build_path(
             "/api/content/moneyStory",
-            {"mainCategoryIdList": category_ids, "size": args.size},
+            {
+                "mainCategoryIdList": category_ids,
+                "size": args.size,
+                "sort": getattr(args, "sort", None),
+            },
         )
     )
 
@@ -178,7 +207,10 @@ def fetch_indicators(args: argparse.Namespace) -> Any:
     return request_json(
         build_path(
             "/api/securityService/integration/indicators",
-            {"indicatorCodes": args.indicator_codes},
+            {
+                "indicatorCodes": args.indicator_codes,
+                "additionalInfo": getattr(args, "additional_info", None),
+            },
         )
     )
 
@@ -286,6 +318,26 @@ def main() -> None:
     add_output(sessions)
     sessions.set_defaults(func=fetch_exchange_sessions)
 
+    trading_sessions = sub.add_parser(
+        "trading-sessions", help="Current exchange trading sessions metadata (v1 sessions endpoint)"
+    )
+    trading_sessions.add_argument(
+        "--exchange",
+        choices=SESSION_EXCHANGES,
+        action="append",
+        help="Repeat up to nine times; omitted selects krx and nxt",
+    )
+    add_output(trading_sessions)
+    trading_sessions.set_defaults(func=fetch_trading_sessions)
+
+    calendar_today = sub.add_parser("calendar-today", help="Today's market calendar events")
+    add_output(calendar_today)
+    calendar_today.set_defaults(func=fetch_calendar_today)
+
+    news_home = sub.add_parser("news-home", help="Home news and disclosure feed")
+    add_output(news_home)
+    news_home.set_defaults(func=fetch_news_home)
+
     operating_time = sub.add_parser("operating-time", help="Foreign exchange operating time")
     operating_time.add_argument(
         "--exchange",
@@ -338,11 +390,13 @@ def main() -> None:
         action="append",
     )
     money_story.add_argument("--size", type=_bounded_integer("size", 1, 100), default=3)
+    money_story.add_argument("--sort", type=_sort_token, help="Optional sort expression, e.g. displayAt,desc")
     add_output(money_story)
     money_story.set_defaults(func=fetch_money_story)
 
     indicators = sub.add_parser("indicators", help="Integrated home-page market indicators")
     indicators.add_argument("--indicator-codes", type=_indicator_codes, default=DEFAULT_INDICATORS)
+    indicators.add_argument("--additional-info", choices=["KOSPI_KOSDAQ"])
     add_output(indicators)
     indicators.set_defaults(func=fetch_indicators)
 
@@ -423,7 +477,7 @@ def main() -> None:
     if args.command == "notable-etf" and args.nation == "domestic":
         if args.large_code is not None or args.middle_code is not None:
             parser.error("--large-code and --middle-code require --nation foreign")
-    if args.command in ("market-status", "exchange-sessions", "indicators-v1"):
+    if args.command in ("market-status", "exchange-sessions", "trading-sessions", "indicators-v1"):
         try:
             result = args.func(args)
         except (ValueError, argparse.ArgumentTypeError) as exc:

@@ -32,6 +32,7 @@ ETF_DETAIL_TYPES = {
     "dividend-hist": "ETFDividendHist",
     "component": "ETFComponent",
     "theme": "ETFTheme",
+    "flow-sum": "ETFSumFlow",
     "flow-day": "ETFSumFlowDayList",
     "flow-week": "ETFSumFlowWeekList",
 }
@@ -71,11 +72,69 @@ def fetch_price_snapshot(args: argparse.Namespace) -> Any:
     return request_json(f"/api/stockSecurity/items/v2/domestic/{normalize_item_code(args.code)}/price-snapshot")
 
 
+def _bounded_int(name: str, minimum: int, maximum: int) -> Any:
+    def parse(value: str) -> int:
+        try:
+            return bounded_int(value, name=name, minimum=minimum, maximum=maximum)
+        except ValueError as exc:
+            raise argparse.ArgumentTypeError(str(exc)) from exc
+
+    return parse
+
+
 def fetch_daily_prices_v2(args: argparse.Namespace) -> Any:
     return request_json(build_path(
         f"/api/stockSecurity/items/v2/domestic/{normalize_item_code(args.code)}/daily-prices",
         {"size": args.size, "cursor": args.cursor},
     ))
+
+
+def fetch_daily_prices_paged(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            f"/api/stockSecurity/items/v2/domestic/{normalize_item_code(args.code)}/daily-prices/paged",
+            {"index": args.index, "size": args.size},
+        )
+    )
+
+
+def fetch_order_book_v2(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            f"/api/stockSecurity/items/v2/domestic/{normalize_item_code(args.code)}/order-book",
+            {"depth": args.depth},
+        )
+    )
+
+
+def fetch_broker_trades_v2(args: argparse.Namespace) -> Any:
+    return request_json(
+        f"/api/stockSecurity/items/v2/domestic/{normalize_item_code(args.code)}/broker-trades"
+    )
+
+
+def fetch_investor_trend_v2(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            f"/api/stockSecurity/investor-trend/v2/domestic/{normalize_item_code(args.code)}",
+            {"exchangeType": args.exchange_type, "size": args.size, "cursor": args.cursor},
+        )
+    )
+
+
+def fetch_investor_trend_paged(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            f"/api/stockSecurity/investor-trend/v2/domestic/{normalize_item_code(args.code)}/paged",
+            {"exchangeType": args.exchange_type, "index": args.index, "size": args.size},
+        )
+    )
+
+
+def fetch_earning_calls(args: argparse.Namespace) -> Any:
+    return request_json(
+        f"/api/stockSecurity/earning-calls/v1/{normalize_item_code(args.code)}"
+    )
 
 
 def fetch_hoga(args: argparse.Namespace) -> Any:
@@ -230,6 +289,45 @@ def main() -> None:
     daily_v2.add_argument("--cursor", type=validate_page_cursor)
     daily_v2.add_argument("--output")
     daily_v2.set_defaults(func=fetch_daily_prices_v2)
+
+    daily_paged = sub.add_parser("daily-prices-paged", help="Indexed daily prices (v2 paged)")
+    daily_paged.add_argument("--code", type=normalize_item_code, required=True)
+    daily_paged.add_argument("--index", type=_bounded_int("index", 0, 10_000), default=0)
+    daily_paged.add_argument("--size", type=_bounded_int("size", 1, 100), default=20)
+    daily_paged.add_argument("--output")
+    daily_paged.set_defaults(func=fetch_daily_prices_paged)
+
+    order_book_v2 = sub.add_parser("order-book-v2", help="Current v2 order book")
+    order_book_v2.add_argument("--code", type=normalize_item_code, required=True)
+    order_book_v2.add_argument("--depth", type=_bounded_int("depth", 1, 20), default=10)
+    order_book_v2.add_argument("--output")
+    order_book_v2.set_defaults(func=fetch_order_book_v2)
+
+    broker_trades_v2 = sub.add_parser("broker-trades-v2", help="Current v2 broker trades")
+    broker_trades_v2.add_argument("--code", type=normalize_item_code, required=True)
+    broker_trades_v2.add_argument("--output")
+    broker_trades_v2.set_defaults(func=fetch_broker_trades_v2)
+
+    investor_v2 = sub.add_parser("investor-trend-v2", help="Current v2 cursor investor trend")
+    investor_v2.add_argument("--code", type=normalize_item_code, required=True)
+    investor_v2.add_argument("--exchange-type", choices=("all", "krx", "nxt"), default="all")
+    investor_v2.add_argument("--size", type=_bounded_int("size", 1, 100), default=20)
+    investor_v2.add_argument("--cursor", type=validate_page_cursor)
+    investor_v2.add_argument("--output")
+    investor_v2.set_defaults(func=fetch_investor_trend_v2)
+
+    investor_paged = sub.add_parser("investor-trend-paged", help="Current v2 indexed investor trend")
+    investor_paged.add_argument("--code", type=normalize_item_code, required=True)
+    investor_paged.add_argument("--exchange-type", choices=("all", "krx", "nxt"), default="all")
+    investor_paged.add_argument("--index", type=_bounded_int("index", 0, 10_000), default=0)
+    investor_paged.add_argument("--size", type=_bounded_int("size", 1, 100), default=10)
+    investor_paged.add_argument("--output")
+    investor_paged.set_defaults(func=fetch_investor_trend_paged)
+
+    earning_calls = sub.add_parser("earning-calls", help="Domestic stock earning call summary")
+    earning_calls.add_argument("--code", type=normalize_item_code, required=True)
+    earning_calls.add_argument("--output")
+    earning_calls.set_defaults(func=fetch_earning_calls)
 
     for name, help_text, func in [
         ("price", "Current price payload for the stock price tab", fetch_price),

@@ -35,10 +35,18 @@ python3 scripts/stock_detail_pages.py invest-poll --code 005930
 python3 scripts/stock_detail_pages.py invest-resource --code 005930 invest-rate --size 10
 python3 scripts/stock_insights.py holder-ranking --asset-type domestic --code 005930
 python3 scripts/stock_insights.py what-if --asset-type worldstock --code NVDA.O
+python3 scripts/stock_detail_pages.py price-snapshot --code 005930
+python3 scripts/stock_detail_pages.py daily-prices-paged --code 005930 --index 0 --size 20
+python3 scripts/stock_detail_pages.py order-book-v2 --code 005930 --depth 10
+python3 scripts/stock_detail_pages.py broker-trades-v2 --code 005930
+python3 scripts/stock_detail_pages.py investor-trend-paged --code 005930 --exchange-type all --index 0 --size 10
+python3 scripts/stock_detail_pages.py earning-calls --code 005930
 python3 scripts/stock_detail_pages.py finance-menu --code 005930
 python3 scripts/stock_detail_pages.py finance-esg --code 005930
 python3 scripts/stock_detail_pages.py etf-detail --code 069500 base
+python3 scripts/stock_detail_pages.py etf-detail --code 069500 flow-sum
 python3 scripts/stock_detail_pages.py etf-detail --code 069500 component --page-size 10
+python3 scripts/market_stock.py low-pbr --exchange-type krx --index 0 --size 20
 python3 scripts/market_stock.py ranking market-cap --page-size 10
 python3 scripts/market_stock.py ranking market-cap --market-type KOSPI --page-size 20
 python3 scripts/market_stock.py ranking volume --market-type KONEX --page-size 20
@@ -92,19 +100,24 @@ python3 scripts/foreign_stock.py stocks --nation usa --trade-type NSQ --page-siz
 python3 scripts/foreign_stock.py sectors --nation jpn
 python3 scripts/foreign_stock.py sector-stocks --nation usa --industry-code 55501040 --page-size 10
 python3 scripts/foreign_stock.py sector-detail --nation usa --industry-code 52407020
+python3 scripts/foreign_stock.py sector-items-v2 --nation usa --industry-code 52407020 --order-type priceTop --size 10
 python3 scripts/foreign_stock.py etfs --order-type marketValue --page-size 10
 python3 scripts/foreign_stock.py stock-basic --code NVDA.O
 python3 scripts/foreign_stock.py stock-prices --code NVDA.O --page 1 --page-size 10
 python3 scripts/foreign_stock.py finance --code NVDA.O --section overview
 python3 scripts/foreign_stock.py finance --code NVDA.O --section income --period quarter
 python3 scripts/foreign_stock.py stock-world-news --code NVDA.O --page 1 --page-size 10
+python3 scripts/foreign_stock.py stock-world-news-v1 --code NVDA.O --size 10
 python3 scripts/foreign_stock.py stock-local-news --code NVDA.O --page 1 --page-size 10
 python3 scripts/foreign_stock.py index-constituents --code .IXIC --page 1 --page-size 10
+python3 scripts/foreign_stock.py futures-basic --code EScv1
+python3 scripts/foreign_stock.py futures-prices --code EScv1 --page 1 --page-size 20
 python3 scripts/foreign_stock.py etf-composition --code VOO
-python3 scripts/foreign_stock.py chart-meta --asset-type index --code .IXIC
+python3 scripts/foreign_stock.py chart-meta --asset-type futures --code EScv1
 python3 scripts/foreign_stock.py poll stock --code NVDA.O --code TSLA.O
 python3 scripts/foreign_stock.py poll futures --code EScv1 --code NQcv1
 python3 scripts/fund.py left-panel --code K55105B00244
+python3 scripts/fund.py prices --code K55301B35070
 python3 scripts/fund.py base-price-chart --code K55105B00244 --term 3m
 python3 scripts/fund.py daily-prices --code K55105B00244 --date 2026-08-13 --size 10
 ```
@@ -116,6 +129,9 @@ python3 scripts/home.py market-info --trade-type KRX
 python3 scripts/home.py market-status
 python3 scripts/home.py market-status --exchange krx --exchange nxt
 python3 scripts/home.py exchange-sessions --exchange krx --exchange nxt --exchange shenzhen
+python3 scripts/home.py trading-sessions --exchange krx --exchange nxt
+python3 scripts/home.py calendar-today
+python3 scripts/home.py news-home
 python3 scripts/home.py operating-time --exchange NASDAQ
 python3 scripts/home.py market-briefing
 python3 scripts/home.py market-briefing-list --api-version v2 --date 2026-09-04 --size 10
@@ -176,6 +192,10 @@ python3 scripts/marketindex.py category --category exchangeWorld
 python3 scripts/marketindex.py economic-upcoming --limit 5
 python3 scripts/marketindex.py economic-upcoming --limit 5 --nation-type USA --nation-type KOR
 python3 scripts/marketindex.py exchange-rates --currencies USD,JPY
+python3 scripts/marketindex.py exchange-rates-v2
+python3 scripts/marketindex.py bond-nations
+python3 scripts/marketindex.py indicator-chart --category exchange --code FX_USDKRW --period-type day
+python3 scripts/marketindex.py indicator-chart --category government-bond --code US10YT=RR --period-type day
 python3 scripts/marketindex.py exchange-list
 python3 scripts/marketindex.py exchange-prices --currency USD --page-size 20
 python3 scripts/marketindex.py bank-exchanges --bank-type HNB
@@ -211,14 +231,19 @@ python3 scripts/crypto.py expert-contents --page-size 10
 python3 scripts/crypto.py market-updates-overview --page-size 9
 python3 scripts/crypto.py coinmacro-news --page 1 --page-size 10
 python3 scripts/crypto.py coin-briefing --ticker BTC --exchange-type UPBIT
+python3 scripts/crypto.py rank-search --market UPBIT --page 1 --page-size 100
+python3 scripts/crypto.py overview-briefing
+python3 scripts/crypto.py foreign-interval-chart --asset-type INDEX --exchange CBOE --code .VIX --interval 5 --start-date-time 20261111000000 --end-date-time 20261118235959 --no-utc
 ```
 
 ## 뉴스와 리서치
 
 ```bash
+python3 scripts/news.py home-feed
 python3 scripts/news.py list --category MAINNEWS
 python3 scripts/news.py notice  # 날짜 생략 시 최근 3개월
 python3 scripts/news.py world-news --page-size 10
+python3 scripts/news.py world-news-v1 --size 15
 python3 scripts/news.py world-news --page-size 10 --date "{YYYYMMDD}"
 python3 scripts/news.py world-detail --article-id 2580641
 python3 scripts/news.py aggregate --main-news-size 3 --notice-size 3
@@ -238,6 +263,7 @@ python3 scripts/research.py broker-list
 python3 scripts/research.py by-items --item-code 005930 --item-code 000660 --size 3
 python3 scripts/research.py goal-price-changed --direction up --size 10
 python3 scripts/research.py analysis-focus
+python3 scripts/research.py industries
 python3 scripts/research.py detail --category COMPANY --research-id "{RESEARCH_ID}"
 # 아래 v1 호환 명령 5종(카테고리 4개 포함 8경로)은 2026-09-07 HTTP 404 확인.
 # 현재 자료 조회에는 위 v2 명령을 사용하며, 실패를 빈 목록으로 해석하지 않습니다.
@@ -248,6 +274,8 @@ python3 scripts/research.py v1-by-items --item-codes 005930 --item-codes 000660 
 python3 scripts/research.py v1-analysis-focus
 python3 scripts/discussion.py hot-home --page-size 10
 python3 scripts/discussion.py hot --page-size 50
+python3 scripts/discussion.py topics
+python3 scripts/discussion.py recommended-topic-posts --page-size 20
 python3 scripts/discussion.py feed --page-size 50
 python3 scripts/discussion.py market-feed --discussion-group-type exchange --page-size 60
 python3 scripts/discussion.py post --post-id 418462889
@@ -258,6 +286,7 @@ python3 scripts/discussion.py global-community --ticker BTC --page-size 30
 python3 scripts/discussion.py stats-by-items --start-date "{YYYY-MM-DD}" --domestic-codes 005930 --domestic-codes 000660
 python3 scripts/discussion.py rankings --page-size 10
 python3 scripts/discussion.py rankings --nation-type KOR --post-type HOT --page-size 10
+python3 scripts/discussion.py rankings-with-stats --nation-type KOR --page 1 --page-size 5 --post-type HOT
 ```
 
 기존 `recent-popular`, `category-latest`, `aggregate-static` 명령은 각각 `weekly-hot`, `latest`, `home`의 호환 alias로 유지됩니다. `home`의 `partial: true`와 `unavailable` 섹션은 API 실패를 뜻하며 빈 자료와 구분합니다.

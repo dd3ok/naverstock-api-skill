@@ -34,8 +34,9 @@
 | 뉴스포커스 해외증시 (`/news/section`, `global-market`) | `script-backed` | GET | `/api/domestic/news/focus?sid=403&page=1&pageSize=15`. 2026-08-13에는 정상 데이터 확인 |
 | 뉴스 검색 | `script-backed` | GET | `/api/domestic/news/search?query=반도체&page=1&pageSize=20`. 현재 연결된 독립 검색 page route는 확인되지 않아 helper의 기존 저용량 기본을 유지 |
 | 시장 공시/공지 뉴스 | `script-backed` | GET | `/api/domestic/news/noticeList?page=1&pageSize=15&startDate={3개월전 yyyyMMdd}&endDate={오늘 yyyyMMdd}&keyword={keyword}&typeIdx={idx}` |
-| 해외뉴스 목록 (`/news/worldnews`) | `script-backed` | GET | `/api/foreign/news/worldNews?page=1&pageSize=15&date={yyyyMMdd}`. Reuters/해외 시장 뉴스 목록입니다. |
+| 해외뉴스 목록 (`/news/worldnews`) | `script-backed` | GET | `/api/foreign/news/worldNews?page=1&pageSize=15&date={yyyyMMdd}`, `/api/foreign/news/v1/foreign?size=15&cursor={cursor}` (`news.py world-news-v1`) |
 | 해외뉴스 상세 (`/news/worldnews/{aid}`) | `script-backed` | GET | `/api/foreign/news/worldNews/{aid}` |
+| 뉴스 홈 피드 | `script-backed` | GET | `/api/news/home` (`news.py home-feed`, `home.py news-home`) |
 | 뉴스 홈 집계 | `script-backed` | GET | `/api/domestic/news/aggregate/home?flashNewsSize=4&mainNewsSize=6&rankingNewsSize=5&overseasNewsSize=5&focusSize=5&moneyStorySize=20&noticeSize=5` |
 
 관찰된 목록 카테고리는 `MAINNEWS`, `FLASHNEWS`, `RANKNEWS`입니다. CLI는 기존 소문자 입력을 대문자로 정규화하되 현재 UI 값을 전송합니다. `stock`, `market`, `all` 같은 임의 값은 거절합니다.
@@ -62,7 +63,7 @@
 | 주간 인기 | `script-backed` | GET | `/api/stockSecurity/researches/v2/weekly-hot?startDate={yyyy-MM-dd}&size=10`. `startDate` 생략은 400이며 CLI 기본은 현재 UI처럼 7일 전 |
 | 카테고리별 최신 | `script-backed` | GET | `/api/stockSecurity/researches/v2/latestResearch?size=3` |
 | 목표주가 변경 | `script-backed` | GET | `/api/stockSecurity/researches/v2/company/goal-price-changed?direction={up\|down}&size=10` |
-| 분석 포커스 | `script-backed` | GET | `/api/stockSecurity/researches/v2/analysis-focus` |
+| 분석 포커스·산업 목록 | `script-backed` | GET | `/api/stockSecurity/researches/v2/analysis-focus`, `/api/stockSecurity/researches/v2/industry/industries` (`research.py industries`) |
 | 랭킹 | `script-backed` | GET | `/api/domestic/research/ranking?rankingType={type}&selectedRank={rank}` |
 | 증권사 목록 | `script-backed` | GET | `/api/stockSecurity/researches/v2/brokers` |
 | v1 리서치 카테고리 목록(명시적 호환) | `script-backed` | GET | `/api/stockSecurity/researches/v1/{company\|industry\|invest\|economy}?index=0&size=15`. 2026-09-07 4개 경로 모두 HTTP 404 |
@@ -102,7 +103,9 @@ v1 8개 경로는 CLI 명령이 남아 있어 `script-backed`로 표시하지만
 | 최신 종목 글 | `observed` | GET | `/api/community/discussion/items/posts/latest?domesticCodes={codes}&limit=10` |
 | 댓글 수 | `observed` | GET | `/api/community/discussion/posts/comment-counts?postIds={ids}` |
 | 반응 조회 | `observed` | GET | `/api/community/discussion/posts/reactions?postIds={ids}` |
-| 랭킹 | `script-backed` | GET | `/api/community/discussion/rankings?nationType={KOR\|USA}&page=1&size=20&postType=HOT` |
+| 랭킹·통계 포함 랭킹 | `script-backed` | GET | `/api/community/discussion/rankings?nationType={KOR\|USA}&page=1&size=20&postType=HOT`, `/rankings/with-stats?nationType=KOR&page=1&size=5&postType=HOT` (`discussion.py rankings-with-stats`) |
+| 토론 토픽·추천 글 | `script-backed` | GET | `/api/community/discussion/topics` (`discussion.py topics`), `/topics/posts/recommended?pageSize=20&cursor={cursor}` (`recommended-topic-posts`) |
+| 오픈톡 채널 메타 | `observed` | GET | `/api/autocomplete/opentalk/channelInfo?code={code}` |
 | 종목 통계 | `script-backed` | GET | `/api/community/discussion/stats/by-items?startDate={yyyy-MM-dd}&domesticCodes={codes}&foreignCodes={codes}`. 2026-07-09 기준 `startDate`가 필요하고, legacy `itemCodes`만 보내는 호출은 400을 반환했습니다. |
 
 작성, 프로필 편집, 이미지 업로드, 닉네임 검증/추천, 반응 mutation, 인증된 커뮤니티 프로필 워크플로는 피합니다.
