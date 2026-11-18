@@ -8,7 +8,7 @@ import calendar
 from datetime import date
 from typing import Any
 
-from naverstock_api import bounded_int, build_path, emit_output, render_json, request_json
+from naverstock_api import bounded_int, build_path, emit_output, render_json, request_json, validate_page_cursor
 
 
 NEWS_CATEGORIES = ("MAINNEWS", "FLASHNEWS", "RANKNEWS")
@@ -124,6 +124,16 @@ def fetch_world_detail(args: argparse.Namespace) -> Any:
     return request_json(f"/api/foreign/news/worldNews/{args.article_id}")
 
 
+def fetch_world_news_v1(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path("/api/foreign/news/v1/foreign", {"size": args.size, "cursor": args.cursor})
+    )
+
+
+def fetch_home_feed(_: argparse.Namespace) -> Any:
+    return request_json("/api/news/home")
+
+
 def fetch_aggregate(args: argparse.Namespace) -> Any:
     return request_json(
         build_path(
@@ -212,6 +222,16 @@ def main() -> None:
     )
     world_detail.add_argument("--output")
     world_detail.set_defaults(func=fetch_world_detail)
+
+    world_v1 = sub.add_parser("world-news-v1", help="Current v1 cursor-paged foreign market news")
+    world_v1.add_argument("--size", type=lambda v: bounded_int(v, name="size", minimum=1, maximum=100), default=15)
+    world_v1.add_argument("--cursor", type=validate_page_cursor)
+    world_v1.add_argument("--output")
+    world_v1.set_defaults(func=fetch_world_news_v1)
+
+    home_feed = sub.add_parser("home-feed", help="Home news and disclosure feed")
+    home_feed.add_argument("--output")
+    home_feed.set_defaults(func=fetch_home_feed)
 
     aggregate = sub.add_parser("aggregate", help="News home aggregate blocks",
                                description="News home blocks; each size has a local bound of 0-500.")

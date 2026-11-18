@@ -323,6 +323,33 @@ def fetch_rankings(args: argparse.Namespace) -> Any:
     )
 
 
+def fetch_topics(_: argparse.Namespace) -> Any:
+    return request_json("/api/community/discussion/topics")
+
+
+def fetch_recommended_topic_posts(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/community/discussion/topics/posts/recommended",
+            {"pageSize": args.page_size, "cursor": args.cursor},
+        )
+    )
+
+
+def fetch_rankings_with_stats(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/community/discussion/rankings/with-stats",
+            {
+                "nationType": args.nation_type,
+                "page": args.page,
+                "size": args.size,
+                "postType": args.post_type,
+            },
+        )
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -432,6 +459,30 @@ def main() -> None:
     rankings.add_argument("--post-type", choices=["HOT", "LATEST"], default="HOT")
     rankings.add_argument("--output")
     rankings.set_defaults(func=fetch_rankings)
+
+    topics = sub.add_parser("topics", help="Discussion topic categories")
+    topics.add_argument("--output")
+    topics.set_defaults(func=fetch_topics)
+
+    rec_topics = sub.add_parser(
+        "recommended-topic-posts",
+        help="Recommended discussion topic feed posts",
+    )
+    rec_topics.add_argument("--page-size", type=_page_size, default=20)
+    rec_topics.add_argument("--cursor", type=_cursor)
+    rec_topics.add_argument("--output")
+    rec_topics.set_defaults(func=fetch_recommended_topic_posts)
+
+    rankings_stats = sub.add_parser(
+        "rankings-with-stats",
+        help="Discussion rankings with 7-day stats and latest prices",
+    )
+    rankings_stats.add_argument("--nation-type", choices=["KOR", "USA"], default="KOR")
+    rankings_stats.add_argument("--page", type=_page, default=1)
+    rankings_stats.add_argument("--page-size", type=_page_size, default=5, dest="size")
+    rankings_stats.add_argument("--post-type", choices=["HOT", "LATEST"], default="HOT")
+    rankings_stats.add_argument("--output")
+    rankings_stats.set_defaults(func=fetch_rankings_with_stats)
 
     args = parser.parse_args()
     if args.command == "item-posts" and args.discussion_type == "IPO":

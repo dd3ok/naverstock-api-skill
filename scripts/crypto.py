@@ -109,6 +109,19 @@ def fetch_majors(args: argparse.Namespace) -> Any:
     return request_json(f"/api/coin/rank/{args.market}/majors")
 
 
+def fetch_rank_search(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            f"/api/stockSecurity/crypto/coin/rank/{args.market}/search",
+            {"page": args.page, "pageSize": args.page_size},
+        )
+    )
+
+
+def fetch_overview_briefing(_: argparse.Namespace) -> Any:
+    return request_json("/api/securityAi/coinOverviewBriefing/current")
+
+
 def fetch_price(args: argparse.Namespace) -> Any:
     if args.market:
         return request_json(f"/api/coin/price/{args.market}/{args.ticker}")
@@ -346,6 +359,17 @@ def main() -> None:
     majors.add_argument("--output")
     majors.set_defaults(func=fetch_majors)
 
+    rank_search = sub.add_parser("rank-search", help="Search-popularity crypto ranking (v2)")
+    rank_search.add_argument("--market", choices=["UPBIT", "BITHUMB"], default="UPBIT")
+    rank_search.add_argument("--page", type=_bounded_integer("page", 1, 1_000), default=1)
+    rank_search.add_argument("--page-size", type=_bounded_integer("page-size", 1, 100), default=100)
+    rank_search.add_argument("--output")
+    rank_search.set_defaults(func=fetch_rank_search)
+
+    overview_briefing = sub.add_parser("overview-briefing", help="Current AI crypto market overview briefing")
+    overview_briefing.add_argument("--output")
+    overview_briefing.set_defaults(func=fetch_overview_briefing)
+
     price = sub.add_parser("price", help="Single or multi-exchange crypto price")
     price.add_argument("--ticker", type=_ticker, default="BTC", help="Example: BTC")
     price.add_argument("--market", choices=["UPBIT", "BITHUMB"])
@@ -419,7 +443,7 @@ def main() -> None:
     interval.add_argument("--asset-type", choices=["INDEX", "FUTURES"], required=True)
     interval.add_argument(
         "--exchange",
-        choices=["NASDAQ", "NYSE", "COMEX", "ICE_US"],
+        choices=["NASDAQ", "NYSE", "CBOE", "COMEX", "ICE_US"],
         required=True,
         help="Exchange segment used by the public chart endpoint",
     )

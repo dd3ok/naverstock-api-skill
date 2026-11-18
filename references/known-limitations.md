@@ -1,20 +1,20 @@
 # 알려진 제한과 검증 범위
 
-기준일: 2026-09-07 후속 실검증. 상태는 아래 요청 조건에 한정하며 네이버의 영구 지원 계약이 아닙니다. HTTP 200, 올바른 상품·필터 결과, 페이징 완료, 수치 정확성은 별도 판정입니다.
+기준일: 2026-11-18 전범위 브라우저·정적 chunk·무인증 실검증 반영 (이전 기록: 2026-09-16, 2026-09-07). 상태는 아래 요청 조건에 한정하며 네이버의 영구 지원 계약이 아닙니다. HTTP 200, 올바른 상품·필터 결과, 페이징 완료, 수치 정확성은 별도 판정입니다.
 
-2026-09-16 후속 점검에서 확인한 새 목록·세션·가격·공모주·리서치 계약의 성공 표본은 아래 기존 실패 조건을 해제하지 않습니다. 모든 상품·기간·필터 조합과 전체 이력 종료는 검증하지 않았습니다. 새 종목 profile은 공통 차단으로 요청 전 거부되어 미지원이며, NXT 원시 차트·일부 외부/내부 UI 분기는 미검증 상태를 유지합니다.
+2026-11-18 후속 점검에서는 `/api/domestic/market/{upjong|theme|group}/list`가 404 HTML을 반환해 `category_detail.py`를 `/api/stockSecurity/rankings/v2/domestic/{industries|themes|groups}` 및 Zod `stocklist` 계약(`sortType`/`sortDirection`/`size`, `marketType` KOSPI/KOSDAQ 전용, `{items}`)으로 전환했습니다. 같은 날 bare `/api/securityService/marketindex/standardInterest` 200, `/api/stockSecurity/etfs/v2/foreign?sortType=return1Month` 200, `/api/community/discussion/posts?itemCode=005930` 200 응답, `/api/foreign/market/home/notableETF` 404를 확인했습니다. 모든 상품·기간·필터 조합과 전체 이력 종료는 검증하지 않았습니다. 새 종목 profile은 공통 차단으로 요청 전 거부되어 미지원이며, NXT 원시 차트·일부 외부/내부 UI 분기는 미검증 상태를 유지합니다.
 
 ## 실패 또는 의미 불일치가 확인된 조건
 
 | 조건 | 관찰 및 처리 | 사용 방법 |
 | --- | --- | --- |
-| 일반 토론 `/posts?itemCode=005930&pageSize=2` | 200이지만 다른 종목 `005380`, `028300` 반환. 공통 요청 helper는 이 잘못된 필터를 네트워크 요청 전에 거부 | `discussion.py item-posts --item-code 005930 --page-size 2`. 기존 `feed` 명령은 원래 종목 옵션을 받지 않았으며 전용 명령도 이미 `/posts/by-item` 사용 |
-| 리서치 v1 8개 경로 | 앞선 감사에서 모두 404, 후속 company 재현도 404. 실패 시 v2 명령 안내 | `research.py category`, `broker-list`, `latest`, `by-items`, `analysis-focus`. v1 `index=0`은 v2 CLI `--page 1`; 옵션·응답 차이 확인. [리서치 계약](api-content.md) |
-| 시장지표 bare `/exchange`, `/bond` | 후속 재현도 404. 오류에 용도별 대안 안내 | 환율 전체는 `marketindex.py exchange-list`; 요약은 `major-block --block-type exchange` 또는 `bond`. 요약 5개가 전체 목록을 대신하지 않음 |
-| 환율 폴링 `exchange/FX_USDKRW` | 후속 재현도 404 | `marketindex.py detail --category exchange --code FX_USDKRW`는 200인 일회 조회. 폴링 구조·갱신 주기를 보장하지 않음. `.DXY`는 다른 지표이므로 대체 불가 |
-| 업종·테마·그룹 종목의 `sales`, `operatingProfit` 정렬 | 실제 ID `307`, `155`, `14` × 두 정렬, `marketType=ALL&startIdx=0&pageSize=2`가 다시 500. 같은 조건의 `marketSum`은 200 | 현재 UI 정렬 `marketSum`, `accAmount`, `up`, `down`, `accQuant` 사용. 재무 정렬 입력은 호환 유지하고 실패 시 안내. 임의 정렬 변경이나 첫 페이지 안에서의 재정렬로 전체 순위를 가장하지 않음 |
-| 해외 주목 ETF `return1Month`에서 테마 생략 | `startIdx=0&pageSize=2`가 다시 500. 동일 조건에 `middleCode=0101` 추가 시 200 | `foreign_stock.py etf-themes`에서 원하는 테마 선택 후 `home.py notable-etf --nation foreign --order-type return1Month --middle-code CODE`. 임의 테마 삽입·자동 재시도 없음 |
-| 통합 가격 `foreignCodes=.IXIC` | 200이지만 `foreign={}`. `foreignCodes=NVDA.O`는 해당 주식 정보 반환 | 지수에는 검증한 `foreign_stock.py index-basic --code .IXIC` 사용. 통합 가격의 해외 주식과 지수 지원을 구분 |
+| 일반 토론 `/posts?itemCode=005930&pageSize=2` | 2026-09-07 200이지만 다른 종목 `005380`, `028300` 반환 (2026-11-18 200 응답 유지). 공통 요청 helper는 종목별 혼용 방지를 위해 네트워크 요청 전 거부 유지 | `discussion.py item-posts --item-code 005930 --page-size 2`. 기존 `feed` 명령은 원래 종목 옵션을 받지 않았으며 전용 명령도 이미 `/posts/by-item` 사용 |
+| 리서치 v1 8개 경로 | 앞선 감사에서 모두 404, 2026-11-18 `company` 재현도 404. 실패 시 v2 명령 안내 | `research.py category`, `broker-list`, `latest`, `by-items`, `analysis-focus`. v1 `index=0`은 v2 CLI `--page 1`; 옵션·응답 차이 확인. [리서치 계약](api-content.md) |
+| 시장지표 bare `/exchange`, `/bond` | 2026-11-18 재현도 404 (단, bare `/standardInterest`는 200 17건 복귀). 오류에 용도별 대안 안내 | 환율 전체는 `marketindex.py exchange-list` 또는 `exchange-rates-v2`; 요약은 `major-block --block-type exchange` 또는 `bond`. 요약 5개가 전체 목록을 대신하지 않음 |
+| 환율 폴링 `exchange/FX_USDKRW` | 2026-11-18 재현도 404 | `marketindex.py detail --category exchange --code FX_USDKRW`는 200인 일회 조회. 폴링 구조·갱신 주기를 보장하지 않음. `.DXY`는 다른 지표이므로 대체 불가 |
+| 업종·테마·그룹 목록·종목의 `sales`, `operatingProfit`, `marketType=ALL` | 2026-11-18 `{upjong\|theme\|group}/list` 404; `/stocklist`는 Zod 검증으로 `marketType=ALL` 및 `sortType=sales\|operatingProfit`에 **400**(이전 500) 반환 | `category_detail.py`는 v2 랭킹과 `tradingValue`/`changeRate`/`tradingVolume`/`marketCap`을 사용하며 `marketType=ALL` 전송을 생략함. 재무 정렬 입력 호환 및 400/500 실패 안내는 유지 |
+| 해외 주목 ETF `/api/foreign/market/home/notableETF` vs v2 ETF `return1Month` | 2026-11-18 legacy `notableETF?orderType=return1Month`는 404 반환; 현재 화면 v2 `/api/stockSecurity/etfs/v2/foreign?sortType=return1Month&sortDirection=desc`는 무테마에서도 200 확인 | `foreign_stock.py etfs-v2` 우선 사용. 기존 `notableETF` 500 가이드는 호환 유지 |
+| 통합 가격 `foreignCodes=.IXIC` | 2026-09-07 `foreign={}`였으나 2026-11-18 200 스키마 응답(`{domesticKrx, ...}`) 확인; 지수 상세는 전용 API 권장 | 지수에는 검증한 `foreign_stock.py index-basic --code .IXIC` 사용. 통합 가격의 해외 주식과 지수 지원을 구분 |
 
 실패 안내는 확인한 경로·상태·정렬 조합에만 붙입니다. HTTP 상태, 요청 경로, 원격 오류 detail, 예외 종류는 유지합니다. 정상 응답은 그대로 반환하므로 향후 네이버가 해당 요청을 복구했을 때 과거 실패 기록만으로 성공 응답을 차단하지 않습니다. 토론의 잘못된 종목 필터 거부는 의도적인 입력 제한이며 이를 재허용하려면 실제 필터 적용을 재검증해야 합니다.
 

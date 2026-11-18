@@ -126,6 +126,22 @@ def fetch_sector_detail(args: argparse.Namespace) -> Any:
     )
 
 
+def fetch_sector_items_v2(args: argparse.Namespace) -> Any:
+    sort_type, direction = ETF_V2_SORTS[args.order_type]
+    return request_json(
+        build_path(
+            f"/api/stockSecurity/sectors/v2/foreign/{NATION_API_NAMES[args.nation]}/{args.industry_code}/items",
+            {
+                "sortType": sort_type,
+                "sortDirection": direction,
+                "size": args.size,
+                "cursor": args.cursor,
+                "includeOverMarket": args.include_over_market,
+            },
+        )
+    )
+
+
 def fetch_etfs_v2(args: argparse.Namespace) -> Any:
     sort_type, direction = ETF_V2_SORTS[args.order_type]
     return request_json(build_path("/api/stockSecurity/etfs/v2/foreign", {
@@ -256,8 +272,24 @@ def fetch_etf_composition(args: argparse.Namespace) -> Any:
 
 
 def fetch_chart_meta(args: argparse.Namespace) -> Any:
+    code = _canonical_poll_code(args.code, args.asset_type)
     return request_json(
-        f"/api/securityFe/api/fchart/foreign/{args.asset_type}/{args.code}"
+        f"/api/securityFe/api/fchart/foreign/{args.asset_type}/{code}"
+    )
+
+
+def fetch_futures_basic(args: argparse.Namespace) -> Any:
+    code = _canonical_poll_code(args.code, "futures")
+    return request_json(f"/api/securityFe/api/futures/{code}/basic")
+
+
+def fetch_futures_prices(args: argparse.Namespace) -> Any:
+    code = _canonical_poll_code(args.code, "futures")
+    return request_json(
+        build_path(
+            f"/api/securityFe/api/futures/{code}/price",
+            {"page": args.page, "pageSize": args.page_size},
+        )
     )
 
 
@@ -299,6 +331,15 @@ def fetch_stock_world_news(args: argparse.Namespace) -> Any:
         build_path(
             "/api/foreign/worldStock/list",
             {"reutersCode": args.code, "page": args.page, "pageSize": args.page_size},
+        )
+    )
+
+
+def fetch_stock_world_news_v1(args: argparse.Namespace) -> Any:
+    return request_json(
+        build_path(
+            "/api/foreign/worldStock/v1/foreign",
+            {"itemCode": args.code, "size": args.size, "cursor": args.cursor},
         )
     )
 
@@ -381,6 +422,23 @@ def main() -> None:
     add_output(sector_detail)
     sector_detail.set_defaults(func=fetch_sector_detail)
 
+    sector_items_v2 = sub.add_parser(
+        "sector-items-v2",
+        help="Current v2 stock list for a foreign industry/sector",
+    )
+    sector_items_v2.add_argument("--nation", choices=NATIONS, default="usa")
+    sector_items_v2.add_argument("--industry-code", required=True, type=industry_code)
+    sector_items_v2.add_argument("--order-type", choices=tuple(ETF_V2_SORTS), default="priceTop")
+    sector_items_v2.add_argument("--size", type=bounded_int("size", 1, 100), default=20)
+    sector_items_v2.add_argument("--cursor", type=validate_page_cursor)
+    sector_items_v2.add_argument(
+        "--include-over-market",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    add_output(sector_items_v2)
+    sector_items_v2.set_defaults(func=fetch_sector_items_v2)
+
     etf_themes = sub.add_parser("etf-themes", help="US ETF large/middle theme filters")
     add_output(etf_themes)
     etf_themes.set_defaults(func=fetch_etf_themes)
@@ -453,12 +511,22 @@ def main() -> None:
 
     chart_meta = sub.add_parser(
         "chart-meta",
-        help="Foreign stock, ETF, or index chart metadata",
+        help="Foreign stock, ETF, index, or futures chart metadata",
     )
-    chart_meta.add_argument("--asset-type", choices=["stock", "index"], required=True)
-    chart_meta.add_argument("--code", required=True, type=reuters_code)
+    chart_meta.add_argument("--asset-type", choices=["stock", "index", "futures"], required=True)
+    chart_meta.add_argument("--code", required=True, type=poll_code)
     add_output(chart_meta)
     chart_meta.set_defaults(func=fetch_chart_meta)
+
+    futures_basic = sub.add_parser("futures-basic", help="Foreign futures basic/current summary")
+    futures_basic.add_argument("--code", required=True, type=poll_code)
+    add_output(futures_basic)
+    futures_basic.set_defaults(func=fetch_futures_basic)
+
+    futures_prices = sub.add_parser("futures-prices", help="Foreign futures daily price rows")
+    futures_prices.add_argument("--code", required=True, type=poll_code)
+    add_bounded_paging(futures_prices, page_based=True)
+    futures_prices.set_defaults(func=fetch_futures_prices)
 
     poll = sub.add_parser("poll", help="Public current price polling for foreign securities")
     poll.add_argument("security_type", choices=POLL_TYPES)
@@ -485,6 +553,13 @@ def main() -> None:
         command.add_argument("--code", required=True, type=reuters_code)
         add_bounded_paging(command, page_based=True)
         command.set_defaults(func=func)
+
+    world_news_v1 = sub.add_parser("stock-world-news-v1", help="Current v1 cursor-paged foreign stock world news")
+    world_news_v1.add_argument("--code", required=True, type=reuters_code)
+    world_news_v1.add_argument("--size", type=bounded_int("size", 1, 100), default=15)
+    world_news_v1.add_argument("--cursor", type=validate_page_cursor)
+    add_output(world_news_v1)
+    world_news_v1.set_defaults(func=fetch_stock_world_news_v1)
 
     args = parser.parse_args()
     if args.command == "poll" and len(args.code) > 20:

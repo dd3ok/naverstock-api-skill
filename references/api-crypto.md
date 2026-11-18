@@ -5,9 +5,10 @@
 | 목적 | 상태 | Method | Path / params |
 | --- | --- | ---: | --- |
 | 랭킹 목록 | `script-backed` | GET | `/api/coin/rank/{market}?sortType={top\|up\|down\|marketValue}&page=1&pageSize=100` |
+| 검색 인기 코인 랭킹 v2 | `script-backed` | GET | `/api/stockSecurity/crypto/coin/rank/{market}/search?page=1&pageSize=100`. `crypto.py rank-search` |
 | 주요 코인 | `script-backed` | GET | `/api/coin/rank/{market}/majors` |
 | 거래소별 코인 가격 | `script-backed` | GET | `/api/coin/price/{market}/{ticker}` |
-| 거래소 비교용 코인 가격 | `script-backed` | GET | `/api/coin/price/{ticker}?excludeExchange={market}` |
+| 거래소 비교용 코인 가격 | `script-backed` | GET | `/api/coin/price/{ticker}?excludeExchange={market}` 또는 query 생략 전체 거래소 배열. 2026-11-18 BTC 생략 호출 200(2개 항목) 확인 |
 | 기간별 등락률 | `script-backed` | GET | `/api/coin/priceChange/{market}/{ticker}`. 2026-09-07 UPBIT·BITHUMB의 BTC 직접 요청은 `1d`부터 `10y`까지 `period`, `changeRate`, `changeValue`, `baseDate`, `basePrice` 9개 행을 반환 |
 | 코인 차트 메타 payload | `observed` | GET | `/api/securityFe/api/fchart/crypto/{market}/{ticker}`. 2026-09-07 UPBIT/BTC는 HTTP 200으로 `chartNationType`, `chartInfoType`, `itemCode`, `fqnfTicker` 등이 있는 메타데이터 객체를 반환 |
 | 폴링 가격 | `script-backed` | GET | `/api/polling/coin/price?fqnfTickers=BTC_KRW_UPBIT` |
@@ -16,7 +17,7 @@
 | 상세 분봉 캔들 | `script-backed` | GET | `/api/coin/candle/{market}/KRW/{ticker}/minutes/{unit}?from={iso}&to={iso}` |
 | 국내 지수 비교 차트 | `script-backed` | GET | `/api/securityService/chart/compare/domestic/index/{code}/{day\|week}?startDateTime={yyyyMMddHHmmss}&endDateTime={yyyyMMddHHmmss}` |
 | 해외 지수/선물 비교 차트 | `script-backed` | GET | `/api/securityService/chart/compare/foreign/{index\|futures}/{code}/{day\|week}?startDateTime={yyyyMMddHHmmss}&endDateTime={yyyyMMddHHmmss}` |
-| 해외 지수/선물 분봉 비교 차트 | `script-backed` | GET | `/api/securityService/chart/foreign/{INDEX\|FUTURES}/{NASDAQ\|NYSE\|COMEX\|ICE_US}/{code}/interval/{1\|5}?startDateTime={yyyyMMddHHmmss}&endDateTime={yyyyMMddHHmmss}&utc=true` |
+| 해외 지수/선물 분봉 비교 차트 | `script-backed` | GET | `/api/securityService/chart/foreign/{INDEX\|FUTURES}/{NASDAQ\|NYSE\|CBOE\|COMEX\|ICE_US}/{code}/interval/{1\|5}?startDateTime={yyyyMMddHHmmss}&endDateTime={yyyyMMddHHmmss}&utc={true\|false}` |
 | 글로벌 뉴스 | `script-backed` | GET | `/api/coin/globalNews/{ticker}?pageSize=20&offsetTimestamp={timestamp}` |
 | 시장 업데이트 | `script-backed` | GET | `/api/coin/marketUpdates/{ticker}?pageSize=20&offsetTimestamp={timestamp}` |
 | 전체 시장 업데이트 | `script-backed` | GET | `/api/coin/marketUpdates?pageSize=9&offsetTimestamp={timestamp}` |
@@ -31,6 +32,7 @@
 | 글로벌 시장 동향 | `script-backed` | GET | `/api/coin/globalMarketTrend` |
 | CMC 커뮤니티 feed | `script-backed` | GET | `/api/coin/globalCommunity/cmc/latest/{ticker}?pageSize=30&offsetPostTime={lastPostTime}`. 응답 `items`, `hasNext`; 개인정보 필드는 sanitizer로 제거 |
 | 코인 매크로 뉴스 | `script-backed` | GET | `/api/securityFe/api/news/coinmacro?page=1&pageSize=10` |
+| AI 코인 시장 개요 브리핑 | `script-backed` | GET | `/api/securityAi/coinOverviewBriefing/current` (`crypto.py overview-briefing`) |
 | AI 코인 브리핑 | `script-backed` | GET | `/api/securityAi/coinBriefing/current?exchangeType=UPBIT&nfTicker=BTC` |
 | AI 코인 브리핑 이력·상세 | `script-backed` | GET | `/api/securityAi/coinBriefings?exchangeType=UPBIT&nfTicker=BTC&size=20&date={yyyy-MM-dd}&pageToken={token}`, `/api/securityAi/coinBriefing/{id}` |
 

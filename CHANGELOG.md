@@ -4,6 +4,23 @@
 
 ## Unreleased
 
+### 2026-11-18 — 브라우저·정적 청크 재점검 및 변경·신규 API 반영
+
+- **실제 브라우저·네트워크·정적 청크 점검:** `ego-browser`로 `stock.naver.com` 홈·국내·해외·시장지표·가상자산·뉴스·리서치·공지·종목토론·공모주·펀드의 탭·정렬 버튼·페이징·하위 링크와 92개 Next.js `_next/static/chunks/*.js`를 점검하고, 저빈도(`>=1.25s` 간격) 무인증 API 71건 및 `research_check.py --category COMPANY --live`로 실응답을 재확인했습니다.
+- **카테고리 상세·랭킹 live 계약 수정 (`scripts/category_detail.py`):** 기존 `/api/domestic/market/{upjong|theme|group}/list`가 404 HTML을 반환함에 따라 `fetch_ranking`/`resolve_category_no`가 `/api/stockSecurity/rankings/v2/domestic/{industries|themes|groups}`와 `no`/`code` 키를 모두 처리하도록 갱신했습니다. `fetch_stocklist`는 현재 Zod 검증에 맞춰 `sortType`/`sortDirection`/`size`를 사용하고 `marketType=ALL` 전송을 생략하며 `{content}`/`{items}`/`list`를 모두 수용합니다. `naverstock_api.py`의 재무 정렬 실패 안내는 기존 HTTP 500과 함께 현재 HTTP 400 응답에도 적용됩니다.
+- **신규 공개 엔드포인트·옵션 추가(기존 CLI 계약 호환):**
+  - `naverstock_api.py`: `/api/marketcalendars/`(GET)와 `/api/marketcalendars/v1/{weekly-summary,overview,events/search}`(읽기 전용 POST), `/api/news/home`, `/api/autocomplete/opentalk/channelinfo`, `/api/fund/funds/prices`를 allowlist에 추가했습니다.
+  - `home.py`: `trading-sessions`, `calendar-today`, `news-home`, `indicators --additional-info`, `money-story --sort`를 추가했습니다.
+  - `market_stock.py`: `low-pbr`(`/market/stock/kr/management/lowPbr`)을 추가했습니다.
+  - `stock_detail_pages.py`: `daily-prices-paged`, `order-book-v2`, `broker-trades-v2`, `investor-trend-v2`, `investor-trend-paged`, `earning-calls`, `etf-detail flow-sum`을 추가했습니다.
+  - `foreign_stock.py`: `sector-items-v2`, `stock-world-news-v1`, `futures-basic`, `futures-prices`, `chart-meta --asset-type futures`를 추가했습니다.
+  - `marketindex.py`: `exchange-rates-v2`, `bond-nations`, `indicator-chart`를 추가했습니다.
+  - `crypto.py`: `rank-search`, `overview-briefing`, `foreign-interval-chart --exchange CBOE`를 추가했습니다.
+  - `news.py`, `research.py`, `discussion.py`, `fund.py`: 각각 `world-news-v1`/`home-feed`, `industries`, `topics`/`recommended-topic-posts`/`rankings-with-stats`, 일괄 `prices`를 추가했습니다.
+- **문서·제한·폴링 메모 갱신:** 프론트엔드 실시간 폴링이 `https://polling.finance.naver.com/api/realtime/...`로 이동한 현황(`stock.naver.com/api/polling/*` 200 유지 포함), `/api/securityService/marketindex/standardInterest` 단일 경로 200 복귀, `/api/foreign/market/home/notableETF` 404 vs `/api/stockSecurity/etfs/v2/foreign` `return1Month` 200, `/api/community/discussion/posts?itemCode=005930` 200 동작을 문서에 반영했습니다.
+
+**검증:** `python -m compileall -q scripts`, 전체 단위 테스트, `ruff check`, 모든 스크립트 `--help`, 임시 설치 스모크 테스트를 실행해 검증했습니다.
+
 ### 2026-09-22 — 작업 경계 명확화
 
 - 제외 대상인 사용자 프로필과 지원되는 공개 코인 프로필을 구분하고, 코인 프로필을 `crypto.py` 라우팅에 명시했습니다. 중복된 결과 보고 지침도 정리했습니다.

@@ -111,6 +111,10 @@ def fetch_allocation(args: argparse.Namespace) -> Any:
     return request_json(_detail_path(args.code, "fund-allocation"))
 
 
+def fetch_prices(args: argparse.Namespace) -> Any:
+    return request_json(build_path("/api/fund/funds/prices", {"fundCodes": ",".join(args.code)}))
+
+
 def _add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--code",
@@ -152,7 +156,20 @@ def main() -> None:
     daily.add_argument("--size", type=bounded_int("size", 1, 100), default=10)
     daily.set_defaults(func=fetch_daily_prices)
 
+    prices = sub.add_parser("prices", help="Batch fund prices for up to 20 codes")
+    prices.add_argument(
+        "--code",
+        action="append",
+        required=True,
+        type=fund_code,
+        help="Public fund code; repeat for up to 20 codes",
+    )
+    prices.add_argument("--output")
+    prices.set_defaults(func=fetch_prices)
+
     args = parser.parse_args()
+    if args.command == "prices" and len(args.code) > 20:
+        parser.error("prices accepts at most 20 --code values")
     emit_output(render_json(args.func(args)), args.output)
 
 

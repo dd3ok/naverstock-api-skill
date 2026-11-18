@@ -139,6 +139,10 @@ def fetch_analysis_focus(args: argparse.Namespace) -> Any:
     return request_json(f"{RESEARCH_BASE}/analysis-focus")
 
 
+def fetch_industries(_: argparse.Namespace) -> Any:
+    return request_json(f"{RESEARCH_BASE}/industry/industries")
+
+
 def fetch_home(args: argparse.Namespace) -> dict[str, Any]:
     """Fetch independent home sections without hiding unavailable endpoints as empty data."""
 
@@ -335,6 +339,10 @@ def main() -> None:
     focus = sub.add_parser("analysis-focus", help="Research analysis focus block")
     focus.add_argument("--output")
     focus.set_defaults(func=fetch_analysis_focus)
+
+    industries = sub.add_parser("industries", help="Industry analysis focus ranking metadata")
+    industries.add_argument("--output")
+    industries.set_defaults(func=fetch_industries)
 
     home = sub.add_parser(
         "home",

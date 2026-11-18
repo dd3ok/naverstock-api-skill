@@ -1,7 +1,7 @@
 # NaverStock Web API 카탈로그
 
-기준 관찰일: 2026-05-05, 부분 재점검: 2026-07-09, 전범위 재감사: 2026-07-17, 전체 정적 재점검 및 변경 경로 실호출: 2026-07-20, 브라우저·탭·페이징 재점검: 2026-07-21, route·transport·chunk 재점검: 2026-08-04, 전체 링크·탭·페이징 재감사: 2026-08-13, 브라우징·계약 갱신 및 실응답 확대 검증: 2026-09-07
-추가 점검: 2026-09-16 공개 메뉴·페이지 유형·하위 탭·관련 링크·페이징 브라우징 및 변경 API 실응답. 아래 도메인별 API 문서와 [알려진 제한](known-limitations.md)을 참조하세요.
+기준 관찰일: 2026-05-05, 부분 재점검: 2026-07-09, 전범위 재감사: 2026-07-17, 전체 정적 재점검 및 변경 경로 실호출: 2026-07-20, 브라우저·탭·페이징 재점검: 2026-07-21, route·transport·chunk 재점검: 2026-08-04, 전체 링크·탭·페이징 재감사: 2026-08-13, 브라우징·계약 갱신 및 실응답 확대 검증: 2026-09-07, 추가 점검: 2026-09-16
+최신 전범위 점검: 2026-11-18 (`ego-browser` 공개 메뉴·탭·정렬·페이징 + Next.js static chunk 92개 + 무인증 실호출 71건). 아래 도메인별 API 문서와 [알려진 제한](known-limitations.md)을 참조하세요.
 관찰 출처: 로그인하지 않은 공개 `https://stock.naver.com/` 페이지와 Next.js chunk  
 기본 호스트: `https://stock.naver.com`
 
@@ -31,6 +31,8 @@
 
 ## 페이지 점검 메모
 
+2026-11-18 전범위 브라우저(`ego-browser`)·네트워크·정적 chunk 92개·무인증 실호출 71건 재점검에서 UI 실시간 폴링이 `https://polling.finance.naver.com/api/realtime/...`로 이동한 현황(기존 `stock.naver.com/api/polling/*` 200 유지), 업종·테마·그룹 목록의 `rankings/v2/domestic/*` 전환 및 `stocklist` Zod/응답(`sortType`/`sortDirection`/`items`) 변경, 저PBR·투자자동향·선물상세·증시캘린더·뉴스홈·토픽 등 신규 공개 API를 반영했습니다.
+
 2026-09-16 후속 점검에서는 공개 메뉴의 페이지 유형을 직접 순회하고, 국내외 목록·종목 상세·공모주·검색/펀드·시장지표·가상자산·콘텐츠의 탭과 페이징을 대조했습니다. 추가 공개 GET24회의 유효 JSON(22회 HTTP200 별도 관찰, 인기ETF 집계2회 배열 확인)을 확인하고 새 명령을 보완했습니다. 모든 개별 상품·기간·필터 조합의 완료를 뜻하지 않습니다. 아래 과거 감사 기록은 당시 범위입니다.
 
 2026-09-16에는 공개 HTML 8개와 연결된 정적 JS 33개를 대조하고, 신규 관찰 API 2종의 무인증 표본 응답을 확인했습니다. [홈·시장 API](api-home-market-fund.md)의 `market-status`와 `indicators-v1`로 제공하며 기존 명령의 응답 계약은 유지합니다. [국내 시세 해석](api-domestic.md#krx-애프터마켓과-시세-해석)에 9월 14일 애프터마켓 반영과 NXT 차트의 미검증 계약을 구분했습니다. 기존 ETF v3·인기 ETF 등 `observed` 항목을 이번 신규 출시로 세지 않습니다. 각 경로의 첫 배포일, 모든 시점·상품·필터의 가용성은 확정하지 않았습니다.
@@ -56,7 +58,7 @@
 | `/market/stock/kr/stocklist/{capitalization\|priceTop\|top\|upper\|flat\|lower\|trading\|quantHigh\|quantLow\|high52week\|low52week\|dividend\|new\|konex\|foreignHold\|management\|tradingHalt\|investmentAlert\|investmentWarning\|investmentRisk}` | 200 | 기존 목록 탭 route. 표는 기본 100행을 렌더링하고 `목록의 마지막입니다` sentinel로 끝나며, API는 `startIdx`·`pageSize`를 사용 |
 | `/market/stock/kr/{dividend\|foreignHold\|new\|konex\|management}` | 200/redirect | 2026-08-04 현재 상단 메뉴 route. 배당은 `/dividend/revenue`, 관리종목은 `/management` 계열을 사용 |
 | `/market/stock/kr/dividend/{revenue\|order}` | 200 | 수익률순은 `dividendRate`, 배당금순은 `dividend` query를 사용 |
-| `/market/stock/kr/management/{tradingHalt\|investmentAlert\|investmentWarning\|investmentRisk}` | 200 | 관리·거래정지·투자주의/경고/위험 현재 route |
+| `/market/stock/kr/management/{lowPbr\|tradingHalt\|investmentAlert\|investmentWarning\|investmentRisk}` | 200 | 저PBR(`lowPbrListing`)·관리·거래정지·투자주의/경고/위험 현재 route |
 | `/market/stock/kr/{industry\|theme\|groups}` | 307 | 각각 `/1`로 이동 |
 | `/market/stock/kr/{industry\|theme\|groups}/{rank}?no={actualId}` | 200 | path 숫자는 현재 랭킹 순번이며 query/API category `no`와 다를 수 있음 |
 | `/market/stock/kr/etf` | redirect 관찰 | 과거 `priceTop?etfListEntry=1`, 2026-09-07 브라우저 메뉴 이동은 `priceTop`으로 진입. entry query를 필수 계약으로 가정하지 않음 |
@@ -90,7 +92,7 @@
 | `/market/stock/global/industry/{chn\|hkg\|jpn\|vnm}` | 307 | 현재 첫 industry code로 이동 |
 | `/market/stock/global/industry/{chn\|hkg\|jpn\|vnm}/{industryCode}` | 200 | 국가별 업종 상세와 구성 종목 |
 | `/domestic/stock/{itemCode}` | 307 | `/price`로 이동 |
-| `/domestic/stock/{itemCode}/{price\|news\|notice\|ir\|discussion\|research\|shortTrade\|investmentinfo}` | 200 | 종목 상세 하위 페이지 |
+| `/domestic/stock/{itemCode}/{price\|news\|notice\|ir\|discussion\|research\|shortTrade\|investmentinfo\|tradingTrend}` | 200 | 종목 상세 하위 페이지 (`tradingTrend`는 투자자 동향) |
 | `/domestic/stock/{itemCode}/{notice\|ir\|research}/{articleId}` | 200 | 공시·IR·종목 리서치 상세. IR ID는 숫자 외 `BOARD...`, `PLAN...`도 사용 |
 | `/domestic/index/{indexCode}/price` | 200 | 국내 지수 상세. 기본·장중·일별 시세와 차트 메타를 로드 |
 | `/domestic/stock/{itemCode}/info` | 307 | `/info/company`로 이동 |
@@ -109,7 +111,7 @@
 | `/research`, `/research/{daily\|company\|industry\|invest\|economy\|debenture}` | 200 | 리서치 홈과 카테고리 페이지 |
 | `/research/{daily\|company\|industry\|invest\|economy\|debenture}/{researchId}` | 200 | 리서치 상세. `daily` 화면의 API type은 `market` |
 | `/research/firm/{brokerId}` | 200 | 리서치 홈의 발행사 링크. 발행사에 따라 하나 이상의 `brokerCodes`를 반복해 `market` 목록을 조회 |
-| `/discussion`, `/discussion/feed/{all\|hot\|marketindex\|my}` | 200 | `/discussion/feed`는 `/all`로 이동. `my`는 로그인 개인 영역이라 제외 |
+| `/discussion`, `/discussion/feed/{all\|topic\|hot\|marketindex\|my}` | 200 | `/discussion/feed` 및 `/all`은 `/topic`으로 이동(2026-11-18 확인). `my`는 로그인 개인 영역이라 제외 |
 
 `/domestic/stock/{itemCode}/shortTrade`는 `stock.naver.com` JSON API가 아니라 `https://data.krx.co.kr/comm/srt/srtLoader/index.cmd?screenId=MDCSTAT300&isuCd={itemCode}` iframe을 렌더링합니다. 이 외부 KRX 화면을 `stock.naver.com/api/...` 엔드포인트처럼 취급하지 않습니다.
 
@@ -124,7 +126,7 @@
 
 | 방식 | 상태 | 관찰 결과 |
 | --- | --- | --- |
-| REST polling | `script-backed` | 공개 현재가·지수·원자재·가상자산 갱신은 `/api/polling/domestic/*`, `/api/polling/worldstock/*`, `/api/polling/marketindex/*`, `/api/polling/coin/price`를 사용합니다. 응답의 `pollingInterval` 이상을 다음 호출 전 최소 대기 간격으로 사용해 호출 빈도를 제한합니다. |
+| REST polling | `script-backed` | 공개 현재가·지수·원자재·가상자산 갱신은 `/api/polling/domestic/*`, `/api/polling/worldstock/*`, `/api/polling/marketindex/*`, `/api/polling/coin/price`를 사용합니다. 2026-11-18 live UI는 `https://polling.finance.naver.com/api/realtime/...`(`domestic/v2/stock`, `/event-notice-bar/banner/*` 포함)로 이동했으나 `stock.naver.com/api/polling/*`도 계속 200을 반환하며 응답의 `pollingInterval` 이상 대기합니다. |
 | Socket.IO WebSocket | `excluded` | 보유종목 refresh chunk가 `GET /api/personal/users/holding/refresh/session-io`로 세션 URL을 받고 `http(s)`를 `ws(s)`로 바꿔 `transports: ["websocket"]`로 연결합니다. `nchat:channel`에 `user_{nidNo}`를 subscribe하고 `holding_stock`, `FEStockConnected` 이벤트를 받지만 로그인·개인 보유종목 범위라 연결·기록·재현하지 않습니다. 트리거 POST는 `/api/personal/users/holding/stocks/refresh`입니다. |
 | SSE | `excluded` | 공통 Fender script에 `text/event-stream`을 처리하는 범용 fetch client가 있으나, 로그인하지 않은 증권 페이지 네트워크와 stock chunk에서 구체적인 공개 증권 SSE URL은 확인되지 않았습니다. 공유 bundle의 `/api/chat` 계열도 증권 데이터 API로 분류하지 않습니다. |
 
@@ -166,6 +168,6 @@
 | `/api/community/profile/users/*` mutation-like routes | `excluded` | 사용자 프로필과 이미지 워크플로. |
 | `/api/domestic/home/recommend-aggregate` | `excluded` | 현재 웹 번들은 credentials 포함 POST와 연령/자산 범위 개인화 필드를 사용합니다. |
 | `/api/autocomplete/search/recent`, `/api/personal/*/recent/products` | `excluded` | 최근 검색·최근 상품 개인 상태. |
-| `/api/stockSecurity/researches/v2/{type}/{id}/view` | `excluded` | GET이지만 조회수·최근 열람 상태를 기록할 가능성이 있어 호출하지 않음. 안전한 core detail 사용 |
+| `/api/stockSecurity/researches/v2/{type}/{id}/view` | `excluded` | `POST`(2026-11-18 확인)로 조회수·최근 열람 상태를 기록할 가능성이 있어 호출하지 않음. 안전한 core detail 사용 |
 | allowlist 밖의 `https://finance.naver.com/*`와 WiseReport URL | `excluded` | 외부 소스는 [external-sources.md](external-sources.md)의 고정 host/path/query만 허용합니다. 전체 레거시 비교는 [dd3ok/naverfinance-api-skill](https://github.com/dd3ok/naverfinance-api-skill)을 참고합니다. |
 | 텔레메트리, 광고, 정적 chunk, 폰트, 이미지 | `excluded` | 주식 정보 API가 아닙니다. |

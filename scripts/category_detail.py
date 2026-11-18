@@ -25,14 +25,50 @@ ORDER_TYPES = {
     "operatingProfit": "operatingProfit",
 }
 
+RANKING_PATHS = {
+    "industry": "industries",
+    "theme": "themes",
+    "groups": "groups",
+}
+
+RANKING_SORT_TYPES = {
+    "changeRate": "changeRate",
+    "up": "changeRate",
+    "marketSum": "marketCap",
+    "marketCap": "marketCap",
+}
+
+STOCKLIST_SORTS = {
+    "accQuant": ("tradingVolume", "desc"),
+    "quantTop": ("tradingVolume", "desc"),
+    "tradingVolume": ("tradingVolume", "desc"),
+    "accAmount": ("tradingValue", "desc"),
+    "priceTop": ("tradingValue", "desc"),
+    "tradingValue": ("tradingValue", "desc"),
+    "up": ("changeRate", "desc"),
+    "changeRate": ("changeRate", "desc"),
+    "down": ("changeRate", "asc"),
+    "changeRateAsc": ("changeRate", "asc"),
+    "marketSum": ("marketCap", "desc"),
+    "marketCap": ("marketCap", "desc"),
+    "sales": ("sales", "desc"),
+    "operatingProfit": ("operatingProfit", "desc"),
+}
+
 
 def fetch_ranking(category: str, start_idx: int, page_size: int, sort_type: str) -> list[dict[str, Any]]:
     path = build_path(
-        f"/api/domestic/market/{CATEGORY_PATHS[category]}/list",
-        {"startIdx": start_idx, "pageSize": page_size, "sortType": sort_type},
+        f"/api/stockSecurity/rankings/v2/domestic/{RANKING_PATHS[category]}",
+        {
+            "sortType": RANKING_SORT_TYPES.get(sort_type, sort_type),
+            "size": min(max(start_idx + page_size, 1), 100),
+            "period": "daily",
+        },
     )
-    payload = request_json(path)
-    return _content_or_list(payload)
+    rows = _content_or_list(request_json(path))
+    if start_idx > 0:
+        return rows[start_idx : start_idx + page_size]
+    return rows
 
 
 def fetch_info(category: str, category_no: str, market_type: str) -> Any:
@@ -49,16 +85,22 @@ def fetch_stocklist(
     start_idx: int,
     page_size: int,
 ) -> list[dict[str, Any]]:
+    sort_type, sort_direction = STOCKLIST_SORTS.get(
+        order_type, (ORDER_TYPES.get(order_type, order_type), "desc")
+    )
     path = build_path(
         f"/api/domestic/market/{CATEGORY_PATHS[category]}/{category_no}/stocklist",
         {
-            "marketType": market_type,
-            "orderType": ORDER_TYPES.get(order_type, order_type),
-            "startIdx": start_idx,
-            "pageSize": page_size,
+            "marketType": None if market_type == "ALL" else market_type,
+            "sortType": sort_type,
+            "sortDirection": sort_direction,
+            "size": min(max(start_idx + page_size, 1), 100),
         },
     )
-    return _content_or_list(request_json(path))
+    rows = _content_or_list(request_json(path))
+    if start_idx > 0:
+        return rows[start_idx : start_idx + page_size]
+    return rows
 
 
 def resolve_category_no(args: argparse.Namespace) -> str:
@@ -69,7 +111,8 @@ def resolve_category_no(args: argparse.Namespace) -> str:
     ranking = fetch_ranking(args.category, ranking_start_idx, rank, args.sort_type)
     if len(ranking) < rank:
         raise RuntimeError(f"Rank {rank} was not available in {args.category} ranking")
-    return str(ranking[rank - 1]["no"])
+    item = ranking[rank - 1]
+    return str(item["no"] if "no" in item else item["code"])
 
 
 def fetch_rank(args: argparse.Namespace) -> Any:
@@ -108,8 +151,10 @@ def fetch_stocks(args: argparse.Namespace) -> Any:
 def _content_or_list(payload: Any) -> list[dict[str, Any]]:
     if isinstance(payload, list):
         return payload
-    if isinstance(payload, dict) and isinstance(payload.get("content"), list):
-        return payload["content"]
+    if isinstance(payload, dict):
+        for key in ("content", "items"):
+            if isinstance(payload.get(key), list):
+                return payload[key]
     raise RuntimeError(f"Unexpected list payload shape: {payload!r}")
 
 

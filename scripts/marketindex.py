@@ -237,6 +237,22 @@ def fetch_bank_round_chart(args: argparse.Namespace) -> Any:
     )
 
 
+def fetch_exchange_rates_v2(_: argparse.Namespace) -> Any:
+    return request_json("/api/stockSecurity/exchange-rates/v2/latest")
+
+
+def fetch_bond_nations(_: argparse.Namespace) -> Any:
+    return request_json("/api/securityService/economic/bond/nations")
+
+
+def fetch_indicator_chart(args: argparse.Namespace) -> Any:
+    if args.category == "exchange":
+        base = f"/api/securityService/chart/domestic/exchange/{args.code}"
+    else:
+        base = f"/api/securityService/chart/foreign/governmentBond/{args.code}"
+    return request_json(build_path(base, {"periodType": args.period_type, "range": args.range}))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -443,6 +459,25 @@ def main() -> None:
     bank_chart.add_argument("--bank-type", type=_short_token, default="hana", help="Observed value: hana")
     bank_chart.add_argument("--output")
     bank_chart.set_defaults(func=fetch_bank_round_chart)
+
+    rates_v2 = sub.add_parser("exchange-rates-v2", help="Latest exchange rates list (57 currencies)")
+    rates_v2.add_argument("--output")
+    rates_v2.set_defaults(func=fetch_exchange_rates_v2)
+
+    bond_nations = sub.add_parser("bond-nations", help="Government bond supported nations")
+    bond_nations.add_argument("--output")
+    bond_nations.set_defaults(func=fetch_bond_nations)
+
+    ind_chart = sub.add_parser(
+        "indicator-chart",
+        help="Exchange-rate or government-bond indicator chart points",
+    )
+    ind_chart.add_argument("--category", choices=["exchange", "government-bond"], required=True)
+    ind_chart.add_argument("--code", type=_market_code, required=True, help="Example: FX_USDKRW or US10YT=RR")
+    ind_chart.add_argument("--period-type", type=_short_token, default="day")
+    ind_chart.add_argument("--range", type=_query_token)
+    ind_chart.add_argument("--output")
+    ind_chart.set_defaults(func=fetch_indicator_chart)
 
     args = parser.parse_args()
     if args.command in {"economic-upcoming", "economic-release"} and args.nation_type:

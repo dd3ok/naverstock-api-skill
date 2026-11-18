@@ -102,6 +102,10 @@
 - `$naverstock-web-api로 업비트 BTC 가격 상세를 가져오고 거래소 후보를 비교해줘.`
 - `$naverstock-web-api로 네이버증권 COMPANY 리서치 최신 목록, 리서치 랭킹, 산업 리서치 블록을 가져와줘.`
   기대 확인: `research.py category`, `ranking`, `industry-research`를 사용합니다. 카테고리와 산업 목록은 `/api/stockSecurity/researches/v2/{type}`, 랭킹은 현재 유지되는 `/api/domestic/research/ranking`을 사용합니다.
+- `$naverstock-web-api로 삼성전자 투자자 동향 탭의 거래원·일자별 수급과 v2 호가·어닝콜을 조회해줘.`
+  기대 확인: `stock_detail_pages.py broker-trades-v2`, `investor-trend-paged`, `order-book-v2`, `earning-calls`를 사용합니다.
+- `$naverstock-web-api로 국내 저PBR 종목, 오늘 증시 캘린더와 뉴스홈, 환율 v2 최신 표를 조회해줘.`
+  기대 확인: `market_stock.py low-pbr`, `home.py calendar-today`, `home.py news-home`, `marketindex.py exchange-rates-v2`를 사용하며 개인 관심종목/포트폴리오 POST는 호출하지 않습니다.
 - `$naverstock-web-api로 리서치 홈의 최신·랭킹·주간 인기 섹션을 한 번에 가져와줘.`
   기대 확인: `research.py home`을 사용합니다. 일반 섹션 실패는 빈 데이터로 위장하지 않고 `unavailable`로 표시하고 다음 섹션을 조회합니다. 403·429·redirect·비정상 JSON 등 핵심 중단 오류는 즉시 전체 조회를 중단합니다.
 - `$naverstock-web-api로 로그인이나 작성 없이 종목 페이지 토론 읽기 API를 점검해줘.`
