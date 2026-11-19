@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+현재 미출시 변경은 없습니다.
+
+## v1.1.0 — 2026-11-19
+
+`v1.0.0` 이후 누적된 공개 API 점검·확장(WiseReport v3 및 레거시 조건검색 통합, KRX 애프터마켓 장 상태·`indicators-v1`, 국내 v3/저PBR/`tradingTrend`/ETF·해외 섹터/선물/뉴스·펀드·시장지표·가상자산·증시캘린더·토픽 확장, `category_detail.py` v2/Zod 계약 복구), 안전성·입력 검증 강화(`research_check.py`, 리다이렉트·조기 EOF·무시 필터·개인정보 차단) 및 Python 3.14 런타임 기준 전환(Python 3.10–3.13 지원 종료)을 포함한 첫 부 버전 릴리스입니다. 상세 릴리스 노트는 [v1.1.0 릴리스](https://github.com/dd3ok/naverstock-api-skill/releases/tag/v1.1.0)를 참고하세요.
+
 ### 2026-11-18 — 브라우저·정적 청크 재점검 및 변경·신규 API 반영
 
 - **실제 브라우저·네트워크·정적 청크 점검:** `ego-browser`로 `stock.naver.com` 홈·국내·해외·시장지표·가상자산·뉴스·리서치·공지·종목토론·공모주·펀드의 탭·정렬 버튼·페이징·하위 링크와 92개 Next.js `_next/static/chunks/*.js`를 점검하고, 저빈도(`>=1.25s` 간격) 무인증 API 71건 및 `research_check.py --category COMPANY --live`로 실응답을 재확인했습니다.
